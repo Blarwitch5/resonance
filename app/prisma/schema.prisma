@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Formats supportés par Resonance
+enum Format {
+  VINYL
+  CD
+  CASSETTE
+}
+
+model User {
+  id              String       @id @default(cuid())
+  email           String       @unique
+  name            String?
+  firstName       String?
+  lastName        String?
+  imageUrl        String?
+  username        String?      @unique
+  emailVerified   Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  lastLoginAt     DateTime?
+  banned          Boolean      @default(false)
+  lastActiveAt    DateTime?
+  locked          Boolean      @default(false)
+  phoneNumber     String?
+  privateMetadata String?
+  publicMetadata  String?
+  collections     Collection[]
+  items           Item[]
+  wishlist        Wishlist[]
+  accounts        Account[]
+  sessions        Session[]
+
+  @@index([email])
+  @@index([emailVerified])
+  @@map("users")
+}
+
+model Collection {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String
+  description String?
+  isPublic    Boolean  @default(false)
+  coverImage  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       Item[]
+
+  @@unique([userId, slug])
+  @@index([userId])
+  @@index([slug])
+  @@map("collections")
+}
+
+// Modèle unifié pour tous les formats (Vinyl, CD, Cassette)
+model Item {
+  id           String       @id @default(cuid())
+  slug         String       // URL lisible : artiste-album-annee (unicité par user)
+  discogsId    Int
+  title        String
+  artist       String
+  year         Int?
+  genre        String?
+  country      String?
+  label        String?
+  format       Format       // VINYL, CD, ou CASSETTE
+  barcode      String?
+  coverUrl     String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  addedAt      DateTime     @default(now())
+  userId       String
+  collectionId String?
+  metadata     ItemMetadata?
+  collection   Collection?  @relation(fields: [collectionId], references: [id])
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Index et contraintes
+  @@unique([userId, slug])
+  @@unique([discogsId, userId, collectionId]) // Un utilisateur ne peut avoir qu'un seul exemplaire d'un item Discogs par collection
+  @@index([userId])
+  @@index([collectionId])
+  @@index([discogsId])
+  @@index([format])
+  @@map("items")
+}
+
+// Métadonnées unifiées pour tous les formats
+model ItemMetadata {
+  id               String    @id @default(cuid())
+  itemId           String    @unique
+  customCoverPath  String?
+  acquisitionDate  DateTime?
+  purchaseLocation String?
+  purchasePrice    Decimal?
+  condition        String?
+  personalRating   Float?
+  isListened       Boolean   @default(false)
+  isFavorite       Boolean   @default(false)
+  personalNotes    String?
+  customTags       String?   // JSON array: ["tag1", "tag2"]
+  // Champs spécifiques par format
+  vinylSpeed       String?   // 33, 45, 78 RPM
+  cdType           String?   // CD, CD-R, CD-RW
+  cassetteType     String?   // Type I, Type II, Type IV
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  item             Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@map("item_metadata")
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  discogsId Int
+  title     String
+  artist    String
+  year      Int?
+  genre     String?
+  coverUrl  String?
+  format    Format   // Format souhaité
+  priority  Int      @default(1)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([discogsId, userId])
+  @@index([userId])
+  @@index([discogsId])
+  @@index([format])
+  @@map("wishlist")
+}
+
+// Better-auth tables
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("sessions")
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  userId            String
+  accountId         String
+  providerId        String
+  accessToken       String?
+  refreshToken      String?
+  idToken           String?
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope             String?
+  password          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([identifier, value])
+  @@index([identifier])
+  @@map("verifications")
+}

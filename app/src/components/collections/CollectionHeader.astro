@@ -1,0 +1,312 @@
+---
+import Folder from '@lucide/astro/icons/folder'
+import Trash2 from '@lucide/astro/icons/trash-2'
+import Pencil from '@lucide/astro/icons/pencil'
+import OptimizedImage from '../ui/OptimizedImage.astro'
+import type { Collection } from '@prisma/client'
+
+type CollectionHeaderProps = {
+  collection: Collection & {
+    itemCount?: number
+    vinylCount?: number
+    cdCount?: number
+    cassetteCount?: number
+    coverImage?: string | null
+  }
+}
+
+const { collection } = Astro.props as CollectionHeaderProps
+---
+
+<div class="glass-card mb-8 overflow-hidden rounded-2xl">
+  <!-- Cover -->
+  <div class="aspect-video overflow-hidden bg-linear-to-br from-primary/20 to-secondary/20">
+    {collection.coverImage ? (
+      <OptimizedImage
+        src={collection.coverImage}
+        alt={collection.name}
+        width={1200}
+        height={675}
+        loading="eager"
+        aspectRatio="auto"
+        class="h-full w-full object-cover"
+      />
+    ) : (
+      <div class="flex h-full items-center justify-center">
+        <Folder size={64} class="fill-none stroke-2 text-primary stroke-primary opacity-50" />
+      </div>
+    )}
+  </div>
+
+  <!-- Info -->
+  <div class="p-8">
+    <div class="flex items-start justify-between">
+      <div class="flex-1">
+        <h1 class="mb-2 text-3xl font-bold text-neutral">{collection.name}</h1>
+        {collection.description && (
+          <p class="mb-4 text-muted">{collection.description}</p>
+        )}
+
+        <!-- Stats -->
+        <div class="flex flex-wrap gap-4">
+          <div>
+            <span class="text-2xl font-bold text-primary">
+              {collection.itemCount || 0}
+            </span>
+            <span class="text-sm text-muted"> albums</span>
+          </div>
+          {collection.vinylCount && collection.vinylCount > 0 && (
+            <div>
+              <span class="text-xl font-bold text-format-vinyl">
+                {collection.vinylCount}
+              </span>
+              <span class="text-sm text-muted"> vinyls</span>
+            </div>
+          )}
+          {collection.cdCount && collection.cdCount > 0 && (
+            <div>
+              <span class="text-xl font-bold text-format-cd">
+                {collection.cdCount}
+              </span>
+              <span class="text-sm text-muted"> CDs</span>
+            </div>
+          )}
+          {collection.cassetteCount && collection.cassetteCount > 0 && (
+            <div>
+              <span class="text-xl font-bold text-format-cassette">
+                {collection.cassetteCount}
+              </span>
+              <span class="text-sm text-muted"> cassettes</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-3">
+        <button
+          type="button"
+          id="edit-collection-btn"
+          data-collection-id={collection.id}
+          class="btn-secondary-surface flex items-center gap-2 rounded-lg px-4 py-2"
+          aria-label="Modifier la collection"
+        >
+          <Pencil size={18} class="fill-none stroke-2" />
+          <span class="hidden sm:inline">Modifier</span>
+        </button>
+        <button
+          type="button"
+          id="delete-collection-btn"
+          data-collection-id={collection.id}
+          data-collection-name={collection.name}
+          class="btn-danger flex items-center gap-2 rounded-lg px-4 py-2"
+          aria-label="Supprimer la collection"
+        >
+          <Trash2 size={18} class="fill-none stroke-2" />
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal d'édition -->
+<div id="edit-collection-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-md">
+  <div class="glass-card mx-4 w-full max-w-lg rounded-2xl p-6">
+    <h2 class="mb-4 text-xl font-bold text-neutral">Modifier la collection</h2>
+    <form id="edit-collection-form" class="space-y-4">
+      <div>
+        <label for="edit-name" class="mb-2 block text-sm font-medium text-neutral">
+          Nom de la collection *
+        </label>
+        <input
+          type="text"
+          id="edit-name"
+          name="name"
+          required
+          class="w-full rounded-xl border border-border bg-surface p-3 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+        />
+      </div>
+      <div>
+        <label for="edit-description" class="mb-2 block text-sm font-medium text-neutral">
+          Description (optionnel)
+        </label>
+        <textarea
+          id="edit-description"
+          name="description"
+          rows={4}
+          class="w-full rounded-xl border border-border bg-surface p-3 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+        ></textarea>
+      </div>
+      <div class="flex gap-3">
+        <button
+          type="submit"
+          class="btn-primary-gradient flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3"
+        >
+          Enregistrer
+        </button>
+        <button
+          type="button"
+          id="cancel-edit-btn"
+          class="btn-secondary-surface flex items-center justify-center rounded-xl px-6 py-3"
+        >
+          Annuler
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // TypeScript fonctionne nativement dans les scripts Astro !
+  (function() {
+    const collectionId = document.getElementById('edit-collection-btn')?.dataset.collectionId
+    const collectionName = document.getElementById('delete-collection-btn')?.dataset.collectionName
+    const editBtn = document.getElementById('edit-collection-btn')
+    const deleteBtn = document.getElementById('delete-collection-btn')
+    const editModal = document.getElementById('edit-collection-modal')
+    const editForm = document.getElementById('edit-collection-form') as HTMLFormElement | null
+    const cancelEditBtn = document.getElementById('cancel-edit-btn')
+    const editNameInput = document.getElementById('edit-name') as HTMLInputElement | null
+    const editDescriptionInput = document.getElementById('edit-description') as HTMLTextAreaElement | null
+
+    // Charger les données de la collection dans le formulaire d'édition
+    function loadCollectionData(): void {
+      const nameElement = document.querySelector('h1.text-3xl')
+      const descElement = document.querySelector('p.text-muted')
+      
+      if (nameElement && editNameInput) {
+        editNameInput.value = nameElement.textContent || ''
+      }
+      if (descElement && editDescriptionInput) {
+        editDescriptionInput.value = descElement.textContent || ''
+      }
+    }
+
+    // Ouvrir le modal d'édition
+    editBtn?.addEventListener('click', function() {
+      loadCollectionData()
+      if (editModal) {
+        editModal.classList.remove('hidden')
+        editModal.classList.add('flex')
+      }
+    })
+
+    // Fermer le modal d'édition
+    cancelEditBtn?.addEventListener('click', function() {
+      if (editModal) {
+        editModal.classList.add('hidden')
+        editModal.classList.remove('flex')
+      }
+    })
+
+    // Fermer le modal en cliquant sur l'overlay
+    editModal?.addEventListener('click', function(event: MouseEvent) {
+      if (event.target === editModal) {
+        editModal.classList.add('hidden')
+        editModal.classList.remove('flex')
+      }
+    })
+
+    // Soumettre le formulaire d'édition
+    editForm?.addEventListener('submit', async function(event: SubmitEvent) {
+      event.preventDefault()
+      
+      if (!editForm) return
+      
+      const formData = new FormData(editForm)
+      const collectionData = {
+        name: formData.get('name'),
+        description: formData.get('description') || null,
+      }
+
+      const submitBtn = editForm.querySelector('button[type="submit"]') as HTMLButtonElement | null
+      const originalText = submitBtn?.textContent || ''
+      if (submitBtn) {
+        submitBtn.disabled = true
+        submitBtn.textContent = 'Enregistrement...'
+      }
+
+      try {
+        const response = await fetch('/api/collections/' + collectionId + '/update', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(collectionData),
+        })
+
+        const responseData = await response.json()
+
+        if (response.ok) {
+          if (window.toast) {
+            window.toast.success('Collection modifiée avec succès !')
+          }
+          setTimeout(function() {
+            window.location.reload()
+          }, 500)
+        } else {
+          if (window.toast) {
+            window.toast.error(responseData.error || 'Erreur lors de la modification')
+          }
+        }
+      } catch (error) {
+        console.error('Error updating collection:', error)
+        if (window.toast) {
+          window.toast.error('Une erreur est survenue')
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false
+          submitBtn.textContent = originalText
+        }
+      }
+    })
+
+    // Supprimer la collection
+    deleteBtn?.addEventListener('click', async function() {
+      const confirmed = await window.confirmDialog?.(
+        'Supprimer la collection',
+        'Êtes-vous sûr de vouloir supprimer la collection "' + collectionName + '" ? Cette action est irréversible.',
+        'Supprimer',
+        'Annuler'
+      )
+      
+      if (!confirmed) {
+        return
+      }
+
+      const button = deleteBtn as HTMLButtonElement
+      const originalText = button.textContent || ''
+      button.disabled = true
+      button.textContent = 'Suppression...'
+
+      try {
+        const response = await fetch('/api/collections/' + collectionId + '/delete', {
+          method: 'DELETE',
+        })
+
+        if (response.ok || response.status === 204) {
+          if (window.toast) {
+            window.toast.success('Collection supprimée avec succès !')
+          }
+          setTimeout(function() {
+            window.location.href = '/collections'
+          }, 500)
+        } else {
+          const responseData = await response.json()
+          if (window.toast) {
+            window.toast.error(responseData.error || 'Erreur lors de la suppression')
+          }
+        }
+      } catch (error) {
+        console.error('Error deleting collection:', error)
+        if (window.toast) {
+          window.toast.error('Une erreur est survenue')
+        }
+      } finally {
+        button.disabled = false
+        button.textContent = originalText
+      }
+    })
+  })()
+</script>

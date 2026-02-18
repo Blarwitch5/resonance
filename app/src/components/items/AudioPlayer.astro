@@ -1,0 +1,279 @@
+---
+import Play from '@lucide/astro/icons/play'
+import Pause from '@lucide/astro/icons/pause'
+import Volume2 from '@lucide/astro/icons/volume-2'
+import VolumeX from '@lucide/astro/icons/volume-x'
+
+type AudioPlayerProps = {
+  trackId: string
+  trackName: string
+  artistName: string
+  previewUrl: string | null
+  coverUrl?: string | null
+  autoPlay?: boolean
+  compact?: boolean
+}
+
+const {
+  trackId,
+  trackName,
+  artistName,
+  previewUrl,
+  coverUrl,
+  autoPlay = false,
+  compact = false,
+} = Astro.props as AudioPlayerProps
+
+const playerId = `audio-player-${trackId}`
+const isAvailable = previewUrl !== null && previewUrl !== ''
+---
+
+<div class="audio-player" data-player-id={playerId} data-compact={compact}>
+  {!compact ? (
+    <!-- Player étendu -->
+    <div class="flex items-center gap-4 rounded-xl border border-border bg-surface p-4">
+      {coverUrl && (
+        <div class="shrink-0">
+          <img
+            src={coverUrl}
+            alt={`${trackName} - ${artistName}`}
+            class="h-16 w-16 rounded-lg object-cover"
+          />
+        </div>
+      )}
+      <div class="flex-1 min-w-0">
+        <p class="truncate font-medium text-neutral">{trackName}</p>
+        <p class="truncate text-sm text-muted">{artistName}</p>
+      </div>
+      <div class="flex items-center gap-2">
+        {isAvailable ? (
+          <>
+            <button
+              type="button"
+              class="audio-play-btn flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white transition-all hover:bg-primary/90"
+              data-action="play-pause"
+              aria-label="Play/Pause"
+            >
+              <Play size={20} class="audio-play-icon fill-none stroke-2" />
+              <Pause size={20} class="audio-pause-icon hidden fill-none stroke-2" />
+            </button>
+            <div class="audio-progress-wrapper flex-1 min-w-0 max-w-xs">
+              <div class="audio-progress-bar h-1 w-full rounded-full bg-surface-elevated">
+                <div
+                  class="audio-progress-fill h-full rounded-full bg-primary transition-all"
+                  style="width: 0%"
+                ></div>
+              </div>
+              <div class="audio-time text-xs text-muted mt-1">
+                <span class="audio-current-time">0:00</span> / <span class="audio-duration">0:30</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              class="audio-volume-btn flex h-10 w-10 items-center justify-center rounded-full text-muted transition-colors hover:text-neutral"
+              data-action="toggle-volume"
+              aria-label="Toggle volume"
+            >
+              <Volume2 size={18} class="audio-volume-icon" />
+              <VolumeX size={18} class="audio-volume-muted-icon hidden" />
+            </button>
+          </>
+        ) : (
+          <p class="text-sm text-muted">Aucun extrait disponible</p>
+        )}
+      </div>
+      <audio
+        id={playerId}
+        class="hidden"
+        preload="none"
+        data-preview-url={previewUrl || ''}
+        data-auto-play={autoPlay}
+      ></audio>
+    </div>
+  ) : (
+    <!-- Mini player compact -->
+    <div class="flex items-center gap-3 rounded-lg border border-border bg-surface p-2">
+      {coverUrl && (
+        <img
+          src={coverUrl}
+          alt={`${trackName} - ${artistName}`}
+          class="h-10 w-10 rounded object-cover"
+        />
+      )}
+      <div class="flex-1 min-w-0">
+        <p class="truncate text-sm font-medium text-neutral">{trackName}</p>
+        <p class="truncate text-xs text-muted">{artistName}</p>
+      </div>
+      {isAvailable && (
+        <button
+          type="button"
+          class="audio-play-btn flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white transition-all hover:bg-primary/90"
+          data-action="play-pause"
+          aria-label="Play/Pause"
+        >
+          <Play size={14} class="audio-play-icon fill-none stroke-2" />
+          <Pause size={14} class="audio-pause-icon hidden fill-none stroke-2" />
+        </button>
+      )}
+      <audio
+        id={playerId}
+        class="hidden"
+        preload="none"
+        data-preview-url={previewUrl || ''}
+        data-auto-play={autoPlay}
+      ></audio>
+    </div>
+  )}
+</div>
+
+<script>
+  (function() {
+    const playerElement = document.querySelector(`[data-player-id="${playerId}"]`)
+    if (!playerElement) return
+
+    const audio = document.getElementById(playerId)
+    if (!audio) return
+
+    const playBtn = playerElement.querySelector('[data-action="play-pause"]')
+    const playIcon = playerElement.querySelector('.audio-play-icon')
+    const pauseIcon = playerElement.querySelector('.audio-pause-icon')
+    const progressBar = playerElement.querySelector('.audio-progress-fill')
+    const currentTimeEl = playerElement.querySelector('.audio-current-time')
+    const volumeBtn = playerElement.querySelector('[data-action="toggle-volume"]')
+    const volumeIcon = playerElement.querySelector('.audio-volume-icon')
+    const volumeMutedIcon = playerElement.querySelector('.audio-volume-muted-icon')
+
+    const previewUrl = audio.dataset.previewUrl
+    if (!previewUrl) return
+
+    let isPlaying = false
+    let isMuted = false
+    let currentTrackId = null
+
+    // Arrêter les autres players quand celui-ci démarre
+    function stopOtherPlayers() {
+      const allPlayers = document.querySelectorAll('audio')
+      allPlayers.forEach((otherAudio) => {
+        if (otherAudio !== audio && !otherAudio.paused) {
+          otherAudio.pause()
+          otherAudio.currentTime = 0
+          // Mettre à jour l'UI des autres players
+          const otherPlayerEl = otherAudio.closest('.audio-player')
+          if (otherPlayerEl) {
+            const otherPlayBtn = otherPlayerEl.querySelector('[data-action="play-pause"]')
+            const otherPlayIcon = otherPlayerEl.querySelector('.audio-play-icon')
+            const otherPauseIcon = otherPlayerEl.querySelector('.audio-pause-icon')
+            if (otherPlayIcon) otherPlayIcon.classList.remove('hidden')
+            if (otherPauseIcon) otherPauseIcon.classList.add('hidden')
+          }
+        }
+      })
+    }
+
+    // Mettre à jour la barre de progression
+    function updateProgress() {
+      if (!audio.duration) return
+
+      const progress = (audio.currentTime / audio.duration) * 100
+      if (progressBar) {
+        progressBar.style.width = `${progress}%`
+      }
+
+      if (currentTimeEl) {
+        const minutes = Math.floor(audio.currentTime / 60)
+        const seconds = Math.floor(audio.currentTime % 60)
+        currentTimeEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`
+      }
+    }
+
+    // Formater la durée
+    function formatDuration(seconds) {
+      const mins = Math.floor(seconds / 60)
+      const secs = Math.floor(seconds % 60)
+      return `${mins}:${secs.toString().padStart(2, '0')}`
+    }
+
+    // Charger l'audio
+    audio.src = previewUrl
+    audio.volume = 1.0
+
+    // Événements audio
+    audio.addEventListener('loadedmetadata', () => {
+      const durationEl = playerElement.querySelector('.audio-duration')
+      if (durationEl) {
+        durationEl.textContent = formatDuration(audio.duration)
+      }
+    })
+
+    audio.addEventListener('timeupdate', updateProgress)
+
+    audio.addEventListener('ended', () => {
+      isPlaying = false
+      audio.currentTime = 0
+      if (playIcon) playIcon.classList.remove('hidden')
+      if (pauseIcon) pauseIcon.classList.add('hidden')
+      if (progressBar) progressBar.style.width = '0%'
+      if (currentTimeEl) currentTimeEl.textContent = '0:00'
+    })
+
+    // Play/Pause
+    if (playBtn) {
+      playBtn.addEventListener('click', () => {
+        stopOtherPlayers()
+
+        if (isPlaying) {
+          audio.pause()
+          isPlaying = false
+          if (playIcon) playIcon.classList.remove('hidden')
+          if (pauseIcon) pauseIcon.classList.add('hidden')
+        } else {
+          audio.play().catch((error) => {
+            console.error('Error playing audio:', error)
+            if (window.toast) {
+              window.toast.error('Erreur lors de la lecture')
+            }
+          })
+          isPlaying = true
+          if (playIcon) playIcon.classList.add('hidden')
+          if (pauseIcon) pauseIcon.classList.remove('hidden')
+        }
+      })
+    }
+
+    // Volume toggle
+    if (volumeBtn) {
+      volumeBtn.addEventListener('click', () => {
+        isMuted = !isMuted
+        audio.muted = isMuted
+        if (isMuted) {
+          if (volumeIcon) volumeIcon.classList.add('hidden')
+          if (volumeMutedIcon) volumeMutedIcon.classList.remove('hidden')
+        } else {
+          if (volumeIcon) volumeIcon.classList.remove('hidden')
+          if (volumeMutedIcon) volumeMutedIcon.classList.add('hidden')
+        }
+      })
+    }
+
+    // Auto-play si demandé
+    if (audio.dataset.autoPlay === 'true') {
+      setTimeout(() => {
+        playBtn?.click()
+      }, 100)
+    }
+  })()
+</script>
+
+<style>
+  .audio-player audio {
+    display: none;
+  }
+
+  .audio-progress-bar {
+    cursor: pointer;
+  }
+
+  .audio-progress-bar:hover .audio-progress-fill {
+    background-color: var(--color-primary-hover);
+  }
+</style>

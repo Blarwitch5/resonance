@@ -1,0 +1,140 @@
+---
+// Redirect to unified bibliotheque page with format filter
+return Astro.redirect('/bibliotheque?format=VINYL')
+---
+
+// Récupérer tous les vinyles de l'utilisateur
+const itemsByCollection = await itemService.getItemsByFormatWithCollections(session.user.id, 'VINYL')
+const collections = await collectionRepository.findByUserId(session.user.id)
+
+const totalItems = Object.values(itemsByCollection).flat().length
+---
+
+<DashboardLayout title="Collection Vinyl - Resonance">
+  <div class="space-y-6">
+    <!-- Header avec stats et actions -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold">{totalItems} Vinyles</h1>
+        <p class="text-muted">
+          {Object.keys(itemsByCollection).length} collections
+        </p>
+      </div>
+      <div class="flex gap-3">
+        <AddItemButton format="VINYL" />
+      </div>
+    </div>
+
+    <!-- Liste des items groupés par collection -->
+    {totalItems === 0 ? (
+      <!-- Collection vide -->
+      <div class="glass-card rounded-2xl p-12 text-center">
+        <div
+          class="bg-gradient-resonance-subtle mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full"
+        >
+          <Turntable size={48} class="text-electric-purple dark:text-electric-purple" />
+        </div>
+
+        <h3 class="font-display text-night-deep dark:text-cream-white mb-4 text-xl font-semibold">
+          Commencez votre collection vinyl
+        </h3>
+
+        <p class="text-blue-gray dark:text-blue-gray mx-auto mb-8 max-w-md">
+          Ajoutez votre premier vinyle et commencez à construire votre collection personnalisée.
+        </p>
+
+        <div class="flex flex-col justify-center gap-4 sm:flex-row">
+          <a
+            href="/explorer"
+            class="bg-gradient-resonance hover:bg-gradient-resonance-hover flex items-center justify-center gap-2 rounded-xl px-6 py-3 font-medium text-white transition-all duration-300"
+          >
+            <Plus size={20} aria-hidden="true" />
+            <span>Ajouter un vinyle</span>
+          </a>
+
+          <button
+            type="button"
+            class="bg-blue-gray/10 dark:bg-electric-purple/10 text-night-deep dark:text-cream-white hover:bg-blue-gray/20 dark:hover:bg-electric-purple/20 flex items-center justify-center gap-2 rounded-xl px-6 py-3 font-medium transition-all duration-300"
+          >
+            <Search size={20} aria-hidden="true" />
+            <span>Scanner un code-barres</span>
+          </button>
+        </div>
+      </div>
+    ) : (
+      Object.entries(itemsByCollection).map(([collectionId, items]) => (
+        <section class="space-y-4">
+          <h2 class="text-lg font-semibold">
+            {collectionId === 'no-collection'
+              ? 'Sans collection'
+              : collections.find((c) => c.id === collectionId)?.name}
+          </h2>
+          <ItemGrid items={items} columns={6} />
+        </section>
+      ))
+    )}
+
+    <!-- Conseils pour commencer (si vide) -->
+    {totalItems === 0 && (
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div class="glass-card rounded-xl p-6">
+          <div
+            class="bg-electric-purple/10 dark:bg-electric-purple/10 mb-4 flex h-12 w-12 items-center justify-center rounded-lg"
+          >
+            <Search size={24} class="text-electric-purple dark:text-electric-purple" />
+          </div>
+          <h4 class="font-display text-night-deep dark:text-cream-white mb-2 font-semibold">
+            Scanner automatique
+          </h4>
+          <p class="text-blue-gray dark:text-blue-gray text-sm">
+            Utilisez la caméra pour scanner le code-barres et récupérer automatiquement les informations.
+          </p>
+        </div>
+
+        <div class="glass-card rounded-xl p-6">
+          <div
+            class="bg-copper-warm/10 dark:bg-copper-warm/10 mb-4 flex h-12 w-12 items-center justify-center rounded-lg"
+          >
+            <Turntable size={24} class="text-copper-warm dark:text-copper-warm" />
+          </div>
+          <h4 class="font-display text-night-deep dark:text-cream-white mb-2 font-semibold">
+            Métadonnées complètes
+          </h4>
+          <p class="text-blue-gray dark:text-blue-gray text-sm">
+            Artiste, album, année, genre, condition - tout est automatiquement récupéré.
+          </p>
+        </div>
+
+        <div class="glass-card rounded-xl p-6">
+          <div
+            class="bg-blue-gray/10 dark:bg-electric-purple/10 mb-4 flex h-12 w-12 items-center justify-center rounded-lg"
+          >
+            <Filter size={24} class="text-blue-gray dark:text-electric-purple" />
+          </div>
+          <h4 class="font-display text-night-deep dark:text-cream-white mb-2 font-semibold">
+            Organisation flexible
+          </h4>
+          <p class="text-blue-gray dark:text-blue-gray text-sm">
+            Créez des collections personnalisées et organisez selon vos préférences.
+          </p>
+        </div>
+      </div>
+    )}
+  </div>
+</DashboardLayout>
+
+<style>
+  .glass-card {
+    transition: all 0.3s ease;
+  }
+
+  .glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(107, 78, 255, 0.1);
+  }
+
+  button:hover {
+    box-shadow: 0 4px 15px rgba(107, 78, 255, 0.2);
+  }
+</style>
+

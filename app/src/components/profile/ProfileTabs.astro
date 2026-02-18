@@ -1,0 +1,256 @@
+---
+import Heart from '@lucide/astro/icons/heart'
+import ShoppingCart from '@lucide/astro/icons/shopping-cart'
+import BarChart from '@lucide/astro/icons/chart-bar'
+import Library from '@lucide/astro/icons/library'
+import type { ComponentProps } from 'astro/types'
+
+type ProfileTabsProps = {
+  activeTab?: string
+  slot?: string
+}
+
+const { activeTab = 'favorites', slot: defaultSlot } = Astro.props as ProfileTabsProps
+---
+
+<div class="min-w-0 space-y-6">
+  <!-- Tabs -->
+  <div class="flex min-w-0 flex-wrap gap-1 border-b border-border pb-0 md:gap-2">
+    <button
+      type="button"
+      data-tab="favorites"
+      class="tab-btn flex items-center gap-2 rounded-t-lg border-b-2 border-transparent px-4 py-3 font-medium transition-all hover:bg-surface hover:text-primary md:px-6"
+    >
+      <Heart size={18} class="fill-none stroke-2" />
+      <span>Favorites</span>
+    </button>
+
+    <button
+      type="button"
+      data-tab="wishlist"
+      class="tab-btn flex items-center gap-2 rounded-t-lg border-b-2 border-transparent px-4 py-3 font-medium transition-all hover:bg-surface hover:text-primary md:px-6"
+    >
+      <ShoppingCart size={18} class="fill-none stroke-2" />
+      <span>Wishlist</span>
+    </button>
+
+    <button
+      type="button"
+      data-tab="statistics"
+      class="tab-btn flex items-center gap-2 rounded-t-lg border-b-2 border-transparent px-4 py-3 font-medium transition-all hover:bg-surface hover:text-primary md:px-6"
+    >
+      <BarChart size={18} class="fill-none stroke-2" />
+      <span>Statistics</span>
+    </button>
+
+    <button
+      type="button"
+      data-tab="all-formats"
+      class="tab-btn flex items-center gap-2 rounded-t-lg border-b-2 border-transparent px-4 py-3 font-medium transition-all hover:bg-surface hover:text-primary md:px-6"
+    >
+      <Library size={18} class="fill-none stroke-2" />
+      <span>All Formats</span>
+    </button>
+  </div>
+
+  <!-- Tab content -->
+  <div id="tab-content" class="min-w-0">
+    <div data-tab-content="favorites" style="display: none;">
+      <slot name="favorites" />
+    </div>
+    <div data-tab-content="wishlist" style="display: none;">
+      <slot name="wishlist" />
+    </div>
+    <div data-tab-content="statistics" style="display: none;">
+      <slot name="statistics" />
+    </div>
+    <div data-tab-content="all-formats" style="display: none;">
+      <slot name="all-formats" />
+    </div>
+  </div>
+</div>
+
+<script>
+  // TypeScript fonctionne nativement dans les scripts Astro !
+  (function() {
+    function initTabs(): void {
+      const tabs = document.querySelectorAll('.tab-btn')
+      const tabContent = document.getElementById('tab-content')
+      
+      if (!tabContent) {
+        setTimeout(initTabs, 100)
+        return
+      }
+      
+      // Chercher les slots par data-tab-content (plus fiable que [slot])
+      const slotElements = tabContent.querySelectorAll('[data-tab-content]')
+      
+      // Si aucun slot trouvé, essayer avec [slot] comme fallback
+      if (slotElements.length === 0) {
+        const fallbackSlots = tabContent.querySelectorAll('[slot]')
+        if (fallbackSlots.length > 0) {
+          fallbackSlots.forEach(function(slot) {
+            const slotName = slot.getAttribute('slot')
+            if (slotName) {
+              slot.setAttribute('data-tab-content', slotName)
+            }
+          })
+        }
+      }
+      
+      // Récupérer les slots (peut-être mis à jour)
+      const finalSlots = tabContent.querySelectorAll('[data-tab-content]')
+      
+      function showTab(tabName: string | null): void {
+        if (!tabName) return
+        
+        // Mettre à jour les boutons
+        tabs.forEach(function(tab) {
+          const icon = tab.querySelector('svg')
+          if (tab.getAttribute('data-tab') === tabName) {
+            tab.classList.add('active')
+            tab.classList.add('border-primary')
+            tab.classList.add('text-primary')
+            tab.classList.remove('border-transparent')
+            if (icon) {
+              icon.classList.add('fill-none', 'stroke-2', 'text-primary', 'stroke-primary')
+              icon.classList.remove('text-muted', 'stroke-muted')
+            }
+          } else {
+            tab.classList.remove('active')
+            tab.classList.remove('border-primary')
+            tab.classList.remove('text-primary')
+            tab.classList.add('border-transparent')
+            if (icon) {
+              icon.classList.add('fill-none', 'stroke-2', 'text-muted', 'stroke-muted')
+              icon.classList.remove('text-primary', 'stroke-primary')
+            }
+          }
+        })
+
+        // Afficher le contenu correspondant
+        finalSlots.forEach(function(slot) {
+          const slotName = slot.getAttribute('data-tab-content')
+          if (slotName === tabName) {
+            slot.classList.remove('hidden')
+            slot.classList.add('active')
+            ;(slot as HTMLElement).style.display = 'block'
+          } else {
+            slot.classList.add('hidden')
+            slot.classList.remove('active')
+            ;(slot as HTMLElement).style.display = 'none'
+          }
+        })
+      }
+
+      // Récupérer le tab depuis l'URL ou utiliser le premier par défaut
+      function getTabFromURL(): string | null {
+        const urlParams = new URLSearchParams(window.location.search)
+        const tabParam = urlParams.get('tab')
+        if (tabParam) {
+          // Vérifier que le tab existe
+          const tabExists = Array.from(tabs).some(function(tab) {
+            return tab.getAttribute('data-tab') === tabParam
+          })
+          if (tabExists) {
+            return tabParam
+          }
+        }
+        return null
+      }
+
+      // Initialiser avec le tab de l'URL ou le premier tab par défaut
+      const urlTab = getTabFromURL()
+      const defaultTab = tabs.length > 0 ? tabs[0].getAttribute('data-tab') : null
+      const initialTab = urlTab || defaultTab
+      
+      if (initialTab) {
+        showTab(initialTab)
+      }
+
+      // Gérer les clics
+      tabs.forEach(function(tab) {
+        tab.addEventListener('click', function() {
+          const tabName = tab.getAttribute('data-tab')
+          if (tabName) {
+            showTab(tabName)
+            // Mettre à jour l'URL sans recharger la page
+            const url = new URL(window.location.href)
+            url.searchParams.set('tab', tabName)
+            window.history.pushState({}, '', url.toString())
+          }
+        })
+      })
+    }
+
+    // Initialiser au chargement
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initTabs)
+    } else {
+      initTabs()
+    }
+
+    // Réinitialiser lors de la navigation Astro
+    document.addEventListener('astro:page-load', initTabs)
+  })()
+</script>
+
+<style>
+  .tab-btn {
+    color: var(--color-muted);
+  }
+  
+  .tab-btn.active {
+    border-bottom-color: var(--color-primary) !important;
+    color: var(--color-primary);
+    background-color: transparent;
+  }
+  
+  .tab-btn:hover {
+    background-color: var(--color-surface);
+  }
+  
+  .tab-btn.active:hover {
+    background-color: transparent;
+  }
+  
+  .tab-btn svg {
+    fill: none;
+    stroke-width: 2;
+    stroke: currentColor;
+  }
+  
+  .tab-btn.active svg {
+    stroke: var(--color-primary);
+  }
+  
+  /* Amélioration desktop pour les tabs */
+  @media (min-width: 768px) {
+    .tab-btn {
+      padding: 0.75rem 1.5rem;
+    }
+    
+    .tab-btn:hover {
+      background-color: var(--color-surface);
+    }
+  }
+  
+  /* Cacher tous les slots par défaut */
+  #tab-content > [data-tab-content],
+  #tab-content > [slot] {
+    display: none;
+  }
+  
+  /* Afficher le slot actif */
+  #tab-content > [data-tab-content].active,
+  #tab-content > [slot].active {
+    display: block !important;
+  }
+  
+  /* Fallback: afficher le premier slot (favorites) par défaut si le script ne s'exécute pas */
+  #tab-content > [data-tab-content="favorites"]:not(.active),
+  #tab-content > [slot="favorites"]:not(.active) {
+    display: block;
+  }
+</style>
+

@@ -1,0 +1,78 @@
+---
+import type { Item, ItemMetadata } from '@prisma/client'
+import OptimizedImage from '../ui/OptimizedImage.astro'
+
+type ItemDetailProps = {
+  item: Item & { metadata: ItemMetadata | null }
+}
+
+const { item } = Astro.props as ItemDetailProps
+---
+
+<div class="glass-card rounded-2xl p-8">
+  <div class="flex flex-col gap-6 md:flex-row">
+    <!-- Cover -->
+    <div class="shrink-0">
+      <div class="w-full overflow-hidden rounded-xl bg-surface md:w-64">
+        <OptimizedImage
+          src={item.coverUrl}
+          alt={`${item.title} - ${item.artist}`}
+          width={256}
+          height={256}
+          loading="eager"
+          aspectRatio="square"
+          class="h-full w-full object-cover"
+        />
+      </div>
+    </div>
+
+    <!-- Info -->
+    <div class="flex-1 space-y-4">
+      <div>
+        <h1 class="text-3xl font-bold text-neutral">{item.title}</h1>
+        <p class="text-xl text-muted">{item.artist}</p>
+      </div>
+
+      <div class="flex flex-wrap gap-4 text-sm">
+        {item.year && (
+          <div>
+            <span class="font-medium text-neutral">Année</span>
+            <p class="text-muted">{item.year}</p>
+          </div>
+        )}
+        {item.genre && (
+          <div>
+            <span class="font-medium text-neutral">Genre</span>
+            <p class="text-muted">{item.genre}</p>
+          </div>
+        )}
+        {item.label && (
+          <div>
+            <span class="font-medium text-neutral">Label</span>
+            <p class="text-muted">{item.label}</p>
+          </div>
+        )}
+        {item.country && (
+          <div>
+            <span class="font-medium text-neutral">Pays</span>
+            <p class="text-muted">{item.country}</p>
+          </div>
+        )}
+      </div>
+
+      {item.metadata?.personalNotes && (
+        <div>
+          <span class="font-medium text-neutral">Notes personnelles</span>
+          <p class="text-muted">{item.metadata.personalNotes}</p>
+        </div>
+      )}
+    </div>
+  </div>
+</div>
+
+<style>
+  .glass-card {
+    transition: all 0.3s ease;
+  }
+</style>
+

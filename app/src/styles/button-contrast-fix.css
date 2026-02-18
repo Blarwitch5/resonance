@@ -1,0 +1,97 @@
+/**
+ * Corrections de contraste pour tous les boutons avec backgrounds colorés
+ * Force le texte blanc sur tous les éléments enfants
+ */
+
+/* Boutons avec gradient Resonance - texte blanc garanti */
+.bg-gradient-resonance,
+.bg-gradient-resonance-hover {
+  color: white !important;
+}
+
+.bg-gradient-resonance *,
+.bg-gradient-resonance-hover *,
+.bg-gradient-resonance span,
+.bg-gradient-resonance-hover span {
+  color: white !important;
+}
+
+.bg-gradient-resonance svg,
+.bg-gradient-resonance-hover svg,
+.bg-gradient-resonance path,
+.bg-gradient-resonance-hover path {
+  color: white !important;
+  fill: none !important;
+  stroke: white !important;
+}
+
+/* Boutons avec couleur primaire solide (sans opacité) */
+button.bg-\\[var\\(--color-primary\\)\\],
+a.bg-\\[var\\(--color-primary\\)\\] {
+  color: white !important;
+}
+
+button.bg-\\[var\\(--color-primary\\)\\] *,
+a.bg-\\[var\\(--color-primary\\)\\] *,
+button.bg-\\[var\\(--color-primary\\)\\] svg,
+a.bg-\\[var\\(--color-primary\\)\\] svg {
+  color: white !important;
+  fill: white !important;
+}
+
+/* Boutons rouges solides */
+.bg-red-600,
+.bg-red-700 {
+  color: white !important;
+}
+
+.bg-red-600 *,
+.bg-red-700 *,
+.bg-red-600 svg,
+.bg-red-700 svg {
+  color: white !important;
+  fill: white !important;
+}
+
+/* Boutons roses solides */
+.bg-pink-500 {
+  color: white !important;
+}
+
+.bg-pink-500 *,
+.bg-pink-500 svg {
+  color: white !important;
+  fill: white !important;
+}
+
+/* Règle générale : tous les boutons et liens avec backgrounds colorés */
+button[class*="bg-gradient"]:not([class*="subtle"]):not([class*="light"]),
+a[class*="bg-gradient"]:not([class*="subtle"]):not([class*="light"]) {
+  color: white !important;
+}
+
+button[class*="bg-gradient"]:not([class*="subtle"]):not([class*="light"]) *,
+a[class*="bg-gradient"]:not([class*="subtle"]):not([class*="light"]) * {
+  color: white !important;
+}
+
+button[class*="bg-gradient"]:not([class*="subtle"]):not([class*="light"]) svg,
+a[class*="bg-gradient"]:not([class*="subtle"]):not([class*="light"]) svg,
+button[class*="bg-gradient"]:not([class*="subtle"]):not([class*="light"]) path,
+a[class*="bg-gradient"]:not([class*="subtle"]):not([class*="light"]) path {
+  color: white !important;
+  fill: none !important;
+  stroke: white !important;
+}
+
+/* Correction spécifique pour les boutons avec bg-[var(--color-primary)] */
+a[class*="bg-\\[var\\(--color-primary\\)\\]"]:not([class*="/"]):not([class*="opacity"]),
+button[class*="bg-\\[var\\(--color-primary\\)\\]"]:not([class*="/"]):not([class*="opacity"]) {
+  color: white !important;
+}
+
+a[class*="bg-\\[var\\(--color-primary\\)\\]"]:not([class*="/"]):not([class*="opacity"]) *,
+button[class*="bg-\\[var\\(--color-primary\\)\\]"]:not([class*="/"]):not([class*="opacity"]) * {
+  color: white !important;
+  fill: white !important;
+}

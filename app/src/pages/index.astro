@@ -1,0 +1,356 @@
+---
+import CassetteTape from '@lucide/astro/icons/cassette-tape'
+import BarChart3 from '@lucide/astro/icons/chart-bar'
+import Disc from '@lucide/astro/icons/disc'
+import Disc3 from '@lucide/astro/icons/disc-3'
+import Heart from '@lucide/astro/icons/heart'
+import Plus from '@lucide/astro/icons/plus'
+import Search from '@lucide/astro/icons/scan-search'
+import User from '@lucide/astro/icons/user'
+import LogOut from '@lucide/astro/icons/log-out'
+import DashboardLayout from '../components/layouts/DashboardLayout.astro'
+import { statsService } from '../services/stats-service'
+import { itemRepository } from '../repositories/item-repository'
+export const prerender = false
+
+// Utiliser la session depuis le middleware (Astro.locals)
+const session = Astro.locals.session
+const isLoggedIn = !!session
+const user = Astro.locals.user
+
+// Récupérer les vraies statistiques depuis la base de données
+let stats = {
+  vinyls: 0,
+  cassettes: 0,
+  cds: 0,
+}
+let recentItems: Array<{
+  id: string
+  title: string
+  artist: string
+  format: string
+  year: number | null
+}> = []
+
+if (isLoggedIn && user?.id) {
+  const userStats = await statsService.getUserStats(user.id)
+  stats = {
+    vinyls: userStats.vinyls,
+    cassettes: userStats.cassettes,
+    cds: userStats.cds,
+  }
+  
+  const recentItemsData = await itemRepository.getRecentItems(user.id, 4)
+  recentItems = recentItemsData.map((item) => ({
+    id: item.id,
+    title: item.title,
+    artist: item.artist,
+    format: item.format,
+    year: item.year,
+  }))
+}
+---
+
+<DashboardLayout title="Resonance - Where your music resonates">
+  <div class="space-y-8">
+    <!-- Hero Section -->
+    <div class="py-12 text-center">
+      <div class="mx-auto max-w-4xl">
+        <h1 class="font-display mb-6 text-4xl font-bold md:text-6xl">
+          <span class="text-gradient-resonance">Resonance</span>
+        </h1>
+        <p class="text-muted mb-8 text-xl leading-relaxed md:text-2xl">
+          Where your music resonates
+        </p>
+        <p class="text-muted mx-auto max-w-2xl text-lg">
+          Manage your multi-format music collection with elegance. Vinyl, CD, Cassette - all in one place, with style.
+        </p>
+      </div>
+    </div>
+
+    <!-- Quick Navigation -->
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <!-- Collection -->
+      <a
+        href="/bibliotheque"
+        class="group glass-card hover-resonance rounded-2xl p-8 transition-all duration-300"
+      >
+        <div class="text-center">
+          <div
+            class="from-primary to-primary/80 group-hover:animate-resonance-pulse mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br"
+          >
+            <Disc3 size={32} class="text-white" />
+          </div>
+          <h3 class="font-display text-neutral mb-2 text-xl font-semibold">
+            Ma Résonance
+          </h3>
+          <p class="text-muted text-sm">Vos albums qui résonnent avec vous</p>
+        </div>
+      </a>
+
+    <!-- Actions rapides -->
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <!-- Explorer -->
+      <a
+        href="/explorer"
+        class="group glass-card hover-resonance flex items-center gap-4 rounded-2xl p-6 transition-all duration-300"
+        aria-label="Explore collection"
+      >
+        <div
+          class="from-accent to-accent/80 group-hover:animate-resonance-vibrato flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br"
+        >
+          <Search size={24} class="text-white" />
+        </div>
+        <div>
+          <h3 class="font-display text-neutral font-semibold">Explorer</h3>
+          <p class="text-muted text-sm">Discover new albums</p>
+        </div>
+      </a>
+
+      <!-- Profile -->
+      <a
+        href="/profil"
+        class="group glass-card hover-resonance flex items-center gap-4 rounded-2xl p-6 transition-all duration-300"
+        aria-label="View profile"
+      >
+        <div
+          class="from-accent to-accent/80 group-hover:animate-resonance-vibrato flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br"
+        >
+          <User size={24} class="text-white" />
+        </div>
+        <div>
+          <h3 class="font-display text-neutral font-semibold">Profile</h3>
+          <p class="text-muted text-sm">Favorites, wishlist, and statistics</p>
+        </div>
+      </a>
+    </div>
+
+    {isLoggedIn && (
+      <!-- Message de bienvenue pour utilisateur connecté -->
+      <div class="glass-card rounded-2xl p-6 bg-gradient-resonance-subtle border border-primary/20">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="font-display text-neutral text-xl font-semibold mb-1">
+              Welcome, {user?.name || user?.email}!
+            </h3>
+            <p class="text-muted text-sm">Your collection awaits</p>
+          </div>
+          <button
+            type="button"
+            id="sign-out-btn"
+            class="p-2 rounded-lg hover:bg-surface transition-colors"
+            aria-label="Se déconnecter"
+          >
+            <LogOut size={20} class="text-muted" />
+          </button>
+        </div>
+      </div>
+    )}
+
+    {isLoggedIn && (
+      <!-- Quick Stats -->
+      <div class="glass-card rounded-2xl p-6">
+        <h3 class="font-display text-neutral mb-4 text-lg font-semibold">
+          Your Collection
+        </h3>
+        <div class="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <div class="text-format-vinyl text-2xl font-bold">
+              {stats.vinyls}
+            </div>
+            <div class="text-muted text-sm">Vinyl</div>
+          </div>
+          <div>
+            <div class="text-format-cassette text-2xl font-bold">
+              {stats.cassettes}
+            </div>
+            <div class="text-muted text-sm">Cassette</div>
+          </div>
+          <div>
+            <div class="text-format-cd text-2xl font-bold">
+              {stats.cds}
+            </div>
+            <div class="text-muted text-sm">CD</div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {isLoggedIn && recentItems.length > 0 && (
+      <!-- Recent Albums -->
+      <div class="glass-card rounded-2xl p-6">
+        <h3 class="font-display text-neutral mb-4 text-lg font-semibold">
+          Recent Albums
+        </h3>
+        <div class="space-y-3">
+          {recentItems.map((item) => (
+            <a
+              href={`/collection?format=${item.format.toLowerCase()}`}
+              class="flex items-center gap-4 p-3 rounded-xl hover:bg-surface/50 transition-colors"
+            >
+              <div
+                class="shrink-0 w-12 h-12 rounded-lg bg-linear-to-br from-primary to-secondary flex items-center justify-center"
+              >
+                <Disc3 size={24} class="text-white opacity-80" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="font-medium text-neutral truncate">{item.title}</p>
+                <p class="text-sm text-muted truncate">
+                  {item.artist}{item.year ? ` · ${item.year}` : ''}
+                </p>
+              </div>
+              <span
+                class="px-2 py-1 text-xs font-medium rounded-md bg-primary/10 text-primary"
+              >
+                {item.format}
+              </span>
+            </a>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <!-- Actions rapides -->
+    <div class="flex flex-col gap-4 sm:flex-row">
+      <a
+        href="/explorer"
+        aria-label="Ajouter un album"
+        class="btn-primary-gradient flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3"
+      >
+        <Plus size={20} />
+        <span>Add Album</span>
+      </a>
+
+      <a
+        href="/profil?tab=statistics"
+        aria-label="View statistics"
+        class="btn-secondary-surface flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3"
+      >
+        <BarChart3 size={20} />
+        <span>View Statistics</span>
+      </a>
+    </div>
+
+    {!isLoggedIn && (
+      <!-- Welcome Message -->
+      <div class="py-8 text-center">
+        <div class="text-muted inline-flex items-center gap-2">
+          <Heart size={20} class="fill-none stroke-2 text-primary stroke-primary" />
+          <span class="text-sm italic">Welcome to your musical universe</span>
+        </div>
+        <div class="mt-4">
+          <a
+            href="/login"
+            class="btn-primary-gradient inline-block py-2 px-6 rounded-xl"
+          >
+            Sign In
+          </a>
+        </div>
+      </div>
+    )}
+  </div>
+</DashboardLayout>
+
+<style>
+  /* Animations spécifiques à la page d'accueil */
+  .group:hover .group-hover\:animate-resonance-pulse {
+    animation: resonance-pulse 1s ease-in-out infinite;
+  }
+
+  .group:hover .group-hover\:animate-resonance-vibrato {
+    animation: resonance-vibrato 0.3s ease-in-out;
+  }
+
+  /* Effet de parallaxe subtil */
+  @media (prefers-reduced-motion: no-preference) {
+    .glass-card {
+      transition: transform 0.3s ease;
+    }
+
+    .glass-card:hover {
+      transform: translateY(-4px) scale(1.02);
+    }
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 640px) {
+    .grid-cols-3 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .grid-cols-3 > div:last-child {
+      grid-column: span 2;
+    }
+  }
+</style>
+
+<script>
+  import { signOut } from '../lib/auth-client'
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Check for welcome toast (after login/signup)
+    const showWelcomeToast = sessionStorage.getItem('showWelcomeToast')
+    const isNewUser = sessionStorage.getItem('isNewUser')
+    
+    if (showWelcomeToast && window.toast) {
+      // Get user name from the welcome message if available
+      const welcomeH3 = document.querySelector('h3.font-display')
+      let userName = ''
+      if (welcomeH3) {
+        const welcomeText = welcomeH3.textContent || ''
+        const match = welcomeText.match(/Welcome, (.+?)!/)
+        userName = match ? match[1].trim() : ''
+      }
+      
+      if (isNewUser) {
+        window.toast.success(
+          userName 
+            ? `Bienvenue ${userName} ! Votre compte a été créé avec succès.` 
+            : 'Bienvenue ! Votre compte a été créé avec succès.',
+          5000
+        )
+        sessionStorage.removeItem('isNewUser')
+      } else {
+        window.toast.success(
+          userName 
+            ? `Bon retour ${userName} ! Vous êtes connecté.` 
+            : 'Bon retour ! Vous êtes connecté.',
+          4000
+        )
+      }
+      sessionStorage.removeItem('showWelcomeToast')
+    }
+
+    // Sign out button handler
+    const signOutBtn = document.getElementById('sign-out-btn')
+    if (signOutBtn) {
+      signOutBtn.addEventListener('click', async function() {
+        try {
+          // Show confirmation toast before signing out
+          if (window.toast) {
+            window.toast.info('Déconnexion en cours...', 2000)
+          }
+          
+          await signOut()
+          
+          // Store logout success for toast on login page
+          sessionStorage.setItem('showLogoutToast', 'true')
+          
+          // Small delay to show the toast before redirect
+          setTimeout(() => {
+            window.location.href = '/login'
+          }, 500)
+        } catch (error) {
+          console.error('Error signing out:', error)
+          if (window.toast) {
+            window.toast.error('Erreur lors de la déconnexion')
+          }
+          // Fallback: redirect anyway after a delay
+          setTimeout(() => {
+            window.location.href = '/login'
+          }, 1000)
+        }
+      })
+    }
+  })
+</script>

@@ -1,0 +1,451 @@
+---
+import Pencil from '@lucide/astro/icons/pencil'
+import Star from '@lucide/astro/icons/star'
+import FileText from '@lucide/astro/icons/file-text'
+import type { ItemMetadata } from '@prisma/client'
+
+type PersonalDataSectionProps = {
+  itemId: string
+  metadata: ItemMetadata | null
+}
+
+const { itemId, metadata } = Astro.props as PersonalDataSectionProps
+
+const CONDITION_LABELS: Record<string, string> = {
+  MINT: 'Neuf',
+  NEAR_MINT: 'Quasi neuf',
+  VERY_GOOD: 'Très bon état',
+  GOOD: 'Bon état',
+  FAIR: 'État moyen',
+  POOR: 'Mauvais état',
+}
+
+const tags: string[] = metadata?.customTags
+  ? (typeof metadata.customTags === 'string'
+      ? (() => {
+          try {
+            return JSON.parse(metadata.customTags)
+          } catch {
+            return []
+          }
+        })()
+      : [])
+  : []
+
+const acquisitionDateStr =
+  metadata?.acquisitionDate instanceof Date
+    ? metadata.acquisitionDate.toISOString().slice(0, 10)
+    : metadata?.acquisitionDate
+      ? new Date(metadata.acquisitionDate).toISOString().slice(0, 10)
+      : ''
+---
+
+<section class="personal-data-section glass-card rounded-2xl p-4 md:p-6" data-item-id={itemId}>
+  <div class="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+    <h2 class="flex items-center gap-2 text-lg md:text-xl font-bold text-neutral">
+      <FileText size={20} class="fill-none stroke-2 text-primary stroke-primary" />
+      Données personnelles
+    </h2>
+    <button
+      type="button"
+      class="edit-toggle inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-elevated hover:text-primary"
+      data-action="toggle-edit"
+      aria-label="Modifier"
+    >
+      <Pencil size={16} />
+      <span class="hidden sm:inline">Modifier</span>
+    </button>
+  </div>
+
+  <div class="view-mode space-y-4" data-mode="view">
+    {!metadata ? (
+      <p class="text-sm text-muted">
+        Aucune donnée personnelle. Cliquez sur « Modifier » pour en ajouter.
+      </p>
+    ) : (
+      <div class="grid gap-4 sm:grid-cols-2">
+        {metadata.personalNotes && (
+          <div>
+            <span class="text-sm font-medium text-muted">Notes</span>
+            <p class="mt-1 whitespace-pre-wrap text-neutral">
+              {metadata.personalNotes}
+            </p>
+          </div>
+        )}
+        {metadata.acquisitionDate && (
+          <div>
+            <span class="text-sm font-medium text-muted">Date d'achat</span>
+            <p class="mt-1 text-neutral">
+              {new Date(metadata.acquisitionDate).toLocaleDateString('fr-FR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}
+            </p>
+          </div>
+        )}
+        {metadata.purchasePrice != null && (
+          <div>
+            <span class="text-sm font-medium text-muted">Prix d'achat</span>
+            <p class="mt-1 text-neutral">
+              {Number(metadata.purchasePrice).toFixed(2)} €
+            </p>
+          </div>
+        )}
+        {metadata.condition && (
+          <div>
+            <span class="text-sm font-medium text-muted">État</span>
+            <p class="mt-1 text-neutral">
+              {CONDITION_LABELS[metadata.condition] ?? metadata.condition}
+            </p>
+          </div>
+        )}
+        {metadata.purchaseLocation && (
+          <div>
+            <span class="text-sm font-medium text-muted">Lieu d'achat</span>
+            <p class="mt-1 text-neutral">{metadata.purchaseLocation}</p>
+          </div>
+        )}
+        {metadata.personalRating != null && (
+          <div>
+            <span class="text-sm font-medium text-muted">Ma note</span>
+            <p class="mt-1 flex items-center gap-1 text-neutral">
+              {[1, 2, 3, 4, 5].map((ratingValue) => (
+                <Star
+                  size={18}
+                  class={`fill-none stroke-2 ${ratingValue <= Math.round(metadata!.personalRating!) ? 'text-primary stroke-primary' : 'text-muted stroke-muted'}`}
+                />
+              ))}
+              <span class="ml-1 text-sm">
+                {Math.round(Number(metadata.personalRating))}/5
+              </span>
+            </p>
+          </div>
+        )}
+        {tags.length > 0 && (
+          <div class="sm:col-span-2">
+            <span class="text-sm font-medium text-muted">Tags</span>
+            <div class="mt-2 flex flex-wrap gap-2">
+              {tags.map((tag) => (
+                <span
+                  class="rounded-full bg-surface-elevated px-3 py-1 text-sm text-neutral"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+
+  <form class="edit-mode hidden space-y-4" data-mode="edit">
+    <div>
+      <label for="personal-notes" class="mb-2 block text-sm font-medium text-neutral">
+        Notes personnelles
+      </label>
+      <textarea
+        id="personal-notes"
+        name="personalNotes"
+        rows="3"
+        class="w-full rounded-xl border border-border bg-surface px-4 py-3 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+        placeholder="Anecdotes, souvenirs..."
+      >
+        {metadata?.personalNotes ?? ''}
+      </textarea>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div>
+        <label for="acquisition-date" class="mb-2 block text-sm font-medium text-neutral">
+          Date d'achat
+        </label>
+        <input
+          type="date"
+          id="acquisition-date"
+          name="acquisitionDate"
+          value={acquisitionDateStr}
+          class="w-full rounded-xl border border-border bg-surface px-4 py-3 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+        />
+      </div>
+      <div>
+        <label for="purchase-price" class="mb-2 block text-sm font-medium text-neutral">
+          Prix d'achat (€)
+        </label>
+        <input
+          type="number"
+          id="purchase-price"
+          name="purchasePrice"
+          min="0"
+          step="0.01"
+          value={metadata?.purchasePrice != null ? Number(metadata.purchasePrice) : ''}
+          class="w-full rounded-xl border border-border bg-surface px-4 py-3 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+        />
+      </div>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div>
+        <label for="condition" class="mb-2 block text-sm font-medium text-neutral">
+          État de conservation
+        </label>
+        <select
+          id="condition"
+          name="condition"
+          class="w-full rounded-xl border border-border bg-surface px-4 py-3 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+        >
+          <option value="">—</option>
+          {Object.entries(CONDITION_LABELS).map(([value, label]) => (
+            <option value={value} selected={metadata?.condition === value}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label for="purchase-location" class="mb-2 block text-sm font-medium text-neutral">
+          Lieu d'achat
+        </label>
+        <input
+          type="text"
+          id="purchase-location"
+          name="purchaseLocation"
+          value={metadata?.purchaseLocation ?? ''}
+          placeholder="Fnac, marché aux puces..."
+          class="w-full rounded-xl border border-border bg-surface px-4 py-3 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+        />
+      </div>
+    </div>
+
+    <div>
+      <label class="mb-2 block text-sm font-medium text-neutral">
+        Ma note (1–5)
+      </label>
+      <div class="flex items-center gap-2" data-star-rating>
+        {[1, 2, 3, 4, 5].map((ratingValue) => (
+          <button
+            type="button"
+            class="star-btn rounded p-1 text-muted transition-colors hover:text-primary"
+            data-value={ratingValue}
+            aria-label={`${ratingValue} étoile${ratingValue > 1 ? 's' : ''}`}
+          >
+            <Star size={24} />
+          </button>
+        ))}
+        <input type="hidden" name="personalRating" id={`personal-rating-value-${itemId}`} value={metadata?.personalRating != null ? Math.round(Number(metadata.personalRating)) : ''} />
+      </div>
+    </div>
+
+    <div>
+      <label for="tags-input" class="mb-2 block text-sm font-medium text-neutral">
+        Tags personnalisés
+      </label>
+      <div class="tags-container flex flex-wrap gap-2 rounded-xl border border-border bg-surface p-3">
+        <template data-tags-list></template>
+        <input
+          type="text"
+          id="tags-input"
+          class="min-w-[120px] flex-1 rounded-lg border-0 bg-transparent px-2 py-1 text-neutral placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary/50"
+          placeholder="Ajouter un tag..."
+          maxlength="50"
+          data-tags-input
+        />
+      </div>
+      <input type="hidden" name="customTags" id={`custom-tags-value-${itemId}`} value={JSON.stringify(tags)} />
+    </div>
+
+    <div class="flex gap-3 pt-2">
+      <button
+        type="submit"
+        class="bg-gradient-resonance hover:bg-gradient-resonance-hover rounded-xl px-4 py-2.5 text-sm font-medium text-white transition-all"
+      >
+        Enregistrer
+      </button>
+      <button
+        type="button"
+        class="cancel-edit rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-medium text-neutral transition-colors hover:bg-surface-elevated"
+        data-action="cancel-edit"
+      >
+        Annuler
+      </button>
+    </div>
+  </form>
+</section>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const section = document.querySelector('.personal-data-section')
+    if (!section) return
+
+    const itemId = section.getAttribute('data-item-id')
+    if (!itemId) return
+
+    const viewMode = section.querySelector('[data-mode="view"]')
+    const editMode = section.querySelector('[data-mode="edit"]')
+    const toggleBtn = section.querySelector('[data-action="toggle-edit"]')
+    const cancelBtn = section.querySelector('[data-action="cancel-edit"]')
+    const form = section.querySelector('form.edit-mode')
+    const starContainer = section.querySelector('[data-star-rating]')
+    const starValueInput = section.querySelector('#personal-rating-value-' + itemId)
+    const tagsInput = section.querySelector('[data-tags-input]')
+    const customTagsValue = section.querySelector('#custom-tags-value-' + itemId)
+
+    var currentTags = []
+    try {
+      var initial = customTagsValue && customTagsValue.value ? customTagsValue.value : '[]'
+      currentTags = JSON.parse(initial)
+    } catch (e) {
+      currentTags = []
+    }
+
+    function showView() {
+      if (viewMode) viewMode.classList.remove('hidden')
+      if (editMode) editMode.classList.add('hidden')
+    }
+
+    function showEdit() {
+      if (viewMode) viewMode.classList.add('hidden')
+      if (editMode) editMode.classList.remove('hidden')
+    }
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', showEdit)
+    }
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', function() {
+        showView()
+      })
+    }
+
+    if (starContainer && starValueInput) {
+      var rating = parseInt(starValueInput.value, 10) || 0
+      function updateStarDisplay() {
+        var stars = starContainer.querySelectorAll('.star-btn')
+        stars.forEach(function(btn) {
+          var value = parseInt(btn.getAttribute('data-value'), 10)
+          if (value <= rating) {
+            btn.classList.add('text-primary', 'star-filled')
+          } else {
+            btn.classList.remove('text-primary', 'star-filled')
+          }
+        })
+      }
+      updateStarDisplay()
+      starContainer.querySelectorAll('.star-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          rating = parseInt(btn.getAttribute('data-value'), 10)
+          starValueInput.value = rating
+          updateStarDisplay()
+        })
+      })
+    }
+
+    if (tagsInput && customTagsValue) {
+      function renderTags() {
+        var container = tagsInput.parentElement
+        var list = container.querySelector('.tags-badges')
+        if (list) list.remove()
+        var wrap = document.createElement('div')
+        wrap.className = 'tags-badges flex flex-wrap gap-2'
+        currentTags.forEach(function(tag, index) {
+          var span = document.createElement('span')
+          span.className = 'inline-flex items-center gap-1 rounded-full bg-primary/20 px-3 py-1 text-sm text-primary'
+          span.textContent = tag
+          var remove = document.createElement('button')
+          remove.type = 'button'
+          remove.className = 'ml-1 rounded p-0.5 hover:bg-primary/30'
+          remove.textContent = '×'
+          remove.addEventListener('click', function() {
+            currentTags.splice(index, 1)
+            customTagsValue.value = JSON.stringify(currentTags)
+            renderTags()
+          })
+          span.appendChild(remove)
+          wrap.appendChild(span)
+        })
+        container.insertBefore(wrap, tagsInput)
+      }
+      renderTags()
+      tagsInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter' || event.key === ',') {
+          event.preventDefault()
+          var value = tagsInput.value.trim().replace(/,$/, '')
+          if (value && currentTags.length < 10) {
+            currentTags.push(value)
+            customTagsValue.value = JSON.stringify(currentTags)
+            tagsInput.value = ''
+            renderTags()
+          }
+        }
+      })
+    }
+
+    if (form) {
+      form.addEventListener('submit', async function(event) {
+        event.preventDefault()
+        var formData = new FormData(form)
+        var personalNotes = formData.get('personalNotes')
+        var acquisitionDate = formData.get('acquisitionDate')
+        var purchasePrice = formData.get('purchasePrice')
+        var condition = formData.get('condition')
+        var purchaseLocation = formData.get('purchaseLocation')
+        var personalRating = formData.get('personalRating')
+
+        var payload = {}
+        if (personalNotes !== null && personalNotes !== undefined) payload.personalNotes = personalNotes === '' ? null : String(personalNotes)
+        if (acquisitionDate !== null && acquisitionDate !== undefined) payload.acquisitionDate = acquisitionDate === '' ? null : String(acquisitionDate)
+        if (purchasePrice !== null && purchasePrice !== undefined) payload.purchasePrice = purchasePrice === '' ? null : parseFloat(String(purchasePrice))
+        if (condition !== null && condition !== undefined) payload.condition = condition === '' ? null : String(condition)
+        if (purchaseLocation !== null && purchaseLocation !== undefined) payload.purchaseLocation = purchaseLocation === '' ? null : String(purchaseLocation)
+        if (personalRating !== null && personalRating !== undefined) payload.personalRating = personalRating === '' ? null : parseInt(String(personalRating), 10)
+        payload.customTags = currentTags
+
+        var submitBtn = form.querySelector('button[type="submit"]')
+        if (submitBtn) {
+          submitBtn.disabled = true
+          submitBtn.textContent = 'Enregistrement...'
+        }
+
+        try {
+          var response = await fetch('/api/items/' + itemId + '/personal-data', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          })
+
+          if (!response.ok) {
+            var err = await response.json()
+            throw new Error(err.error || 'Erreur lors de l\'enregistrement')
+          }
+
+          if (window.toast) {
+            window.toast.success('Données enregistrées')
+          } else {
+            console.log('Données enregistrées')
+          }
+          window.location.reload()
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Erreur'
+          if (window.toast) {
+            window.toast.error(errorMessage)
+          } else {
+            console.error('Erreur:', errorMessage)
+          }
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false
+            submitBtn.textContent = 'Enregistrer'
+          }
+        }
+      })
+    }
+  })
+</script>
+
+<style>
+  .star-btn.star-filled svg {
+    fill: none;
+    stroke: currentColor;
+  }
+</style>

@@ -1,0 +1,295 @@
+/**
+ * Design Tokens - Resonance
+ * Système de design cohérent pour l'application
+ */
+
+@layer base {
+  /* ============================================
+     ESPACEMENTS (Spacing System)
+     ============================================ */
+  :root {
+    /* Espacements de base (multiples de 4px) */
+    --spacing-xs: 0.25rem;   /* 4px */
+    --spacing-sm: 0.5rem;    /* 8px */
+    --spacing-md: 1rem;       /* 16px */
+    --spacing-lg: 1.5rem;     /* 24px */
+    --spacing-xl: 2rem;       /* 32px */
+    --spacing-2xl: 3rem;      /* 48px */
+    --spacing-3xl: 4rem;      /* 64px */
+    
+    /* Espacements pour composants spécifiques */
+    --spacing-card-padding: var(--spacing-lg);      /* 24px */
+    --spacing-card-gap: var(--spacing-md);          /* 16px */
+    --spacing-section-gap: var(--spacing-2xl);     /* 48px */
+    --spacing-form-gap: var(--spacing-md);         /* 16px */
+    --spacing-button-padding-x: var(--spacing-lg); /* 24px */
+    --spacing-button-padding-y: var(--spacing-md); /* 16px */
+  }
+
+  /* ============================================
+     TAILLES D'ICÔNES (Icon Sizes)
+     ============================================ */
+  :root {
+    --icon-xs: 0.75rem;   /* 12px */
+    --icon-sm: 1rem;      /* 16px */
+    --icon-md: 1.25rem;   /* 20px */
+    --icon-lg: 1.5rem;    /* 24px */
+    --icon-xl: 2rem;      /* 32px */
+    --icon-2xl: 2.5rem;   /* 40px */
+  }
+
+  /* ============================================
+     TRANSITIONS & ANIMATIONS
+     ============================================ */
+  :root {
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: 400ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    
+    /* Durées spécifiques */
+    --duration-hover: var(--transition-fast);
+    --duration-focus: var(--transition-base);
+    --duration-modal: var(--transition-slow);
+    --duration-toast: var(--transition-base);
+  }
+
+  /* ============================================
+     OMBRES (Shadows)
+     ============================================ */
+  :root {
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    
+    /* Ombres avec couleur primaire */
+    --shadow-primary: 0 4px 14px 0 rgba(var(--color-primary-rgb, 107, 78, 255), 0.15);
+    --shadow-primary-lg: 0 10px 25px 0 rgba(var(--color-primary-rgb, 107, 78, 255), 0.2);
+  }
+
+  /* ============================================
+     RAYONS DE BORDURE (Border Radius)
+     ============================================ */
+  :root {
+    --radius-sm: 0.375rem;   /* 6px */
+    --radius-md: 0.5rem;     /* 8px */
+    --radius-lg: 0.75rem;    /* 12px */
+    --radius-xl: 1rem;       /* 16px */
+    --radius-2xl: 1.5rem;    /* 24px */
+    --radius-full: 9999px;
+  }
+
+  /* ============================================
+     FOCUS VISIBLE (Accessibilité)
+     ============================================ */
+  :root {
+    --focus-ring-width: 2px;
+    --focus-ring-offset: 2px;
+    --focus-ring-color: var(--color-primary);
+    --focus-ring-opacity: 0.5;
+  }
+
+  [data-theme='dark'] {
+    --focus-ring-opacity: 0.7;
+  }
+}
+
+/* ============================================
+   CLASSES UTILITAIRES POUR ESPACEMENTS
+   ============================================ */
+@layer utilities {
+  /* Padding uniforme pour les cartes */
+  .card-padding {
+    padding: var(--spacing-card-padding);
+  }
+  
+  /* Gap uniforme pour les grilles */
+  .card-gap {
+    gap: var(--spacing-card-gap);
+  }
+  
+  /* Gap pour les sections */
+  .section-gap {
+    gap: var(--spacing-section-gap);
+  }
+  
+  /* Padding pour les formulaires */
+  .form-padding {
+    padding: var(--spacing-lg);
+  }
+  
+  .form-gap {
+    gap: var(--spacing-form-gap);
+  }
+}
+
+/* ============================================
+   ÉTATS HOVER/FOCUS COHÉRENTS
+   ============================================ */
+@layer base {
+  /* Boutons - États cohérents */
+  button:not(:disabled),
+  a[role='button']:not(:disabled) {
+    transition: 
+      background-color var(--duration-hover),
+      border-color var(--duration-hover),
+      color var(--duration-hover),
+      transform var(--duration-hover),
+      box-shadow var(--duration-hover);
+  }
+
+  button:not(:disabled):hover,
+  a[role='button']:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+
+  button:not(:disabled):active,
+  a[role='button']:not(:disabled):active {
+    transform: translateY(0);
+  }
+
+  /* Focus visible amélioré */
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+    box-shadow: 
+      0 0 0 calc(var(--focus-ring-width) + var(--focus-ring-offset)) rgba(var(--color-primary-rgb, 107, 78, 255), var(--focus-ring-opacity));
+  }
+
+  /* Cartes - États hover cohérents */
+  .glass-card,
+  [class*='glass-card'] {
+    transition: 
+      transform var(--duration-hover),
+      box-shadow var(--duration-hover),
+      border-color var(--duration-hover);
+  }
+
+  .glass-card:hover,
+  [class*='glass-card']:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Liens dans le contenu - underline uniquement au hover */
+  .content a,
+  p a,
+  li a {
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color var(--duration-hover);
+  }
+
+  .content a:hover,
+  p a:hover,
+  li a:hover {
+    border-bottom-color: currentColor;
+  }
+}
+
+/* ============================================
+   ANIMATIONS DE TRANSITION
+   ============================================ */
+@layer utilities {
+  /* Fade in */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* Slide in from right */
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  /* Slide in from bottom */
+  @keyframes slideInBottom {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  /* Scale in */
+  @keyframes scaleIn {
+    from {
+      transform: scale(0.95);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  /* Float animation */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn var(--transition-base) ease-out;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight var(--transition-slow) ease-out;
+  }
+
+  .animate-slide-in-bottom {
+    animation: slideInBottom var(--transition-slow) ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn var(--transition-base) ease-out;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+}
+
+/* ============================================
+   AMÉLIORATION DU CONTRASTE (WCAG AA)
+   ============================================ */
+@layer base {
+  [data-theme='dark'] {
+    /* Améliorer le contraste pour le dark theme - valeurs ajustées pour meilleure visibilité */
+    /* Les valeurs sont définies dans theme.css, ici on peut les surcharger si nécessaire */
+  }
+
+  /* Assurer un contraste minimum de 4.5:1 pour le texte */
+  [data-theme='dark'] .text-muted {
+    color: var(--color-muted);
+    opacity: 0.9;
+  }
+
+  [data-theme='light'] .text-muted {
+    color: var(--color-muted);
+    opacity: 0.85;
+  }
+}

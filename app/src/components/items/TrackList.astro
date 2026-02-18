@@ -1,0 +1,395 @@
+---
+import Music from '@lucide/astro/icons/music'
+
+type Track = {
+  position: string
+  title: string
+  duration?: string
+}
+
+type TrackListProps = {
+  tracks: Track[]
+  albumTitle: string
+  albumArtist: string
+  coverUrl?: string | null
+  discogsId?: string | null
+}
+
+const { tracks, albumTitle, albumArtist, coverUrl, discogsId } = Astro.props as TrackListProps
+
+// Vérifier si Spotify est configuré (via variable d'environnement côté client)
+// Note: On ne peut pas vérifier directement dans Astro, donc on le fera côté client
+const spotifyEnabled = true // Sera vérifié côté client
+---
+
+{tracks.length > 0 && (
+  <div class="glass-card rounded-2xl p-4 md:p-6">
+    <div class="mb-4 flex items-center gap-2">
+      <Music size={20} class="fill-none stroke-2 text-primary stroke-primary" />
+      <h2 class="text-xl font-bold text-neutral">Tracklist</h2>
+      <span class="ml-auto text-sm text-muted">
+        {tracks.length} {tracks.length === 1 ? 'titre' : 'titres'}
+      </span>
+    </div>
+    <div class="space-y-2" data-tracklist>
+      {tracks.map((track, index) => {
+        const trackId = `track-${index}-${track.title.replace(/\s+/g, '-').toLowerCase()}`
+        return (
+          <div
+            class="track-item group flex flex-col gap-2 rounded-lg border border-border bg-surface p-3 transition-colors hover:bg-surface-elevated sm:flex-row sm:items-center sm:gap-4 sm:p-4"
+            data-track-index={index}
+            data-track-title={track.title}
+            data-track-artist={albumArtist}
+          >
+            <div class="flex flex-1 items-center gap-3 min-w-0 sm:gap-4">
+              <span class="shrink-0 text-sm font-medium text-muted w-8">
+                {track.position || `${index + 1}.`}
+              </span>
+              <div class="flex-1 min-w-0">
+                <p class="truncate font-medium text-neutral">{track.title}</p>
+                {track.duration && (
+                  <p class="text-xs text-muted">{track.duration}</p>
+                )}
+              </div>
+            </div>
+            <div class="flex shrink-0 justify-end sm:justify-start" data-preview-container>
+              <button
+                type="button"
+                class="track-preview-btn flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface text-muted transition-all hover:border-primary hover:bg-primary/10 hover:text-primary"
+                data-track-name={track.title}
+                data-track-artist={albumArtist}
+                data-track-index={index}
+                aria-label={`Écouter un extrait de ${track.title}`}
+              >
+                <svg
+                  class="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  data-play-icon
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <svg
+                  class="h-5 w-5 hidden"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  data-loading-icon
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  </div>
+)}
+
+<script define:vars={{ albumTitle, albumArtist, coverUrl }}>
+  (function() {
+    const tracklist = document.querySelector('[data-tracklist]')
+    if (!tracklist) return
+
+    const previewButtons = tracklist.querySelectorAll('.track-preview-btn')
+
+    // Vérifier si Spotify est configuré en testant l'endpoint
+    let spotifyEnabled = false
+    let spotifyCheckDone = false
+
+    async function checkAudioAvailability() {
+      if (spotifyCheckDone) return spotifyEnabled
+      
+      try {
+        // Test simple pour vérifier si l'API répond
+        const testResponse = await fetch('/api/spotify/search-track?artist=test&track=test')
+        const testData = await testResponse.json().catch(() => ({}))
+        
+        // Si on reçoit une réponse valide (même sans preview), le service est disponible
+        // Deezer est toujours disponible, donc on considère que c'est OK
+        spotifyEnabled = true
+      } catch (error) {
+        // En cas d'erreur réseau, on assume que le service n'est pas disponible
+        spotifyEnabled = false
+      }
+      
+      spotifyCheckDone = true
+      
+      // Si le service n'est pas disponible, masquer les boutons play
+      if (!spotifyEnabled) {
+        previewButtons.forEach((btn) => {
+          btn.style.display = 'none'
+        })
+        
+        // Afficher un message informatif dans la tracklist
+        const tracklistHeader = tracklist.closest('.glass-card')
+        if (tracklistHeader) {
+          const infoMsg = document.createElement('div')
+          infoMsg.className = 'mt-4 rounded-lg border border-border bg-surface-elevated p-3 text-sm text-muted'
+          infoMsg.innerHTML = `
+            <p class="flex items-center gap-2">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Les extraits audio sont temporairement indisponibles.
+            </p>
+          `
+          tracklist.appendChild(infoMsg)
+        }
+      }
+      
+      return spotifyEnabled
+    }
+
+    // Vérifier la disponibilité du service audio au chargement
+    checkAudioAvailability()
+
+    // Cache pour les preview URLs déjà chargées
+    const previewCache = new Map()
+
+    previewButtons.forEach((button) => {
+      // Préchargement au hover pour améliorer les performances
+      let hoverTimeout = null
+      button.addEventListener('mouseenter', async function() {
+        // Vérifier si le service audio est disponible avant de précharger
+        const isEnabled = await checkAudioAvailability()
+        if (!isEnabled) return
+
+        const trackName = this.dataset.trackName
+        const trackArtist = this.dataset.trackArtist || albumArtist
+        const cacheKey = `${trackArtist}-${trackName}`
+        
+        // Précharger après 300ms de hover
+        hoverTimeout = setTimeout(async () => {
+          if (!previewCache.has(cacheKey)) {
+            try {
+              const searchResponse = await fetch(
+                `/api/spotify/search-track?artist=${encodeURIComponent(trackArtist)}&track=${encodeURIComponent(trackName)}`
+              )
+              if (searchResponse.ok) {
+                const searchData = await searchResponse.json()
+                if (searchData.track?.preview_url) {
+                  previewCache.set(cacheKey, searchData.track.preview_url)
+                  // Précharger l'audio en arrière-plan
+                  const audio = new Audio(searchData.track.preview_url)
+                  audio.preload = 'metadata'
+                }
+              }
+            } catch (error) {
+              // Ignorer les erreurs de préchargement silencieusement
+            }
+          }
+        }, 300)
+      })
+
+      button.addEventListener('mouseleave', function() {
+        if (hoverTimeout) {
+          clearTimeout(hoverTimeout)
+          hoverTimeout = null
+        }
+      })
+
+      button.addEventListener('click', async function() {
+        // Vérifier si Spotify est disponible avant de continuer
+        const isEnabled = await checkAudioAvailability()
+        if (!isEnabled) {
+          if (window.toast) {
+            window.toast.info('Les extraits audio sont temporairement indisponibles')
+          }
+          return
+        }
+
+        const trackName = this.dataset.trackName
+        const trackArtist = this.dataset.trackArtist || albumArtist
+        const trackIndex = this.dataset.trackIndex
+        const container = this.closest('[data-preview-container]')
+        const playIcon = this.querySelector('[data-play-icon]')
+        const loadingIcon = this.querySelector('[data-loading-icon]')
+
+        if (!container || !trackName) return
+
+        // Si un player existe déjà, le supprimer
+        const existingPlayer = container.querySelector('.audio-player')
+        if (existingPlayer) {
+          const existingAudio = existingPlayer.querySelector('audio')
+          if (existingAudio) {
+            existingAudio.pause()
+            existingAudio.currentTime = 0
+          }
+          existingPlayer.remove()
+        }
+
+        // Afficher le loading
+        if (playIcon) playIcon.classList.add('hidden')
+        if (loadingIcon) loadingIcon.classList.remove('hidden')
+        this.disabled = true
+
+        try {
+          // Vérifier le cache d'abord
+          const cacheKey = `${trackArtist}-${trackName}`
+          let previewUrl = previewCache.get(cacheKey)
+
+          // Si pas en cache, rechercher sur Spotify
+          if (!previewUrl) {
+            // Utiliser les paramètres séparés pour une meilleure précision
+            const searchResponse = await fetch(
+              `/api/spotify/search-track?artist=${encodeURIComponent(trackArtist)}&track=${encodeURIComponent(trackName)}`
+            )
+
+            if (!searchResponse.ok) {
+              throw new Error('Failed to search track')
+            }
+
+            const searchData = await searchResponse.json()
+
+            if (!searchData.track || !searchData.track.preview_url) {
+              // Pas de preview disponible
+              if (window.toast) {
+                window.toast.info('Aucun extrait disponible pour ce titre')
+              }
+              if (playIcon) playIcon.classList.remove('hidden')
+              if (loadingIcon) loadingIcon.classList.add('hidden')
+              this.disabled = false
+              return
+            }
+
+            previewUrl = searchData.track.preview_url
+            previewCache.set(cacheKey, previewUrl)
+          }
+
+          // Créer le player audio et l’injecter dans la barre fixe en bas
+          const globalBar = document.getElementById('global-audio-bar')
+          const globalSlot = globalBar?.querySelector('[data-global-audio-slot]')
+          const useGlobalBar = Boolean(globalSlot)
+          const closeBtnHtml = useGlobalBar ? '<button type="button" class="global-audio-close flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface hover:text-neutral" aria-label="Fermer"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>' : ''
+
+          const playerWrapper = document.createElement('div')
+          playerWrapper.className = useGlobalBar ? '' : 'mt-2'
+          playerWrapper.innerHTML = `
+            <div class="audio-player flex items-center gap-2 md:gap-3" data-player-id="track-${trackIndex}" data-compact="true">
+              <div class="flex flex-1 items-center gap-2 min-w-0 rounded-lg border-0 bg-transparent p-0 md:gap-3 md:rounded-lg md:border md:border-border md:bg-surface md:p-2">
+                ${coverUrl ? `<img src="${coverUrl}" alt="${trackName}" class="h-10 w-10 shrink-0 rounded object-cover" />` : ''}
+                <div class="flex-1 min-w-0">
+                  <p class="truncate text-sm font-medium text-neutral">${trackName}</p>
+                  <p class="truncate text-xs text-muted">${trackArtist}</p>
+                </div>
+                <button type="button" class="audio-play-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white transition-all hover:bg-primary/90" data-action="play-pause" aria-label="Play/Pause">
+                  <svg class="audio-play-icon h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <svg class="audio-pause-icon h-4 w-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+                <audio id="track-${trackIndex}" class="hidden" preload="none" data-preview-url="${previewUrl}" data-auto-play="true"></audio>
+              </div>
+              ${closeBtnHtml}
+            </div>
+          `
+
+          if (globalSlot) {
+            globalSlot.innerHTML = ''
+            globalSlot.appendChild(playerWrapper)
+            globalBar.classList.remove('hidden')
+            document.body.classList.add('has-global-audio')
+            const closeBtn = playerWrapper.querySelector('.global-audio-close')
+            if (closeBtn) {
+              closeBtn.addEventListener('click', () => {
+                if (audio && !audio.paused) audio.pause()
+                globalSlot.innerHTML = ''
+                globalBar.classList.add('hidden')
+                document.body.classList.remove('has-global-audio')
+              })
+            }
+          } else {
+            container.appendChild(playerWrapper)
+          }
+
+          // Initialiser le player
+          const audio = playerWrapper.querySelector('audio')
+          const playBtn = playerWrapper.querySelector('[data-action="play-pause"]')
+          const playerPlayIcon = playerWrapper.querySelector('.audio-play-icon')
+          const playerPauseIcon = playerWrapper.querySelector('.audio-pause-icon')
+
+          if (audio && playBtn) {
+            audio.src = previewUrl
+
+            // Arrêter les autres players
+            const allAudios = document.querySelectorAll('audio')
+            allAudios.forEach((otherAudio) => {
+              if (otherAudio !== audio && !otherAudio.paused) {
+                otherAudio.pause()
+                otherAudio.currentTime = 0
+              }
+            })
+
+            playBtn.addEventListener('click', () => {
+              if (audio.paused) {
+                audio.play().catch((error) => {
+                  console.error('Error playing audio:', error)
+                })
+                if (playerPlayIcon) playerPlayIcon.classList.add('hidden')
+                if (playerPauseIcon) playerPauseIcon.classList.remove('hidden')
+              } else {
+                audio.pause()
+                if (playerPlayIcon) playerPlayIcon.classList.remove('hidden')
+                if (playerPauseIcon) playerPauseIcon.classList.add('hidden')
+              }
+            })
+
+            audio.addEventListener('ended', () => {
+              if (playerPlayIcon) playerPlayIcon.classList.remove('hidden')
+              if (playerPauseIcon) playerPauseIcon.classList.add('hidden')
+            })
+
+            // Auto-play
+            setTimeout(() => {
+              audio.play().catch((error) => {
+                console.error('Error auto-playing audio:', error)
+              })
+              if (playerPlayIcon) playerPlayIcon.classList.add('hidden')
+              if (playerPauseIcon) playerPauseIcon.classList.remove('hidden')
+            }, 100)
+          }
+
+          // Masquer le bouton play
+          this.style.display = 'none'
+        } catch (error) {
+          console.error('Error loading preview:', error)
+          if (window.toast) {
+            window.toast.error('Erreur lors du chargement de l\'extrait')
+          }
+          if (playIcon) playIcon.classList.remove('hidden')
+          if (loadingIcon) loadingIcon.classList.add('hidden')
+          this.disabled = false
+        }
+      })
+    })
+  })()
+</script>

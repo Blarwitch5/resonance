@@ -1,0 +1,80 @@
+---
+import { collectionRepository } from '../../repositories/collection-repository'
+import { itemRepository } from '../../repositories/item-repository'
+import DashboardLayout from '../../components/layouts/DashboardLayout.astro'
+import CollectionHeader from '../../components/collections/CollectionHeader.astro'
+import ItemGrid from '../../components/items/ItemGrid.astro'
+import Pagination from '../../components/ui/Pagination.astro'
+import EmptyState from '../../components/ui/EmptyState.astro'
+import Plus from '@lucide/astro/icons/plus'
+
+export const prerender = false
+
+// Utiliser la session depuis le middleware (Astro.locals)
+const session = Astro.locals.session
+if (!session) return Astro.redirect('/login')
+
+const slug = Astro.params.slug
+if (!slug) return Astro.redirect('/collections')
+
+const collection = await collectionRepository.findBySlug(slug, Astro.locals.user!.id)
+
+if (!collection) {
+  return Astro.redirect('/collections')
+}
+
+// Get pagination params
+const page = Number.parseInt(Astro.url.searchParams.get('page') || '1')
+const perPage = 24
+
+// Get items with pagination
+const paginatedResult = await itemRepository.findByCollectionIdPaginated(collection.id, page, perPage)
+---
+
+<DashboardLayout title={`${collection.name} - Resonance`}>
+  <div class="space-y-6">
+    <CollectionHeader collection={collection} />
+
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-bold">Albums dans cette collection</h2>
+    </div>
+
+    {paginatedResult.pagination.total === 0 ? (
+      <EmptyState
+        title={`La collection "${collection.name}" vous attend`}
+        description="Ajoutez vos premiers albums à cette collection pour commencer à l'organiser et à explorer votre musique préférée."
+        icon={Plus}
+        action={{
+          label: 'Ajouter des albums',
+          href: '/explorer',
+        }}
+      />
+    ) : (
+      <>
+        <ItemGrid items={paginatedResult.items} columns={6} />
+
+        <!-- Pagination -->
+        {paginatedResult.pagination.totalPages > 1 && (
+          <div class="mt-8">
+            <Pagination
+              currentPage={paginatedResult.pagination.page}
+              totalPages={paginatedResult.pagination.totalPages}
+              baseUrl={`/collections/${slug}`}
+            />
+          </div>
+        )}
+      </>
+    )}
+  </div>
+</DashboardLayout>
+
+<style>
+  .glass-card {
+    transition: all 0.3s ease;
+  }
+
+  .glass-card:hover {
+    transform: translateY(-2px);
+  }
+</style>
+

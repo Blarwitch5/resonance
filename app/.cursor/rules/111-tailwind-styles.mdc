@@ -1,0 +1,27 @@
+---
+description: ENFORCE usage of Tailwind CSS and responsive design patterns
+globs: *.tsx, *.css, *.scss, *.astro
+---
+
+## Tailwind CSS Rules
+
+1. **Avoid `space-y-n`** - Use `flex gap-n` with `flex-col` if necessary
+2. **Avoid `bg-white bg-opacity-50`** - Use `bg-white/50` instead
+
+## Tailwind Configuration
+
+- Use **Tailwind CSS only** for styling (no Shadcn UI, no Radix)
+- For Astro, use `astro add tailwind` to configure Tailwind CSS
+- Create reusable Astro components with Tailwind
+- Use Tailwind utility classes directly in components
+- Avoid inline styles except for dynamic values
+- Use CSS variables for recurring values (colors, spacing)
+
+## Responsive Design
+
+- Use a **mobile-first approach** with Tailwind
+- Test on different screen sizes (mobile, tablet, desktop)
+- Use Tailwind breakpoints: `sm:`, `md:`, `lg:`, `xl:`, `2xl:`
+- Ensure content is readable and usable on mobile
+- Avoid horizontal zoom on mobile (appropriate viewport)
+- Implement responsive design with Tailwind CSS using a mobile-first approach

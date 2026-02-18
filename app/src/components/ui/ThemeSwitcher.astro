@@ -1,0 +1,196 @@
+---
+import Moon from '@lucide/astro/icons/moon'
+import SunMedium from '@lucide/astro/icons/sun-medium'
+
+type ThemeSwitcherProps = {
+  showLabel?: boolean
+  size?: 'sm' | 'md' | 'lg'
+  variant?: 'icon-only' | 'with-label'
+}
+
+const { showLabel = false, size = 'md', variant = 'icon-only' } = Astro.props as ThemeSwitcherProps
+
+const sizeClasses = {
+  sm: 'h-8 w-8',
+  md: 'h-10 w-10',
+  lg: 'h-12 w-12',
+}
+
+const iconSizes = {
+  sm: 16,
+  md: 20,
+  lg: 24,
+}
+---
+
+<button
+  type="button"
+  class="theme-toggle-btn group relative flex items-center justify-center gap-2 rounded-xl border border-border bg-surface text-neutral shadow-sm backdrop-blur-sm transition-all duration-200 ease-out hover:border-primary/50 hover:bg-primary/10 hover:text-primary hover:shadow-md focus:border-primary/70 focus:ring-2 focus:ring-primary/30 focus:outline-none"
+  aria-label="Changer le thème"
+  data-theme-toggle
+>
+  <div class={`relative ${sizeClasses[size]}`}>
+    <SunMedium
+      class="theme-toggle-light-icon absolute inset-0 m-auto transition-all duration-200 group-hover:scale-110"
+      size={iconSizes[size]}
+      aria-hidden="true"
+    />
+    <Moon
+      class="theme-toggle-dark-icon absolute inset-0 m-auto transition-all duration-200 group-hover:scale-110"
+      size={iconSizes[size]}
+      aria-hidden="true"
+    />
+  </div>
+  
+  {variant === 'with-label' && (
+    <span class="text-sm font-medium hidden sm:inline">Thème</span>
+  )}
+
+  <!-- Effet de glow au hover -->
+  <div
+    class="from-primary/20 to-secondary/20 pointer-events-none absolute inset-0 rounded-xl bg-linear-to-r opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+    aria-hidden="true"
+  >
+  </div>
+</button>
+
+<script>
+  // TypeScript fonctionne nativement dans les scripts Astro !
+  (function() {
+    // Fonction pour appliquer le thème
+    function applyTheme(): void {
+      const html = document.documentElement
+      const prefersDark =
+        typeof matchMedia !== 'undefined' ? matchMedia('(prefers-color-scheme: dark)').matches : false
+
+      const theme =
+        localStorage.theme === 'dark' || (!('theme' in localStorage) && prefersDark)
+          ? 'dark'
+          : 'light'
+      html.setAttribute('data-theme', theme)
+    }
+
+    // Fonction pour mettre à jour toutes les icônes
+    function updateAllIcons(): void {
+      const html = document.documentElement
+      const isDark = html.getAttribute('data-theme') === 'dark'
+      
+      // Trouver tous les boutons theme toggle
+      const toggleButtons = document.querySelectorAll('[data-theme-toggle]')
+      
+      toggleButtons.forEach(function(button) {
+        const lightIcon = button.querySelector('.theme-toggle-light-icon')
+        const darkIcon = button.querySelector('.theme-toggle-dark-icon')
+        
+        if (lightIcon && darkIcon) {
+          if (isDark) {
+            // Mode sombre : montrer l'icône soleil (pour passer en clair)
+            lightIcon.classList.remove('hidden')
+            darkIcon.classList.add('hidden')
+          } else {
+            // Mode clair : montrer l'icône lune (pour passer en sombre)
+            darkIcon.classList.remove('hidden')
+            lightIcon.classList.add('hidden')
+          }
+        }
+      })
+    }
+
+    // Fonction pour initialiser tous les ThemeSwitchers
+    function initThemeSwitchers(): void {
+      const toggleButtons = document.querySelectorAll('[data-theme-toggle]')
+      
+      toggleButtons.forEach(function(button) {
+        // Supprimer les anciens listeners pour éviter les doublons
+        const newButton = button.cloneNode(true) as HTMLElement
+        button.parentNode?.replaceChild(newButton, button)
+        
+        // Ajouter le listener sur le nouveau bouton
+        newButton.addEventListener('click', function(event: MouseEvent) {
+          event.preventDefault()
+          event.stopPropagation()
+
+          const html = document.documentElement
+          const currentIsDark = html.getAttribute('data-theme') === 'dark'
+
+          // Toggle le thème
+          if (currentIsDark) {
+            localStorage.theme = 'light'
+          } else {
+            localStorage.theme = 'dark'
+          }
+
+          // Appliquer le thème
+          applyTheme()
+
+          // Mettre à jour toutes les icônes
+          updateAllIcons()
+
+          // Déclencher un événement de changement de thème
+          document.dispatchEvent(
+            new CustomEvent('themeChanged', {
+              detail: { theme: localStorage.theme },
+            })
+          )
+        })
+      })
+      
+      // Mettre à jour les icônes au chargement
+      updateAllIcons()
+    }
+
+    // Écouter les changements de thème pour mettre à jour toutes les icônes
+    document.addEventListener('themeChanged', updateAllIcons)
+
+    // Initialiser au chargement de la page
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        applyTheme()
+        setTimeout(initThemeSwitchers, 100)
+      })
+    } else {
+      applyTheme()
+      setTimeout(initThemeSwitchers, 100)
+    }
+
+    // Gérer les transitions Astro
+    document.addEventListener('astro:after-swap', function() {
+      applyTheme()
+      setTimeout(function() {
+        initThemeSwitchers()
+        updateAllIcons()
+      }, 100)
+    })
+
+    document.addEventListener('astro:page-load', function() {
+      applyTheme()
+      setTimeout(function() {
+        initThemeSwitchers()
+        updateAllIcons()
+      }, 100)
+    })
+  })()
+</script>
+
+<style>
+  .theme-toggle-light-icon,
+  .theme-toggle-dark-icon {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  
+  [data-theme='dark'] .theme-toggle-light-icon {
+    opacity: 1;
+  }
+  
+  [data-theme='dark'] .theme-toggle-dark-icon {
+    opacity: 0;
+  }
+  
+  [data-theme='light'] .theme-toggle-light-icon {
+    opacity: 0;
+  }
+  
+  [data-theme='light'] .theme-toggle-dark-icon {
+    opacity: 1;
+  }
+</style>

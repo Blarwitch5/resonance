@@ -1,0 +1,141 @@
+---
+/**
+ * Composant de confirmation pour actions destructives
+ * Usage: Utiliser via JavaScript pour afficher des confirmations élégantes
+ */
+---
+
+<div id="confirm-dialog" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-md">
+  <div class="glass-card mx-4 w-full max-w-md rounded-2xl p-6 animate-scale-in">
+    <div class="mb-4">
+      <h3 id="confirm-dialog-title" class="text-xl font-bold text-neutral mb-2">
+        Confirmer l'action
+      </h3>
+      <p id="confirm-dialog-message" class="text-muted">
+        Êtes-vous sûr de vouloir continuer ?
+      </p>
+    </div>
+    
+    <div class="flex gap-3">
+      <button
+        type="button"
+        id="confirm-dialog-cancel"
+        class="btn-secondary-surface flex flex-1 items-center justify-center rounded-xl px-6 py-3"
+      >
+        Annuler
+      </button>
+      <button
+        type="button"
+        id="confirm-dialog-confirm"
+        class="btn-danger flex flex-1 items-center justify-center rounded-xl px-6 py-3"
+      >
+        Confirmer
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // TypeScript fonctionne nativement dans les scripts Astro !
+  (function() {
+    const dialog = document.getElementById('confirm-dialog')
+    const title = document.getElementById('confirm-dialog-title')
+    const message = document.getElementById('confirm-dialog-message')
+    const cancelBtn = document.getElementById('confirm-dialog-cancel')
+    const confirmBtn = document.getElementById('confirm-dialog-confirm')
+
+    if (!dialog || !title || !message || !cancelBtn || !confirmBtn) {
+      return
+    }
+
+    let resolvePromise: ((value: boolean) => void) | null = null
+
+    function showDialog(dialogTitle: string, dialogMessage: string, confirmText?: string, cancelText?: string): Promise<boolean> {
+      if (!dialog || !title || !message || !confirmBtn || !cancelBtn) {
+        return Promise.resolve(false)
+      }
+      
+      return new Promise((resolve) => {
+        resolvePromise = resolve
+        
+        title.textContent = dialogTitle
+        message.textContent = dialogMessage
+        if (confirmText) {
+          confirmBtn.textContent = confirmText
+        }
+        if (cancelText) {
+          cancelBtn.textContent = cancelText
+        }
+        
+        dialog.classList.remove('hidden')
+        dialog.classList.add('flex')
+      })
+    }
+
+    function hideDialog(): void {
+      if (!dialog) return
+      dialog.classList.add('hidden')
+      dialog.classList.remove('flex')
+    }
+
+    cancelBtn.addEventListener('click', function() {
+      hideDialog()
+      if (resolvePromise) {
+        resolvePromise(false)
+        resolvePromise = null
+      }
+    })
+
+    confirmBtn.addEventListener('click', function() {
+      hideDialog()
+      if (resolvePromise) {
+        resolvePromise(true)
+        resolvePromise = null
+      }
+    })
+
+    // Fermer en cliquant sur l'overlay
+    dialog.addEventListener('click', function(event: MouseEvent) {
+      if (event.target === dialog) {
+        hideDialog()
+        if (resolvePromise) {
+          resolvePromise(false)
+          resolvePromise = null
+        }
+      }
+    })
+
+    // Fermer avec Escape
+    document.addEventListener('keydown', function(event: KeyboardEvent) {
+      if (event.key === 'Escape' && !dialog.classList.contains('hidden')) {
+        hideDialog()
+        if (resolvePromise) {
+          resolvePromise(false)
+          resolvePromise = null
+        }
+      }
+    })
+
+    // Exposer globalement
+    if (typeof window !== 'undefined') {
+      window.confirmDialog = showDialog
+    }
+  })()
+</script>
+
+<style>
+  @keyframes scaleIn {
+    from {
+      transform: scale(0.95);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+</style>

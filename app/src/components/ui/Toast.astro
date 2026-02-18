@@ -1,0 +1,182 @@
+---
+// Toast notification component
+// Usage: Add <ToastContainer /> to your layout, then use showToast() function
+---
+
+<div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-3 pointer-events-none">
+  <!-- Toasts will be dynamically added here -->
+</div>
+
+<script>
+  // TypeScript fonctionne nativement dans les scripts Astro !
+  type ToastType = 'success' | 'error' | 'info' | 'warning'
+
+  interface Toast {
+    id: string
+    type: ToastType
+    message: string
+    duration: number
+  }
+
+  interface ToastOptions {
+    type?: ToastType
+    duration?: number
+    message: string
+  }
+
+  const toastContainer = document.getElementById('toast-container')
+  let toastIdCounter = 0
+
+  function createToastElement(toast: Toast): HTMLElement {
+    const toastElement = document.createElement('div')
+    toastElement.id = `toast-${toast.id}`
+    toastElement.className = `toast glass-card pointer-events-auto flex items-center gap-3 rounded-xl border px-4 py-3 shadow-lg transition-all duration-300 translate-x-full opacity-0`
+    
+    // Type-specific styling
+    const typeStyles = {
+      success: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
+      error: 'border-red-500/30 bg-red-500/10 text-red-400',
+      info: 'border-blue-500/30 bg-blue-500/10 text-blue-400',
+      warning: 'border-orange-500/30 bg-orange-500/10 text-orange-400',
+    }
+    
+    toastElement.className += ` ${typeStyles[toast.type]}`
+
+    // Icon
+    const iconSvg = getIconSvg(toast.type)
+    toastElement.innerHTML = `
+      <div class="shrink-0">
+        ${iconSvg}
+      </div>
+      <p class="flex-1 text-sm font-medium">${escapeHtml(toast.message)}</p>
+      <button 
+        type="button" 
+        class="toast-close shrink-0 rounded p-1 transition-colors hover:bg-black/10"
+        aria-label="Fermer"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    `
+
+    // Close button handler
+    const closeBtn = toastElement.querySelector('.toast-close')
+    closeBtn?.addEventListener('click', () => {
+      removeToast(toast.id)
+    })
+
+    return toastElement
+  }
+
+  function getIconSvg(type: ToastType): string {
+    const icons = {
+      success: `
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      `,
+      error: `
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      `,
+      info: `
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+      `,
+      warning: `
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      `,
+    }
+    return icons[type]
+  }
+
+  function escapeHtml(text: string): string {
+    const div = document.createElement('div')
+    div.textContent = text
+    return div.innerHTML
+  }
+
+  function showToast(options: ToastOptions): void {
+    if (!toastContainer) {
+      console.warn('Toast container not found')
+      return
+    }
+
+    const toast: Toast = {
+      id: `toast-${toastIdCounter++}`,
+      type: options.type || 'info',
+      message: options.message,
+      duration: options.duration || 3000,
+    }
+
+    const toastElement = createToastElement(toast)
+    toastContainer.appendChild(toastElement)
+
+    // Trigger animation
+    requestAnimationFrame(() => {
+      toastElement.classList.remove('translate-x-full', 'opacity-0')
+      toastElement.classList.add('translate-x-0', 'opacity-100')
+    })
+
+    // Auto-remove after duration
+    if (toast.duration > 0) {
+      setTimeout(() => {
+        removeToast(toast.id)
+      }, toast.duration)
+    }
+  }
+
+  function removeToast(id: string): void {
+    const toastElement = document.getElementById(`toast-${id}`)
+    if (!toastElement) return
+
+    toastElement.classList.add('translate-x-full', 'opacity-0')
+    
+    setTimeout(() => {
+      toastElement.remove()
+    }, 300) // Match transition duration
+  }
+
+  // Export functions to window for global access
+  if (typeof window !== 'undefined') {
+    window.showToast = showToast
+    window.toast = {
+      success: (message: string, duration?: number) => showToast({ type: 'success', message, duration }),
+      error: (message: string, duration?: number) => showToast({ type: 'error', message, duration }),
+      info: (message: string, duration?: number) => showToast({ type: 'info', message, duration }),
+      warning: (message: string, duration?: number) => showToast({ type: 'warning', message, duration }),
+    }
+  }
+</script>
+
+<style>
+  .toast {
+    min-width: 300px;
+    max-width: 400px;
+  }
+
+  @media (max-width: 640px) {
+    #toast-container {
+      top: 1rem;
+      right: 1rem;
+      left: 1rem;
+    }
+
+    .toast {
+      min-width: auto;
+      max-width: 100%;
+    }
+  }
+</style>

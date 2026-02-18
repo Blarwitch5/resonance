@@ -1,0 +1,129 @@
+---
+type EmptyStateProps = {
+  title: string
+  description: string
+  icon?: typeof import('@lucide/astro').Icon | ((props: { size?: number; class?: string }) => any)
+  action?: {
+    label: string
+    href?: string
+    onClick?: string
+  }
+  secondaryAction?: {
+    label: string
+    href?: string
+    onClick?: string
+  }
+  size?: 'sm' | 'md' | 'lg'
+}
+
+const {
+  title,
+  description,
+  icon: Icon,
+  action,
+  secondaryAction,
+  size = 'md',
+} = Astro.props as EmptyStateProps
+
+const sizeClasses = {
+  sm: {
+    container: 'p-8',
+    icon: 'h-12 w-12',
+    iconSize: 24,
+    title: 'text-lg',
+    description: 'text-sm',
+  },
+  md: {
+    container: 'p-12',
+    icon: 'h-24 w-24',
+    iconSize: 48,
+    title: 'text-xl',
+    description: 'text-base',
+  },
+  lg: {
+    container: 'p-16',
+    icon: 'h-32 w-32',
+    iconSize: 64,
+    title: 'text-2xl',
+    description: 'text-lg',
+  },
+}
+
+const sizeConfig = sizeClasses[size]
+---
+
+<div class={`glass-card rounded-2xl ${sizeConfig.container} text-center`}>
+  {Icon && (
+    <div
+      class={`bg-gradient-resonance-subtle mx-auto mb-6 flex ${sizeConfig.icon} animate-float items-center justify-center rounded-full`}
+    >
+      <Icon size={sizeConfig.iconSize} class="fill-none stroke-2 text-primary stroke-primary" />
+    </div>
+  )}
+
+  <h3 class={`font-display mb-4 ${sizeConfig.title} font-semibold text-neutral`}>
+    {title}
+  </h3>
+
+  <p class={`text-muted mx-auto mb-8 max-w-md ${sizeConfig.description}`}>
+    {description}
+  </p>
+
+  {(action || secondaryAction) && (
+    <div class="flex flex-col justify-center gap-4 sm:flex-row">
+      {action && (
+        action.href ? (
+          <a
+            href={action.href}
+            class="btn-primary-gradient inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 hover:scale-105"
+          >
+            {action.label}
+          </a>
+        ) : (
+          <button
+            type="button"
+            class="btn-primary-gradient inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 hover:scale-105"
+            onclick={action.onClick}
+          >
+            {action.label}
+          </button>
+        )
+      )}
+
+      {secondaryAction && (
+        secondaryAction.href ? (
+          <a
+            href={secondaryAction.href}
+            class="btn-secondary-surface inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 hover:scale-105"
+          >
+            {secondaryAction.label}
+          </a>
+        ) : (
+          <button
+            type="button"
+            class="btn-secondary-surface inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 hover:scale-105"
+            onclick={secondaryAction.onClick}
+          >
+            {secondaryAction.label}
+          </button>
+        )
+      )}
+    </div>
+  )}
+</div>
+
+<style>
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+</style>

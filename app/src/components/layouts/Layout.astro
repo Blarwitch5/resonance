@@ -1,0 +1,164 @@
+---
+import { ClientRouter } from 'astro:transitions'
+import BottomBar from '../ui/BottomBar.astro'
+import Footer from '../ui/Footer.astro'
+import Header from '../ui/Header.astro'
+import '../../styles/global.css'
+
+type LayoutProps = {
+  title?: string
+  description?: string
+  canonical?: string
+  showDashboardHeader?: boolean
+  sectionTitle?: string
+  sectionDescription?: string
+  showBottomBar?: boolean
+  showFooter?: boolean
+}
+
+const props = Astro.props as LayoutProps
+const title = props.title ?? 'Resonance - Where your music resonates'
+const description =
+  props.description ??
+  'Manage your multi-format music collection with Resonance. Vinyl, CD, Cassette - all in one place.'
+const canonical = props.canonical ?? Astro.url?.href ?? '/'
+const showDashboardHeader = props.showDashboardHeader ?? false
+const showBottomBar = props.showBottomBar ?? false
+const showFooter = props.showFooter ?? true
+---
+
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content={description} />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonical} />
+
+    <!-- Preload critical fonts for better performance -->
+    <link
+      rel="preload"
+      href="/fonts/Poppins-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    <!-- Social media meta tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content="/og-image.jpg" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content="/og-image.jpg" />
+
+    <!-- PWA Meta -->
+    <meta name="theme-color" content="#6B4EFF" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Resonance" />
+
+    <title>{title}</title>
+
+    <!-- View Transitions -->
+    <ClientRouter />
+
+    <!-- Theme initialization script to prevent flash (based on Tailwind 4) -->
+    <script is:inline>
+      ;(function () {
+        const html = document.documentElement
+        // matchMedia est disponible globalement dans les navigateurs modernes
+        const prefersDark =
+          typeof matchMedia !== 'undefined'
+            ? matchMedia('(prefers-color-scheme: dark)').matches
+            : false
+
+        const theme =
+          localStorage.theme === 'dark' || (!('theme' in localStorage) && prefersDark)
+            ? 'dark'
+            : 'light'
+        html.setAttribute('data-theme', theme)
+      })()
+    </script>
+
+    <!-- Preload critical fonts -->
+    <link
+      rel="preload"
+      href="/fonts/Poppins-Medium.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+  </head>
+  <body
+    class="bg-background font-sans text-neutral antialiased transition-colors duration-200"
+  >
+    <div id="app" class="flex min-h-screen flex-col">
+      {
+        showDashboardHeader && props.sectionTitle && props.sectionDescription && (
+          <Header sectionTitle={props.sectionTitle} sectionDescription={props.sectionDescription} />
+        )
+      }
+
+      <!-- Main content -->
+      <main
+        class={`flex-1 transition-colors duration-200 ${showBottomBar ? 'pb-20 md:pb-8' : ''} global-audio-main`}
+        transition:animate="fade"
+      >
+        <slot />
+      </main>
+
+      <!-- Barre d’extrait audio fixe en bas (remplie par TrackList) -->
+      <div
+        id="global-audio-bar"
+        class="global-audio-bar hidden fixed left-0 right-0 bottom-20 z-40 border-t border-border bg-surface-elevated shadow-lg backdrop-blur-sm md:bottom-0"
+        aria-live="polite"
+        aria-label="Extrait en cours"
+      >
+        <div class="mx-auto max-w-3xl px-4 py-2 md:py-3" data-global-audio-slot></div>
+      </div>
+
+      {showBottomBar && <BottomBar />}
+
+      {showFooter && <Footer />}
+    </div>
+  </body>
+</html>
+<script>
+  // TypeScript fonctionne nativement dans les scripts Astro !
+  function applyTheme(): void {
+    const html = document.documentElement
+    // matchMedia est disponible globalement dans les navigateurs modernes
+    const prefersDark =
+      typeof matchMedia !== 'undefined' ? matchMedia('(prefers-color-scheme: dark)').matches : false
+
+    const theme =
+      localStorage.theme === 'dark' || (!('theme' in localStorage) && prefersDark)
+        ? 'dark'
+        : 'light'
+    html.setAttribute('data-theme', theme)
+  }
+
+  // Gérer les transitions Astro pour appliquer le thème sur le nouveau document
+  document.addEventListener('astro:before-swap', function (event: Event) {
+    // Appliquer le thème sur le nouveau document avant le swap
+    const swapEvent = event as CustomEvent<{ newDocument?: Document }>
+    if (swapEvent.detail?.newDocument) {
+      const prefersDark =
+        typeof matchMedia !== 'undefined'
+          ? matchMedia('(prefers-color-scheme: dark)').matches
+          : false
+
+      const theme =
+        localStorage.theme === 'dark' || (!('theme' in localStorage) && prefersDark)
+          ? 'dark'
+          : 'light'
+      swapEvent.detail.newDocument.documentElement.setAttribute('data-theme', theme)
+    }
+  })
+</script>

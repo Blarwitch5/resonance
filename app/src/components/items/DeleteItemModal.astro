@@ -1,0 +1,147 @@
+---
+import AlertTriangle from '@lucide/astro/icons/triangle-alert'
+import X from '@lucide/astro/icons/x'
+
+type DeleteItemModalProps = {
+  itemId: string
+  itemTitle: string
+}
+
+const { itemId, itemTitle } = Astro.props as DeleteItemModalProps
+---
+
+<div
+  id="delete-item-modal"
+  class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4"
+  data-modal
+>
+  <div class="glass-card w-full max-w-md rounded-2xl p-6">
+    <div class="mb-4 flex items-start justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/20">
+          <AlertTriangle size={20} class="fill-none stroke-2 text-red-500 stroke-red-500" />
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-neutral">Supprimer cet album ?</h3>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="close-btn flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-elevated hover:text-neutral"
+        data-action="close"
+        aria-label="Fermer"
+      >
+        <X size={18} />
+      </button>
+    </div>
+
+    <p class="mb-6 text-sm text-muted">
+      Cet album sera retiré de toutes vos collections et de votre bibliothèque. Cette action est
+      irréversible.
+    </p>
+
+    <div class="flex gap-3">
+      <button
+        type="button"
+        class="cancel-btn flex-1 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-medium text-neutral transition-colors hover:bg-surface-elevated"
+        data-action="cancel"
+      >
+        Annuler
+      </button>
+      <button
+        type="button"
+        class="delete-btn flex-1 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-600"
+        data-action="confirm"
+        data-item-id={itemId}
+      >
+        Supprimer
+      </button>
+    </div>
+  </div>
+</div>
+
+<script lang="ts">
+  (function() {
+    const modal = document.getElementById('delete-item-modal') as HTMLElement | null
+    if (!modal) return
+
+    const closeBtn = modal.querySelector('[data-action="close"]')
+    const cancelBtn = modal.querySelector('[data-action="cancel"]')
+    const deleteBtn = modal.querySelector('[data-action="confirm"]') as HTMLButtonElement | null
+
+    const itemId = deleteBtn?.dataset.itemId
+    if (!itemId) return
+
+    function closeModal() {
+      modal.classList.add('hidden')
+      modal.classList.remove('flex')
+    }
+    
+    // Exposer la fonction pour ouvrir le modal depuis l'extérieur
+    function openModal() {
+      modal.classList.remove('hidden')
+      modal.classList.add('flex')
+    }
+    
+    // Exposer globalement pour être appelé depuis ItemActionsMenu
+    if (typeof window !== 'undefined') {
+      ;(window as any).openDeleteItemModal = openModal
+    }
+
+    // Fermer le modal
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closeModal)
+    }
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', closeModal)
+    }
+
+    // Fermer en cliquant sur le fond
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) {
+        closeModal()
+      }
+    })
+
+    // Supprimer l'item
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', async () => {
+        deleteBtn.disabled = true
+        deleteBtn.textContent = 'Suppression...'
+
+        try {
+          const response = await fetch(`/api/items/${itemId}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
+
+          if (!response.ok) {
+            throw new Error('Failed to delete item')
+          }
+
+          const data = await response.json()
+
+          if (window.toast) {
+            window.toast.success('Album supprimé de votre bibliothèque')
+          }
+
+          // Rediriger vers la bibliothèque
+          setTimeout(() => {
+            window.location.href = '/bibliotheque'
+          }, 500)
+        } catch (error) {
+          console.error('Error deleting item:', error)
+          deleteBtn.disabled = false
+          deleteBtn.textContent = 'Supprimer'
+
+          if (window.toast) {
+            window.toast.error('Erreur lors de la suppression')
+          }
+        }
+      })
+    }
+  })()
+</script>

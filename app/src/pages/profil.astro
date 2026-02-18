@@ -1,0 +1,182 @@
+---
+import Lock from '@lucide/astro/icons/lock'
+import Mail from '@lucide/astro/icons/mail'
+import DashboardLayout from '../components/layouts/DashboardLayout.astro'
+import FavoritesByGenre from '../components/profile/FavoritesByGenre.astro'
+import ImportExport from '../components/profile/ImportExport.astro'
+import ProfileHeader from '../components/profile/ProfileHeader.astro'
+import ProfileTabs from '../components/profile/ProfileTabs.astro'
+import RecentCollections from '../components/profile/RecentCollections.astro'
+import StatsCharts from '../components/profile/StatsCharts.astro'
+import StatsGrid from '../components/profile/StatsGrid.astro'
+import WishlistGrid from '../components/profile/WishlistGrid.astro'
+import ActivityTimeline from '../components/profile/ActivityTimeline.astro'
+import { itemRepository } from '../repositories/item-repository'
+import { userRepository } from '../repositories/user-repository'
+import { wishlistRepository } from '../repositories/wishlist-repository'
+import { statsService } from '../services/stats-service'
+
+export const prerender = false
+
+// Utiliser la session depuis le middleware (Astro.locals)
+const session = Astro.locals.session
+const user = Astro.locals.user
+
+if (!session || !user) return Astro.redirect('/login')
+
+const [stats, favorites, wishlistItems, recentActivities] = await Promise.all([
+  statsService.getUserStats(user.id),
+  itemRepository.getFavoritesByUserId(user.id),
+  wishlistRepository.findByUserId(user.id),
+  userRepository.getRecentActivity(user.id, 15),
+])
+---
+
+<DashboardLayout title="Profil - Resonance">
+  {!session ? (
+    <!-- Formulaire de connexion si non connecté -->
+    <div class="flex min-h-[60vh] items-center justify-center">
+      <div class="w-full max-w-md">
+        <div class="text-center mb-8">
+          <div
+            class="bg-gradient-resonance mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="text-white"
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <h1 class="text-gradient-resonance text-3xl font-bold mb-2">Connexion requise</h1>
+          <p class="text-muted">Connectez-vous pour accéder à votre profil</p>
+        </div>
+
+        <form method="POST" action="/api/auth/sign-in" class="glass-card rounded-2xl p-8 space-y-6">
+          <div>
+            <label for="email-profil" class="block text-sm font-medium text-neutral mb-2">
+              Email
+            </label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Mail size={20} class="text-muted" />
+              </div>
+              <input
+                type="email"
+                id="email-profil"
+                name="email"
+                required
+                class="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-surface text-neutral placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                placeholder="votre@email.com"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label for="password-profil" class="block text-sm font-medium text-neutral mb-2">
+              Mot de passe
+            </label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Lock size={20} class="text-muted" />
+              </div>
+              <input
+                type="password"
+                id="password-profil"
+                name="password"
+                required
+                class="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-surface text-neutral placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            class="btn-primary-gradient w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2"
+          >
+            Se connecter
+          </button>
+
+          <div class="text-center text-sm text-muted">
+            Pas encore de compte ?{' '}
+            <a
+              href="/signup"
+              class="text-primary hover:text-primary-hover font-medium"
+            >
+              Créer un compte
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  ) : (
+    <!-- Contenu du profil si connecté -->
+    <div class="min-w-0 space-y-8">
+      <!-- En-tête avec avatar, pseudo, gradient bg -->
+      <ProfileHeader user={user} stats={stats} />
+
+      <!-- Statistiques rapides -->
+      <StatsGrid stats={stats} />
+
+      <!-- Tabs : Favorites | Wishlist | Statistics | All Formats -->
+      <ProfileTabs>
+        <div slot="favorites" data-tab-content="favorites">
+          <FavoritesByGenre favorites={favorites} />
+        </div>
+
+        <div slot="wishlist" data-tab-content="wishlist">
+          <WishlistGrid wishlistItems={wishlistItems} />
+        </div>
+
+        <div slot="statistics" data-tab-content="statistics">
+          <div class="min-w-0 space-y-8">
+            <!-- Activité récente -->
+            <div>
+              <h2 class="mb-4 text-xl font-bold text-neutral">Activité récente</h2>
+              <ActivityTimeline activities={recentActivities} />
+            </div>
+
+            <!-- Import/Export -->
+            <ImportExport />
+
+            <!-- Quick stats -->
+            <div>
+              <h2 class="mb-4 text-xl font-bold text-neutral">Quick Statistics</h2>
+              <StatsGrid stats={stats} />
+            </div>
+            
+            <!-- Charts -->
+            <div>
+              <h2 class="mb-4 text-xl font-bold text-neutral">Visual Statistics</h2>
+              <StatsCharts userId={user.id} />
+            </div>
+          </div>
+        </div>
+
+        <div slot="all-formats" data-tab-content="all-formats">
+          <RecentCollections userId={user.id} />
+        </div>
+      </ProfileTabs>
+    </div>
+  )}
+</DashboardLayout>
+
+<style>
+  .glass-card {
+    transition: all 0.3s ease;
+  }
+
+  .glass-card:hover {
+    transform: translateY(-2px);
+  }
+</style>

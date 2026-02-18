@@ -1,0 +1,141 @@
+---
+import Search from '@lucide/astro/icons/search'
+import X from '@lucide/astro/icons/x'
+---
+
+<div class="relative">
+  <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+    <Search size={20} class="fill-none stroke-2 text-muted stroke-muted" />
+  </div>
+  <input
+    type="text"
+    id="collection-search"
+    placeholder="Rechercher par titre, artiste, genre..."
+    class="w-full rounded-xl border border-border bg-surface pl-12 pr-12 py-3 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
+    autocomplete="off"
+  />
+  <button
+    type="button"
+    id="clear-search"
+    class="absolute inset-y-0 right-0 hidden items-center pr-4 text-muted hover:text-neutral transition-colors"
+    aria-label="Effacer la recherche"
+  >
+    <X size={20} />
+  </button>
+</div>
+
+<script lang="ts">
+  document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('collection-search')
+    const clearButton = document.getElementById('clear-search')
+    const itemSections = document.querySelectorAll('[data-item-section]')
+    const itemCards = document.querySelectorAll('[data-item-card]')
+
+    if (!searchInput) return
+
+    function performSearch(query: string) {
+      const searchTerm = query.toLowerCase().trim()
+      let visibleCount = 0
+
+      // Si la recherche est vide, afficher tout
+      if (searchTerm === '') {
+        itemSections.forEach((section) => {
+          section.classList.remove('hidden')
+        })
+        itemCards.forEach((card) => {
+          card.classList.remove('hidden')
+        })
+        clearButton?.classList.add('hidden')
+        clearButton?.classList.remove('flex')
+        return
+      }
+
+      // Afficher le bouton clear
+      clearButton?.classList.remove('hidden')
+      clearButton?.classList.add('flex')
+
+      // Filtrer les items
+      itemCards.forEach((card) => {
+        const title = card.getAttribute('data-item-title')?.toLowerCase() || ''
+        const artist = card.getAttribute('data-item-artist')?.toLowerCase() || ''
+        const genre = card.getAttribute('data-item-genre')?.toLowerCase() || ''
+        const year = card.getAttribute('data-item-year') || ''
+
+        const matches =
+          title.includes(searchTerm) ||
+          artist.includes(searchTerm) ||
+          genre.includes(searchTerm) ||
+          year.includes(searchTerm)
+
+        if (matches) {
+          card.classList.remove('hidden')
+          visibleCount++
+        } else {
+          card.classList.add('hidden')
+        }
+      })
+
+      // Masquer les sections vides
+      itemSections.forEach((section) => {
+        const visibleItems = section.querySelectorAll('[data-item-card]:not(.hidden)')
+        if (visibleItems.length === 0) {
+          section.classList.add('hidden')
+        } else {
+          section.classList.remove('hidden')
+        }
+      })
+
+      // Afficher un message si aucun résultat
+      const resultsMessage = document.getElementById('search-results-message')
+      if (visibleCount === 0) {
+        if (!resultsMessage) {
+          const message = document.createElement('div')
+          message.id = 'search-results-message'
+          message.className =
+            'glass-card rounded-2xl p-12 text-center col-span-full'
+          message.innerHTML = `
+            <div class="bg-gradient-resonance-subtle mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+              </svg>
+            </div>
+            <h3 class="font-display mb-2 text-xl font-semibold text-neutral">Aucun résultat</h3>
+            <p class="text-muted">Aucun album ne correspond à "${query}"</p>
+          `
+          const container = document.querySelector('[data-items-container]')
+          if (container) {
+            container.appendChild(message)
+          }
+        }
+      } else {
+        resultsMessage?.remove()
+      }
+    }
+
+    // Recherche en temps réel
+    searchInput.addEventListener('input', (event) => {
+      const target = event.target
+      if (target && 'value' in target) {
+        performSearch(target.value)
+      }
+    })
+
+    // Bouton clear
+    clearButton?.addEventListener('click', () => {
+      if ('value' in searchInput) {
+        searchInput.value = ''
+      }
+      performSearch('')
+      searchInput.focus()
+    })
+
+    // Raccourci clavier pour effacer (Escape)
+    searchInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && 'value' in searchInput && searchInput.value) {
+        searchInput.value = ''
+        performSearch('')
+      }
+    })
+  })
+</script>

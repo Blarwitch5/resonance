@@ -1,0 +1,22 @@
+---
+import ResultCard from './ResultCard.astro'
+
+type RecommendationGridProps = {
+  recommendations: Array<{
+    id: number
+    title: string
+    cover_image?: string
+    thumb?: string
+    year?: number
+  }>
+}
+
+const { recommendations } = Astro.props as RecommendationGridProps
+---
+
+<div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
+  {recommendations.map((result) => (
+    <ResultCard result={result} />
+  ))}
+</div>
+

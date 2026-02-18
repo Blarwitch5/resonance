@@ -1,0 +1,78 @@
+---
+import Logo from './Logo.astro'
+import ThemeSwitcher from './ThemeSwitcher.astro'
+
+type HeaderProps = {
+  sectionTitle: string
+  sectionDescription: string
+}
+
+const props = Astro.props as HeaderProps
+---
+
+<header
+  class="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl transition-colors duration-200"
+>
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="flex h-16 items-center justify-between">
+      <!-- Logo et titre de section -->
+      <div class="flex items-center gap-4">
+        <a href="/bibliotheque" class="md:hidden">
+          <Logo size="sm" showText={true} noHover={false} />
+        </a>
+        <Logo size="md" showText={false} class="hidden md:block" />
+        <div class="hidden transition-colors duration-200 sm:block">
+          <h1
+            class="text-xl font-bold text-neutral transition-colors duration-200"
+          >
+            {props.sectionTitle}
+          </h1>
+          <p class="text-sm text-muted transition-colors duration-200">
+            {props.sectionDescription}
+          </p>
+        </div>
+      </div>
+
+      <!-- Actions du header -->
+      <div class="flex items-center gap-4">
+        <!-- Recherche rapide (mobile) -->
+        <div class="md:hidden">
+          <button
+            type="button"
+            aria-label="Rechercher"
+            class="rounded-lg bg-muted/10 p-2 text-muted transition-colors hover:bg-muted/20"
+          >
+            <svg
+              class="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Thème toggle -->
+        <ThemeSwitcher size="md" variant="icon-only" />
+
+        <!-- Menu utilisateur (desktop) -->
+        <div class="hidden items-center gap-3 md:flex">
+          <div
+            class="bg-gradient-resonance flex h-8 w-8 items-center justify-center rounded-full"
+            aria-hidden="true"
+          >
+            <span class="text-sm font-medium text-white">U</span>
+          </div>
+          <span class="text-sm font-medium text-neutral">Utilisateur</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+

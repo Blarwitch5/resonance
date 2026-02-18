@@ -1,0 +1,48 @@
+---
+import SearchResultCard from './SearchResultCard.astro'
+
+type SearchResultsGridProps = {
+  results: Array<{
+    id: string | number
+    slug?: string
+    title: string
+    cover_image?: string
+    thumb?: string
+    year?: string | number
+    format?: string[]
+  }>
+}
+
+const { results } = Astro.props as SearchResultsGridProps
+
+// Fonction pour vérifier si un format est valide (Vinyl, CD, Cassette)
+function isValidFormat(formats: string[] | undefined): boolean {
+  if (!formats || formats.length === 0) return false
+  
+  // Normaliser les formats en majuscules pour la comparaison
+  const normalizedFormats = formats.map(format => format.toUpperCase())
+  
+  // Vérifier si au moins un format est Vinyl, CD, ou Cassette
+  const validFormats = ['VINYL', 'CD', 'CASSETTE', 'LP', '12"', '7"', '45 RPM', '33 RPM', 'CASSETTE TAPE', 'COMPACT DISC']
+  
+  return normalizedFormats.some(format => {
+    return validFormats.some(validFormat => format.includes(validFormat))
+  })
+}
+
+// Filtrer les résultats pour ne garder que les formats valides
+const filteredResults = results.filter((item) => {
+  return isValidFormat(item.format)
+})
+---
+
+{filteredResults.length > 0 && (
+  <div id="search-results-content">
+    <h3 class="mb-4 text-lg font-semibold">{filteredResults.length} résultats</h3>
+    <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
+      {filteredResults.map((result) => (
+        <SearchResultCard result={result} />
+      ))}
+    </div>
+  </div>
+)}

@@ -1,0 +1,250 @@
+---
+import Heart from '@lucide/astro/icons/heart'
+import HeartOff from '@lucide/astro/icons/heart-off'
+import Package from '@lucide/astro/icons/package'
+import Trash2 from '@lucide/astro/icons/trash-2'
+import EllipsisVertical from '@lucide/astro/icons/ellipsis-vertical'
+import type { Collection } from '@prisma/client'
+
+type ItemActionsMenuProps = {
+  itemId: string
+  itemTitle: string
+  currentCollection: Collection | null
+  collections: Collection[]
+  isFavorite: boolean
+}
+
+const { itemId, itemTitle, currentCollection, collections, isFavorite } =
+  Astro.props as ItemActionsMenuProps
+---
+
+<div class="item-actions-menu">
+  <div class="flex items-center gap-2">
+    <!-- Bouton Favoris -->
+    <button
+      type="button"
+      class="favorite-btn flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2 text-sm font-medium transition-all hover:bg-surface-elevated hover:border-primary/30 md:px-5 md:py-2.5"
+      data-item-id={itemId}
+      data-is-favorite={isFavorite}
+    >
+      {isFavorite ? (
+        <>
+          <Heart size={18} class="fill-red-500 stroke-2 text-primary stroke-primary" />
+          <span class="text-primary">Favori</span>
+        </>
+      ) : (
+        <>
+          <HeartOff size={18} class="fill-none stroke-2 text-muted stroke-muted" />
+          <span class="text-muted">Ajouter aux favoris</span>
+        </>
+      )}
+    </button>
+
+    <!-- Menu contextuel -->
+    <div class="relative">
+      <button
+        type="button"
+        class="menu-trigger flex items-center justify-center rounded-xl border border-border bg-surface p-2 text-muted transition-all hover:bg-surface-elevated hover:text-neutral md:p-2.5"
+        data-menu-trigger
+        aria-label="Plus d'actions"
+      >
+        <EllipsisVertical size={18} class="fill-none stroke-2" />
+      </button>
+
+      <!-- Menu dropdown -->
+      <div
+        class="menu-dropdown absolute right-0 top-full z-50 mt-2 hidden w-64 rounded-xl border border-border bg-surface shadow-xl backdrop-blur-sm md:w-72"
+        data-menu-dropdown
+      >
+        <div class="p-2">
+          {currentCollection && (
+            <button
+              type="button"
+              class="menu-item group flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-left text-sm text-neutral transition-all hover:bg-surface-elevated hover:text-primary"
+              data-action="remove-from-collection"
+            >
+              <Package size={16} class="fill-none stroke-2 text-muted stroke-muted transition-colors group-hover:text-primary group-hover:stroke-primary" />
+              <span>Retirer de la collection</span>
+            </button>
+          )}
+          <button
+            type="button"
+            class="menu-item group flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-left text-sm text-red-500 transition-all hover:bg-red-500/10 hover:text-red-600"
+            data-action="delete"
+          >
+            <Trash2 size={16} class="fill-none stroke-2 transition-colors group-hover:stroke-red-600" />
+            <span>Supprimer de la bibliothèque</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script lang="ts">
+  (function() {
+    const menuWrapper = document.querySelector('.item-actions-menu')
+    if (!menuWrapper) return
+
+    const menuTrigger = menuWrapper.querySelector('[data-menu-trigger]')
+    const menuDropdown = menuWrapper.querySelector('[data-menu-dropdown]')
+    const favoriteBtn = menuWrapper.querySelector('.favorite-btn') as HTMLElement | null
+    const removeFromCollectionBtn = menuWrapper.querySelector(
+      '[data-action="remove-from-collection"]'
+    ) as HTMLElement | null
+    const deleteBtn = menuWrapper.querySelector('[data-action="delete"]')
+
+    const itemId = (favoriteBtn as HTMLElement)?.dataset.itemId
+    if (!itemId) return
+
+    // Toggle menu
+    if (menuTrigger && menuDropdown) {
+      menuTrigger.addEventListener('click', (event) => {
+        event.stopPropagation()
+        menuDropdown.classList.toggle('hidden')
+      })
+
+      // Fermer le menu en cliquant ailleurs
+      document.addEventListener('click', (event) => {
+        if (!menuWrapper.contains(event.target as Node)) {
+          menuDropdown.classList.add('hidden')
+        }
+      })
+    }
+
+    // Toggle favoris
+    if (favoriteBtn) {
+      favoriteBtn.addEventListener('click', async () => {
+        const isFavorite = (favoriteBtn as HTMLElement).dataset.isFavorite === 'true'
+
+        try {
+          const response = await fetch(`/api/items/${itemId}/toggle-favorite`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
+
+          if (!response.ok) {
+            throw new Error('Failed to toggle favorite')
+          }
+
+          const data = await response.json()
+          const newIsFavorite = data.isFavorite
+
+          // Mettre à jour l'UI
+          (favoriteBtn as HTMLElement).dataset.isFavorite = newIsFavorite.toString()
+          const heartIcon = favoriteBtn.querySelector('svg')
+          const text = favoriteBtn.querySelector('span:last-child')
+
+          if (newIsFavorite) {
+            favoriteBtn.innerHTML = `
+              <svg class="h-[18px] w-[18px] fill-red-500 stroke-2 text-primary stroke-primary" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              <span class="text-primary">Favori</span>
+            `
+          } else {
+            favoriteBtn.innerHTML = `
+              <svg class="h-[18px] w-[18px] fill-none stroke-2 text-muted stroke-muted" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              <span class="text-muted">Ajouter aux favoris</span>
+            `
+          }
+
+          if (window.toast) {
+            window.toast.success(newIsFavorite ? 'Ajouté aux favoris' : 'Retiré des favoris')
+          }
+        } catch (error) {
+          console.error('Error toggling favorite:', error)
+          if (window.toast) {
+            window.toast.error('Erreur lors de la modification')
+          }
+        }
+      })
+    }
+
+    // Retirer de la collection
+    if (removeFromCollectionBtn) {
+      removeFromCollectionBtn.addEventListener('click', async () => {
+        if (!confirm('Retirer cet album de la collection ?')) return
+
+        try {
+          const response = await fetch(`/api/items/${itemId}/remove-from-collection`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
+
+          if (!response.ok) {
+            throw new Error('Failed to remove from collection')
+          }
+
+          const data = await response.json()
+
+          if (window.toast) {
+            window.toast.success('Album retiré de la collection')
+          }
+
+          // Recharger la page
+          setTimeout(() => {
+            window.location.reload()
+          }, 500)
+        } catch (error) {
+          console.error('Error removing from collection:', error)
+          if (window.toast) {
+            window.toast.error('Erreur lors du retrait')
+          }
+        }
+      })
+    }
+
+    // Supprimer
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', () => {
+        // Ouvrir le modal de confirmation
+        const modal = document.getElementById('delete-item-modal')
+        if (modal) {
+          modal.classList.remove('hidden')
+          modal.classList.add('flex')
+        }
+      })
+    }
+  })()
+</script>
+
+<style>
+  /* Amélioration du menu dropdown sur desktop */
+  @media (min-width: 768px) {
+    .menu-dropdown {
+      min-width: 280px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    }
+    
+    .menu-item {
+      padding: 0.625rem 1rem;
+    }
+    
+    .favorite-btn {
+      min-width: 180px;
+    }
+  }
+  
+  /* Transition pour l'ouverture du menu */
+  .menu-dropdown {
+    animation: fadeInDown 0.2s ease-out;
+  }
+  
+  @keyframes fadeInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>

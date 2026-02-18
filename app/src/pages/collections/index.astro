@@ -1,0 +1,78 @@
+---
+import { collectionRepository } from '../../repositories/collection-repository'
+import DashboardLayout from '../../components/layouts/DashboardLayout.astro'
+import CollectionCard from '../../components/collections/CollectionCard.astro'
+import EmptyState from '../../components/ui/EmptyState.astro'
+import Plus from '@lucide/astro/icons/plus'
+import FolderOpen from '@lucide/astro/icons/folder-open'
+
+export const prerender = false
+
+// Utiliser la session depuis le middleware (Astro.locals)
+const session = Astro.locals.session
+if (!session) return Astro.redirect('/login')
+
+const MAX_COLLECTIONS = 2
+const collections = await collectionRepository.findByUserIdWithStats(Astro.locals.user!.id)
+const canCreateNewCollection = collections.length < MAX_COLLECTIONS
+---
+
+<DashboardLayout title="Collections - Resonance">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold">Collections</h1>
+        <p class="text-muted">
+          {collections.length} {collections.length === 1 ? 'collection' : 'collections'} / {MAX_COLLECTIONS} maximum
+        </p>
+      </div>
+      {canCreateNewCollection ? (
+        <a
+          href="/collections/new"
+          class="btn-primary-gradient flex items-center gap-2 rounded-xl px-4 py-2"
+        >
+          <Plus size={20} />
+          <span class="hidden sm:inline">Nouvelle collection</span>
+        </a>
+      ) : (
+        <a
+          href="/collections/new"
+          class="btn-secondary-surface flex items-center gap-2 rounded-xl px-4 py-2 opacity-50 cursor-not-allowed pointer-events-none"
+          aria-disabled="true"
+        >
+          <Plus size={20} />
+          <span class="hidden sm:inline">Limite atteinte ({MAX_COLLECTIONS})</span>
+        </a>
+      )}
+    </div>
+
+    {collections.length === 0 ? (
+      <EmptyState
+        title="Créez votre première collection"
+        description="Organisez vos albums par thème, genre ou période. Créez des collections personnalisées pour mieux gérer et explorer votre musique."
+        icon={FolderOpen}
+        action={{
+          label: 'Créer une collection',
+          href: '/collections/new',
+        }}
+      />
+    ) : (
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {collections.map((collection) => (
+          <CollectionCard collection={collection} />
+        ))}
+      </div>
+    )}
+  </div>
+</DashboardLayout>
+
+<style>
+  .glass-card {
+    transition: all 0.3s ease;
+  }
+
+  .glass-card:hover {
+    transform: translateY(-2px);
+  }
+</style>
+

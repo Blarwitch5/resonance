@@ -1,0 +1,125 @@
+---
+description: 'EXPLAIN how to use better-auth for authentication in Astro'
+globs: **/auth.ts, **/auth/**/*.ts, src/pages/api/auth/**/*.ts
+---
+
+## Context
+
+- We use better-auth for authentication in Astro
+- better-auth is a modern and type-safe authentication solution
+- better-auth works server-side with Astro
+
+## better-auth Configuration
+
+```typescript
+// src/lib/auth.ts
+import { betterAuth } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { db } from "./db";
+
+export const auth = betterAuth({
+  database: prismaAdapter(db, {
+    provider: "postgresql",
+  }),
+  emailAndPassword: {
+    enabled: true,
+  },
+});
+
+export type Session = typeof auth.$Infer.Session;
+```
+
+## Usage in Astro Components
+
+```astro
+---
+import { auth } from '../lib/auth'
+
+// Check session server-side
+const session = await auth.api.getSession({
+  headers: Astro.request.headers,
+})
+
+if (!session) {
+  return Astro.redirect('/login')
+}
+
+const user = session.user
+---
+
+<div>
+  <p>Welcome, {user.name || user.email}!</p>
+  <form method="POST" action="/api/auth/sign-out">
+    <button type="submit">Sign out</button>
+  </form>
+</div>
+```
+
+## Usage in API Endpoints
+
+```typescript
+// src/pages/api/protected.ts
+import type { APIRoute } from "astro";
+import { auth } from "../../../lib/auth";
+
+export const GET: APIRoute = async ({ request }) => {
+  const session = await auth.api.getSession({
+    headers: request.headers,
+  });
+
+  if (!session) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  return new Response(JSON.stringify({
+    message: "Protected data",
+    userId: session.user.id
+  }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+};
+```
+
+## better-auth Endpoints (automatic)
+
+better-auth automatically creates the following routes:
+
+- `/api/auth/sign-in` - Sign in
+- `/api/auth/sign-up` - Sign up
+- `/api/auth/sign-out` - Sign out
+- `/api/auth/session` - Get session
+- `/api/auth/forgot-password` - Forgot password
+- `/api/auth/reset-password` - Reset password
+
+## Sign-in Form Example
+
+```astro
+---
+// src/pages/login.astro
+---
+
+<form method="POST" action="/api/auth/sign-in">
+  <div>
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email" required />
+  </div>
+  <div>
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" required />
+  </div>
+  <button type="submit">Sign in</button>
+</form>
+```
+
+## Important Rules
+
+1. Always check session with `auth.api.getSession()` before accessing protected data
+2. Use `Astro.request.headers` in components to pass headers
+3. Use `request.headers` in API endpoints
+4. better-auth automatically manages session cookies
+5. Sessions are stored in the database via Prisma
+6. Never expose secret keys in client code

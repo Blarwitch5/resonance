@@ -1,0 +1,68 @@
+---
+type LogoProps = {
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'
+  animated?: boolean
+  showText?: boolean
+  showSlogan?: boolean
+  noHover?: boolean
+  className?: string
+  href?: string
+}
+
+const props = Astro.props as LogoProps
+const size = props.size ?? 'md'
+const animated = props.animated ?? false
+const showText = props.showText ?? true
+const showSlogan = props.showSlogan ?? false
+const noHover = props.noHover ?? false
+const className = props.className ?? ''
+const href = props.href ?? '/'
+
+const sizeClasses = {
+  sm: 'h-6 w-6',
+  md: 'h-10 w-10',
+  lg: 'h-12 w-12',
+  xl: 'h-16 w-16',
+  '2xl': 'h-24 w-24',
+}
+
+const textSizeClasses = {
+  sm: 'text-sm',
+  md: 'text-lg',
+  lg: 'text-2xl',
+  xl: 'text-3xl',
+  '2xl': 'text-4xl',
+}
+
+const animationClass = animated ? 'animate-resonance-pulse' : ''
+const sizeClass = sizeClasses[size]
+const textSizeClass = textSizeClasses[size]
+
+// Si showSlogan, on affiche verticalement, sinon horizontalement
+const directionClass = showSlogan ? 'flex-col' : 'flex-row'
+const hoverClass = noHover ? '' : 'hover:scale-105'
+---
+
+<a
+  href={href}
+  class={`flex ${directionClass} items-center gap-3 transition-all duration-200 ${hoverClass} ${className}`}
+  aria-label="Retour à l'accueil"
+>
+  <img
+    src="/uploads/logo.svg"
+    alt="Logo Resonance"
+    class={`${sizeClass} ${animationClass} transition-all duration-300`}
+    width={size === 'sm' ? 24 : size === 'md' ? 40 : size === 'lg' ? 48 : size === 'xl' ? 64 : 96}
+    height={size === 'sm' ? 24 : size === 'md' ? 40 : size === 'lg' ? 48 : size === 'xl' ? 64 : 96}
+  />
+  {showText && (
+    <div class={`flex ${directionClass} items-center gap-1`}>
+      <span class={`text-gradient-resonance font-bold ${textSizeClass} hidden min-[480px]:inline-block`}>Resonance</span>
+      {showSlogan && (
+        <span class="text-muted text-sm italic font-light">
+          Where your music resonates
+        </span>
+      )}
+    </div>
+  )}
+</a>

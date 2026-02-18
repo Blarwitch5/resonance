@@ -1,0 +1,76 @@
+---
+description: 'EXPLAIN how to write PostgreSQL queries with Prisma and Neon'
+globs: *.sql, *.prisma, **/prisma/**
+---
+
+## Context
+
+- We use Prisma ORM with Neon PostgreSQL (serverless PostgreSQL)
+- Migrations must be written in PostgreSQL
+- Neon is a serverless PostgreSQL database optimized for edge computing
+
+## Prisma Configuration with Neon
+
+```prisma
+// schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+```
+
+## Neon Connection String
+
+```env
+DATABASE_URL="postgresql://user:password@ep-xxx.us-east-2.aws.neon.tech/dbname?sslmode=require"
+```
+
+## Using Prisma (no raw SQL except migrations)
+
+**Prefer Prisma SDK over raw SQL:**
+
+```typescript
+// ✅ GOOD - Use Prisma
+import { db } from "../lib/db";
+
+const users = await db.user.findMany({
+  where: { email: { contains: "@example.com" } },
+  take: 10,
+});
+
+// ❌ AVOID - Raw SQL (except in migrations)
+```
+
+## SQL Migrations (only in Prisma migrations)
+
+When you need to write raw SQL (in migrations), PostgreSQL uses quotes for tables and columns:
+
+```sql
+-- migrations/xxx_migration.sql
+INSERT INTO "OrganizationPlan" ("id", "name", "maximumMembers", "createdAt", "updatedAt")
+VALUES
+  ('FREE', 'Free Plan', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('PRO', 'Pro Plan', 10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT ("id") DO NOTHING;
+```
+
+## Important Rules
+
+1. **ALWAYS use Prisma SDK** for queries in TypeScript code
+2. **Raw SQL only** in Prisma migration files
+3. Use PostgreSQL syntax with quotes for table/column names in migrations
+4. Neon supports all standard PostgreSQL features
+5. Handle Neon serverless connections (no persistent connection pool needed)
+6. Use Prisma transactions for multiple operations

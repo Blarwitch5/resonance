@@ -1,0 +1,236 @@
+---
+import Search from '@lucide/astro/icons/search'
+import Loader from '@lucide/astro/icons/loader'
+---
+
+<div class="relative">
+  <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+    <Search size={20} class="fill-none stroke-2 text-muted stroke-muted" />
+  </div>
+  <input
+    type="text"
+    id="discogs-search"
+    placeholder="Search for an album, artist, or label..."
+    class="w-full rounded-xl border border-border bg-surface pl-12 pr-20 py-4 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
+  />
+  <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+    <Loader
+      id="search-loader"
+      size={20}
+      class="text-primary animate-spin hidden"
+    />
+  </div>
+</div>
+
+<script>
+  // TypeScript fonctionne nativement dans les scripts Astro !
+  const searchInput = document.getElementById('discogs-search') as HTMLInputElement | null
+  const loader = document.getElementById('search-loader')
+  let searchTimeout: ReturnType<typeof setTimeout> | undefined
+
+  searchInput?.addEventListener('input', (event: Event) => {
+    const target = event.target as HTMLInputElement | null
+    if (!target) return
+    const query = target.value.trim()
+
+    clearTimeout(searchTimeout)
+
+    if (query.length < 3) {
+      return
+    }
+
+    searchTimeout = setTimeout(async () => {
+      if (loader) loader.classList.remove('hidden')
+
+      try {
+        const formatElement = document.querySelector('[data-format]:checked') as HTMLInputElement | null
+        const format = formatElement?.value || null
+        const urlParams = new URLSearchParams({ q: query })
+        if (format) {
+          urlParams.set('format', format)
+        }
+        const url = urlParams.toString()
+
+        const response = await fetch(`/api/discogs/search?${url}`)
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+          console.error('Search error:', error)
+          if (window.toast) {
+            window.toast.error(error.error || 'Erreur lors de la recherche')
+          }
+          return
+        }
+
+        const data = await response.json()
+        // S'assurer que results existe et est un tableau
+        if (data && data.results && Array.isArray(data.results)) {
+          displaySearchResults(data)
+        } else {
+          console.error('Invalid search results format:', data)
+          const container = document.getElementById('search-results-container')
+          if (container) {
+            container.classList.add('hidden')
+          }
+          if (window.toast) {
+            window.toast.error('Aucun résultat trouvé')
+          }
+        }
+      } catch (error) {
+        console.error('Error searching:', error)
+      } finally {
+        if (loader) loader.classList.add('hidden')
+      }
+    }, 500)
+  })
+
+  type SearchResult = {
+    id: string
+    slug?: string
+    title: string
+    format?: string[]
+    cover_image?: string
+    year?: string
+  }
+
+  type SearchResponse = {
+    results: SearchResult[]
+  }
+
+  async function displaySearchResults(results: SearchResponse): Promise<void> {
+    const container = document.getElementById('search-results-container')
+    if (!container) return
+
+    // Fonction pour vérifier si un format est valide (Vinyl, CD, Cassette)
+    const isValidFormat = (formats: string[] | undefined): boolean => {
+      if (!formats || formats.length === 0) return false
+      
+      // Normaliser les formats en majuscules pour la comparaison
+      const normalizedFormats = formats.map(format => format.toUpperCase())
+      
+      // Vérifier si au moins un format est Vinyl, CD, ou Cassette
+      const validFormats = ['VINYL', 'CD', 'CASSETTE', 'LP', '12"', '7"', '45 RPM', '33 RPM', 'CASSETTE TAPE', 'COMPACT DISC']
+      
+      return normalizedFormats.some(format => {
+        return validFormats.some(validFormat => format.includes(validFormat))
+      })
+    }
+
+    // Filtrer les résultats pour ne garder que les formats valides
+    const filteredResults = results.results.filter((item: SearchResult) => {
+      return isValidFormat(item.format)
+    })
+
+    if (filteredResults.length === 0) {
+      container.classList.add('hidden')
+      return
+    }
+
+    container.classList.remove('hidden')
+    
+    // Rendre le composant Astro via un endpoint API qui retourne le HTML
+    try {
+      const renderResponse = await fetch('/api/discogs/render-search-results', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ results: filteredResults }),
+      })
+
+      if (renderResponse.ok) {
+        const html = await renderResponse.text()
+        container.innerHTML = html
+      } else {
+        throw new Error('Failed to render search results')
+      }
+    } catch (error) {
+      console.error('Error rendering search results:', error)
+      if (window.toast) {
+        window.toast.error('Erreur lors de l\'affichage des résultats')
+      }
+    }
+  }
+
+  async function addToWishlist(discogsId: string): Promise<void> {
+    try {
+      // Récupérer les détails de la release
+      const releaseResponse = await fetch(`/api/discogs/release/${discogsId}`)
+      if (!releaseResponse.ok) {
+        throw new Error('Failed to fetch release details')
+      }
+
+      // Types pour les releases Discogs
+      type DiscogsImage = { type?: string; uri?: string; resource_url?: string }
+      type DiscogsFormat = { name: string }
+      type DiscogsRelease = {
+        id: string
+        title: string
+        formats?: DiscogsFormat[]
+        artists?: Array<{ name: string }>
+        year?: number
+        released?: string
+        images?: DiscogsImage[]
+        cover_image?: string
+        thumb?: string
+        genres?: string[]
+        styles?: string[]
+      }
+
+      const release = await releaseResponse.json() as DiscogsRelease
+
+      // Déterminer le format
+      let format: 'VINYL' | 'CD' | 'CASSETTE' = 'VINYL'
+      const formatNames = release.formats?.map((formatItem: DiscogsFormat) => formatItem.name.toUpperCase()) || []
+      if (formatNames.some((formatName: string) => formatName.includes('CD'))) {
+        format = 'CD'
+      } else if (formatNames.some((formatName: string) => formatName.includes('CASSETTE'))) {
+        format = 'CASSETTE'
+      }
+
+      const primaryArtist = release.artists?.[0]?.name || 'Unknown Artist'
+      const year = release.year || parseInt(release.released || '0') || null
+
+      // Extraire la meilleure cover
+      const getBestCoverUrl = (releaseData: DiscogsRelease): string | null => {
+        if (releaseData.images && releaseData.images.length > 0) {
+          const primaryImage = releaseData.images.find((image: DiscogsImage) => image.type === 'primary') || releaseData.images[0]
+          return primaryImage.uri || primaryImage.resource_url || null
+        }
+        return releaseData.cover_image || releaseData.thumb || null
+      }
+
+      const wishlistResponse = await fetch('/api/wishlist/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          discogsId: release.id,
+          title: release.title,
+          artist: primaryArtist,
+          year,
+          genre: release.genres?.[0] || release.styles?.[0] || null,
+          coverUrl: getBestCoverUrl(release),
+          format,
+          priority: 1,
+        }),
+      })
+
+      if (!wishlistResponse.ok) {
+        const error = await wishlistResponse.json()
+        throw new Error(error.error || 'Failed to add to wishlist')
+      }
+
+      if (window.toast) {
+        window.toast.success('Album ajouté à la wishlist avec succès !')
+      }
+    } catch (error) {
+      console.error('Error adding to wishlist:', error)
+      if (window.toast) {
+        window.toast.error(`Erreur : ${error instanceof Error ? error.message : 'Une erreur est survenue'}`)
+      }
+    }
+  }
+</script>
+

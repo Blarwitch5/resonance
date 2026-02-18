@@ -1,0 +1,310 @@
+---
+import { statsService } from '../../services/stats-service'
+
+type StatsChartsProps = {
+  userId: string
+}
+
+const { userId } = Astro.props as StatsChartsProps
+
+// Récupérer les données pour les graphiques
+const formatDistribution = await statsService.getFormatDistribution(userId)
+const yearDistribution = await statsService.getYearDistribution(userId)
+const genreStats = await statsService.getRecentItemsByGenre(userId, 100)
+
+// Préparer les données pour Chart.js
+const formatData = {
+  labels: ['Vinyl', 'CD', 'Cassette'],
+  data: [formatDistribution.vinyl.count, formatDistribution.cd.count, formatDistribution.cassette.count],
+  colors: [
+    'rgb(234, 88, 12)', // orange-500 (vinyl)
+    'rgb(16, 185, 129)', // emerald-500 (cd)
+    'rgb(251, 191, 36)', // amber-400 (cassette)
+  ],
+}
+
+// Top 10 genres pour le graphique
+const topGenres = genreStats.slice(0, 10)
+const genreData = {
+  labels: topGenres.map((g) => g.genre),
+  data: topGenres.map((g) => g.count),
+}
+
+// Décennies (trier par décennie croissante pour l'affichage)
+const decadesData = yearDistribution
+  .sort((a, b) => a.decade - b.decade)
+  .slice(-10) // Dernières 10 décennies
+const decadesChartData = {
+  labels: decadesData.map((d) => `${d.decade}s`),
+  data: decadesData.map((d) => d.count),
+}
+---
+
+<div class="space-y-8">
+  <!-- Message si pas de données -->
+  {!formatData.data.some((count) => count > 0) && genreData.labels.length === 0 && decadesChartData.labels.length === 0 && (
+    <div class="glass-card min-w-0 rounded-xl p-6 text-center sm:p-8">
+      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface-elevated">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted">
+          <path d="M3 3v18h18"></path>
+          <path d="M7 12h10"></path>
+          <path d="M7 8h10"></path>
+          <path d="M7 16h10"></path>
+        </svg>
+      </div>
+      <h3 class="mb-2 text-lg font-semibold text-neutral">No data yet</h3>
+      <p class="text-muted mb-4">
+        Add some items to your collection to see statistics and charts.
+      </p>
+      {import.meta.env.DEV && (
+        <p class="text-sm text-muted">
+          Or use the "Seed Test Data" button above to add sample data.
+        </p>
+      )}
+    </div>
+  )}
+
+  <!-- Format Breakdown (Pie Chart) -->
+  {formatData.data.some((count) => count > 0) && (
+    <div class="glass-card min-w-0 rounded-xl p-4 sm:p-6">
+      <h3 class="mb-4 text-lg font-semibold text-neutral">Format Breakdown</h3>
+      <div class="relative max-w-full overflow-hidden">
+        <div class="flex min-h-[200px] items-center justify-center sm:min-h-[256px]">
+          <canvas
+            id="format-chart"
+            class="max-h-64 w-full max-w-full"
+            data-chart={JSON.stringify(formatData)}
+          ></canvas>
+        </div>
+      </div>
+    </div>
+  )}
+
+  <!-- Genre Distribution (Bar Chart) -->
+  {genreData.labels.length > 0 && (
+    <div class="glass-card min-w-0 rounded-xl p-4 sm:p-6">
+      <h3 class="mb-4 text-lg font-semibold text-neutral">Top Genres</h3>
+      <div class="relative max-w-full overflow-hidden">
+        <div class="flex min-h-[200px] items-center justify-center sm:min-h-[256px]">
+          <canvas
+            id="genre-chart"
+            class="max-h-64 w-full max-w-full"
+            data-chart={JSON.stringify(genreData)}
+          ></canvas>
+        </div>
+      </div>
+    </div>
+  )}
+
+  <!-- Decades Distribution (Bar Chart) -->
+  {decadesChartData.labels.length > 0 && (
+    <div class="glass-card min-w-0 rounded-xl p-4 sm:p-6">
+      <h3 class="mb-4 text-lg font-semibold text-neutral">Collection by Decade</h3>
+      <div class="relative max-w-full overflow-hidden">
+        <div class="flex min-h-[200px] items-center justify-center sm:min-h-[256px]">
+          <canvas
+            id="decades-chart"
+            class="max-h-64 w-full max-w-full"
+            data-chart={JSON.stringify(decadesChartData)}
+          ></canvas>
+        </div>
+      </div>
+    </div>
+  )}
+</div>
+
+<!-- Load Chart.js and initialize charts -->
+<script lang="ts">
+  // Store chart instances to avoid duplicates
+  const chartInstances = new Map<string, any>()
+
+  // Load Chart.js dynamically
+  async function loadCharts() {
+    try {
+      // Import Chart.js/auto which auto-registers all components
+      const { Chart } = await import('chart.js/auto')
+
+      // Format Pie Chart
+      const formatCanvas = document.getElementById('format-chart') as HTMLCanvasElement | null
+      if (formatCanvas) {
+        // Destroy existing chart if it exists
+        if (chartInstances.has('format-chart')) {
+          chartInstances.get('format-chart').destroy()
+          chartInstances.delete('format-chart')
+        }
+
+        const formatData = JSON.parse(formatCanvas.getAttribute('data-chart') || '{}')
+        if (formatData && formatData.data && formatData.data.some((count: number) => count > 0)) {
+          const chart = new Chart(formatCanvas, {
+            type: 'pie',
+            data: {
+              labels: formatData.labels || [],
+              datasets: [
+                {
+                  data: formatData.data || [],
+                  backgroundColor: formatData.colors || [],
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  borderWidth: 2,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--color-neutral') || '#fff',
+                    padding: 15,
+                    font: { size: 12 },
+                  },
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  titleColor: '#fff',
+                  bodyColor: '#fff',
+                  padding: 12,
+                },
+              },
+            },
+          })
+          chartInstances.set('format-chart', chart)
+        }
+      }
+
+      // Genre Bar Chart
+      const genreCanvas = document.getElementById('genre-chart') as HTMLCanvasElement | null
+      if (genreCanvas) {
+        // Destroy existing chart if it exists
+        if (chartInstances.has('genre-chart')) {
+          chartInstances.get('genre-chart').destroy()
+          chartInstances.delete('genre-chart')
+        }
+
+        const genreData = JSON.parse(genreCanvas.getAttribute('data-chart') || '{}')
+        if (genreData && genreData.labels && genreData.labels.length > 0) {
+          const chart = new Chart(genreCanvas, {
+            type: 'bar',
+            data: {
+              labels: genreData.labels || [],
+              datasets: [
+                {
+                  label: 'Albums',
+                  data: genreData.data || [],
+                  backgroundColor: 'rgba(234, 88, 12, 0.6)',
+                  borderColor: 'rgb(234, 88, 12)',
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--color-muted') || '#999',
+                    stepSize: 1,
+                  },
+                  grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                },
+                x: {
+                  ticks: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--color-muted') || '#999',
+                    maxRotation: 45,
+                    minRotation: 45,
+                  },
+                  grid: { display: false },
+                },
+              },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  titleColor: '#fff',
+                  bodyColor: '#fff',
+                  padding: 12,
+                },
+              },
+            },
+          })
+          chartInstances.set('genre-chart', chart)
+        }
+      }
+
+      // Decades Bar Chart
+      const decadesCanvas = document.getElementById('decades-chart') as HTMLCanvasElement | null
+      if (decadesCanvas) {
+        // Destroy existing chart if it exists
+        if (chartInstances.has('decades-chart')) {
+          chartInstances.get('decades-chart').destroy()
+          chartInstances.delete('decades-chart')
+        }
+
+        const decadesData = JSON.parse(decadesCanvas.getAttribute('data-chart') || '{}')
+        if (decadesData && decadesData.labels && decadesData.labels.length > 0) {
+          const chart = new Chart(decadesCanvas, {
+            type: 'bar',
+            data: {
+              labels: decadesData.labels || [],
+              datasets: [
+                {
+                  label: 'Albums',
+                  data: decadesData.data || [],
+                  backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                  borderColor: 'rgb(16, 185, 129)',
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--color-muted') || '#999',
+                    stepSize: 1,
+                  },
+                  grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                },
+                x: {
+                  ticks: {
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--color-muted') || '#999',
+                  },
+                  grid: { display: false },
+                },
+              },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  titleColor: '#fff',
+                  bodyColor: '#fff',
+                  padding: 12,
+                },
+              },
+            },
+          })
+          chartInstances.set('decades-chart', chart)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading Chart.js:', error)
+    }
+  }
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadCharts)
+  } else {
+    loadCharts()
+  }
+
+  // Also initialize when tab becomes visible (for Astro client-side navigation)
+  document.addEventListener('astro:page-load', loadCharts)
+</script>
+

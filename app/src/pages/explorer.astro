@@ -1,0 +1,231 @@
+---
+import { statsService } from '../services/stats-service'
+import { collectionRepository } from '../repositories/collection-repository'
+import DashboardLayout from '../components/layouts/DashboardLayout.astro'
+import SearchBar from '../components/explorer/SearchBar.astro'
+import FormatFilter from '../components/explorer/FormatFilter.astro'
+import AddToCollectionModal from '../components/explorer/AddToCollectionModal.astro'
+import Search from '@lucide/astro/icons/search'
+
+export const prerender = false
+
+// Utiliser la session depuis le middleware (Astro.locals)
+const session = Astro.locals.session
+const user = Astro.locals.user
+if (!session || !user) return Astro.redirect('/login')
+
+// Get user genres for recommendations
+const genreStats = await statsService.getRecentItemsByGenre(user.id)
+const topGenres = genreStats.slice(0, 3).map((g) => g.genre)
+
+// Get user collections for the modal
+const collections = await collectionRepository.findByUserId(user.id)
+---
+
+<DashboardLayout title="Explorer - Resonance">
+  <div class="space-y-8">
+    <!-- Search -->
+    <section>
+      <h2 class="mb-4 text-xl font-bold">Search Discogs</h2>
+      <div class="mb-4">
+        <SearchBar />
+      </div>
+      <FormatFilter />
+    </section>
+
+    <!-- Search results (loaded dynamically) -->
+    <section id="search-results-container" class="hidden">
+      <!-- Filled via JS after search using Astro components -->
+      <div id="search-results-content"></div>
+    </section>
+
+    <!-- Personalized recommendations -->
+    {topGenres.length > 0 && (
+      <section id="recommendations-section">
+        <h2 class="mb-4 text-xl font-bold">Recommendations for you</h2>
+        <p class="mb-6 text-muted">
+          Based on your favorite genres: {topGenres.join(', ')}
+        </p>
+        <!-- Recommendations container -->
+        <div id="recommendations-container" class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
+          <!-- Loaded dynamically -->
+        </div>
+        <!-- Loading state -->
+        <div id="recommendations-loading" class="flex items-center justify-center py-12">
+          <div class="flex items-center gap-3 text-muted">
+            <svg class="w-6 h-6 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Loading recommendations...</span>
+          </div>
+        </div>
+        <!-- Error state -->
+        <div id="recommendations-error" class="hidden glass-card rounded-xl p-6 text-center">
+          <p class="text-muted">Unable to load recommendations. Please try again later.</p>
+        </div>
+      </section>
+    )}
+
+    <!-- General discovery -->
+    <section>
+      <h2 class="mb-4 text-xl font-bold">Discover</h2>
+      <p class="mb-6 text-muted">
+        Search for an album, artist, or label to get started
+      </p>
+      <div class="glass-card rounded-2xl p-12 text-center">
+        <div
+          class="bg-gradient-resonance-subtle mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full"
+        >
+          <Search size={48} class="text-primary" />
+        </div>
+        <h3 class="font-display mb-4 text-xl font-semibold">
+          Search Discogs
+        </h3>
+        <p class="text-muted mx-auto max-w-md">
+          Discover over 25 million albums, vinyl records, CDs, and cassettes in the world's largest music database.
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <!-- Add to Collection Modal -->
+  <AddToCollectionModal collections={collections} />
+</DashboardLayout>
+
+<script>
+  // TypeScript fonctionne nativement dans les scripts Astro !
+  // Load recommendations when page loads
+  document.addEventListener('DOMContentLoaded', async () => {
+    const recommendationsSection = document.getElementById('recommendations-section')
+    if (!recommendationsSection) return
+
+    const container = document.getElementById('recommendations-container')
+    const loading = document.getElementById('recommendations-loading')
+    const error = document.getElementById('recommendations-error')
+
+    if (!container || !loading || !error) return
+
+    try {
+      // Timeout après 30 secondes
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000)
+
+      const response = await fetch('/api/discogs/recommendations?limit=12', {
+        signal: controller.signal,
+      })
+      
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || 'Failed to fetch recommendations')
+      }
+
+      const recommendations = await response.json()
+
+      // Hide loading
+      loading.classList.add('hidden')
+
+      if (!recommendations || recommendations.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full glass-card rounded-xl p-8 text-center">
+            <p class="mb-2 font-medium text-neutral">Aucune recommandation pour le moment</p>
+            <p class="text-sm text-muted">Continuez à ajouter des albums à votre collection pour recevoir des recommandations personnalisées.</p>
+          </div>
+        `
+        return
+      }
+
+      // Render recommendations
+      type Recommendation = { cover_image?: string; thumb?: string; title?: string; year?: string; slug?: string; id?: string }
+      container.innerHTML = recommendations.map((rec: Recommendation) => {
+        const coverUrl = rec.cover_image || rec.thumb || ''
+        const title = rec.title || 'Unknown'
+        const parts = title.split(' - ')
+        const artist = parts[0] || 'Unknown Artist'
+        const albumTitle = parts.slice(1).join(' - ') || title
+        const year = rec.year || ''
+
+        return `
+          <a href="/explorer/${rec.slug || rec.id}" class="group glass-card relative block flex flex-col overflow-hidden rounded-xl transition-all hover:scale-105">
+            <div class="aspect-square w-full overflow-hidden bg-surface">
+              ${coverUrl 
+                ? `<img src="${coverUrl}" alt="${albumTitle}" width="400" height="400" loading="lazy" decoding="async" class="h-full w-full object-cover" />`
+                : `<div class="flex h-full w-full items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                      <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                  </div>`
+              }
+            </div>
+            <div class="flex flex-1 flex-col p-2.5">
+              <h3 class="truncate text-sm font-medium text-neutral">${escapeHtml(albumTitle)}</h3>
+              <p class="truncate text-xs text-muted">${escapeHtml(artist)}</p>
+              ${year ? `<p class="mt-0.5 text-xs text-muted">${year}</p>` : '<div class="mt-0.5 h-3"></div>'}
+            </div>
+            <div class="absolute right-1.5 top-1.5 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+              <button
+                type="button"
+                class="rounded-full bg-white/90 p-1.5 shadow-lg backdrop-blur-sm hover:bg-white"
+                aria-label="Ajouter à la collection"
+                data-discogs-id="${rec.id}"
+                onclick="event.preventDefault(); event.stopPropagation();"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-700">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </button>
+            </div>
+          </a>
+        `
+      }).join('')
+
+      // Attach click handlers for add buttons
+      container.querySelectorAll('button[data-discogs-id]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const discogsId = button.getAttribute('data-discogs-id')
+          if (!discogsId) return
+
+          const modal = document.getElementById('add-to-collection-modal')
+          if (modal) {
+            modal.setAttribute('data-discogs-id', discogsId)
+            modal.classList.remove('hidden')
+          }
+        })
+      })
+
+    } catch (err) {
+      console.error('Error loading recommendations:', err)
+      loading.classList.add('hidden')
+      error.classList.remove('hidden')
+      
+      // Afficher un message d'erreur plus détaillé
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      error.innerHTML = `
+        <p class="text-muted mb-2">Unable to load recommendations.</p>
+        <p class="text-sm text-muted">${escapeHtml(errorMessage)}</p>
+      `
+    }
+  })
+
+  function escapeHtml(text: string): string {
+    const div = document.createElement('div')
+    div.textContent = text
+    return div.innerHTML
+  }
+</script>
+
+<style>
+  .glass-card {
+    transition: all 0.3s ease;
+  }
+
+  .glass-card:hover {
+    transform: translateY(-2px);
+  }
+
+</style>

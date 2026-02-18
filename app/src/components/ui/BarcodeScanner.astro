@@ -1,0 +1,278 @@
+---
+import X from '@lucide/astro/icons/x'
+import ScanLine from '@lucide/astro/icons/scan-line'
+---
+
+<!-- Barcode Scanner Button/Modal -->
+<div id="barcode-scanner-container" class="fixed bottom-24 right-4 z-40 md:hidden">
+  <!-- Scanner Button (FAB) -->
+  <button
+    id="barcode-scanner-btn"
+    type="button"
+    class="barcode-fab bg-gradient-resonance hover:bg-gradient-resonance-hover flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-300 hover:scale-110"
+    aria-label="Scanner un code-barres"
+  >
+    <ScanLine size={24} class="fill-none stroke-2 text-white stroke-white" />
+  </button>
+</div>
+
+<!-- Scanner Modal -->
+<div
+  id="barcode-scanner-modal"
+  class="fixed inset-0 z-50 hidden items-center justify-center bg-black/90 backdrop-blur-sm"
+>
+  <!-- Close Button -->
+  <button
+    type="button"
+    id="close-scanner"
+    class="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-3 text-white backdrop-blur-sm transition-all hover:bg-white/20"
+    aria-label="Fermer le scanner"
+  >
+    <X size={24} />
+  </button>
+
+  <!-- Scanner View -->
+  <div class="relative w-full max-w-md">
+    <!-- Video Container -->
+    <div id="scanner-video-container" class="relative aspect-square overflow-hidden rounded-2xl">
+      <video
+        id="scanner-video"
+        class="h-full w-full object-cover"
+        autoplay
+        playsinline
+        muted
+      ></video>
+      <!-- Scanning Overlay -->
+      <div class="absolute inset-0 flex items-center justify-center">
+        <div class="relative">
+          <!-- Scanning Frame -->
+          <div class="h-64 w-64 rounded-lg border-4 border-primary shadow-2xl">
+            <div class="absolute -top-1 left-1/2 h-2 w-16 -translate-x-1/2 rounded-full bg-primary"></div>
+            <div class="absolute -bottom-1 left-1/2 h-2 w-16 -translate-x-1/2 rounded-full bg-primary"></div>
+            <div class="absolute -left-1 top-1/2 h-16 w-2 -translate-y-1/2 rounded-full bg-primary"></div>
+            <div class="absolute -right-1 top-1/2 h-16 w-2 -translate-y-1/2 rounded-full bg-primary"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Instructions -->
+      <div class="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-white">
+        <p class="text-sm font-medium">Positionnez le code-barres dans le cadre</p>
+      </div>
+    </div>
+
+    <!-- Result Display -->
+    <div id="scanner-result" class="mt-4 hidden">
+      <div class="glass-card rounded-xl p-4">
+        <p class="text-sm text-muted">Code-barres détecté:</p>
+        <p id="scanned-barcode" class="mt-1 text-lg font-bold text-neutral"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Import ZXing dynamically (lazy load)
+  let BarcodeDetector = null
+  let stream = null
+
+  // Check if browser supports BarcodeDetector API
+  const hasNativeBarcodeDetector = 'BarcodeDetector' in window
+
+  async function initBarcodeScanner() {
+    const scannerBtn = document.getElementById('barcode-scanner-btn')
+    const scannerModal = document.getElementById('barcode-scanner-modal')
+    const closeBtn = document.getElementById('close-scanner')
+    const video = document.getElementById('scanner-video')
+    const scannerResult = document.getElementById('scanner-result')
+    const scannedBarcode = document.getElementById('scanned-barcode')
+
+    if (!scannerBtn || !scannerModal || !closeBtn || !video) return
+
+    // Open scanner
+    scannerBtn.addEventListener('click', async () => {
+      try {
+        // Request camera permission
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment', // Back camera
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        })
+
+        video.srcObject = stream
+        scannerModal?.classList.remove('hidden')
+
+        // Initialize barcode detection
+        if (hasNativeBarcodeDetector) {
+          BarcodeDetector = new window.BarcodeDetector({
+            formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'],
+          })
+          startNativeDetection()
+        } else {
+          // Fallback: manual input or error message
+          startFallbackDetection()
+        }
+      } catch (error) {
+        console.error('Error accessing camera:', error)
+        if (window.toast) {
+          window.toast.error('Impossible d\'accéder à la caméra. Vérifiez les permissions.')
+        }
+      }
+    })
+
+    // Close scanner
+    function closeScanner() {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop())
+        stream = null
+      }
+      if (video) {
+        video.srcObject = null
+      }
+      scannerModal?.classList.add('hidden')
+      scannerResult?.classList.add('hidden')
+    }
+
+    closeBtn.addEventListener('click', closeScanner)
+    scannerModal.addEventListener('click', (e) => {
+      if (e.target === scannerModal) {
+        closeScanner()
+      }
+    })
+
+    // Native BarcodeDetector API
+    async function startNativeDetection() {
+      if (!BarcodeDetector || !video) return
+
+      const detectBarcode = async () => {
+        try {
+          const barcodes = await BarcodeDetector.detect(video)
+          if (barcodes.length > 0) {
+            const barcode = barcodes[0]
+            handleBarcodeDetected(barcode.rawValue)
+          }
+        } catch (error) {
+          console.error('Barcode detection error:', error)
+        }
+        requestAnimationFrame(detectBarcode)
+      }
+
+      video.addEventListener('loadedmetadata', () => {
+        detectBarcode()
+      })
+    }
+
+    // Fallback si BarcodeDetector n'est pas disponible
+    function startFallbackDetection() {
+      if (!video) return
+      
+      // Si BarcodeDetector n'est pas disponible, afficher un message
+      if (window.toast) {
+        window.toast.info('Votre navigateur ne supporte pas le scan de code-barres. Veuillez utiliser un navigateur moderne (Chrome, Edge, Safari).')
+      }
+      
+      // Optionnel : permettre la saisie manuelle du code-barres
+      const manualInput = prompt('Votre navigateur ne supporte pas le scan automatique. Entrez le code-barres manuellement:')
+      if (manualInput && manualInput.trim()) {
+        handleBarcodeDetected(manualInput.trim())
+      } else {
+        closeScanner()
+      }
+    }
+
+    // Handle detected barcode
+    async function handleBarcodeDetected(barcodeValue) {
+      if (scannedBarcode) {
+        scannedBarcode.textContent = barcodeValue
+      }
+      scannerResult?.classList.remove('hidden')
+
+      // Stop scanning
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop())
+      }
+
+      // Search for album by barcode
+      try {
+        const searchResponse = await fetch(`/api/discogs/search-by-barcode?barcode=${encodeURIComponent(barcodeValue)}`)
+        if (searchResponse.ok) {
+          const data = await searchResponse.json()
+          if (data.found && data.result) {
+            // Found album, open add to collection modal
+            const modal = document.getElementById('add-to-collection-modal')
+            if (modal) {
+              modal.setAttribute('data-discogs-id', data.result.id.toString())
+              modal.classList.remove('hidden')
+              closeScanner()
+              if (window.toast) {
+                window.toast.success('Album trouvé !')
+              }
+            }
+          } else {
+            if (window.toast) {
+              window.toast.info('Album non trouvé. Redirection vers l\'explorateur...')
+            }
+            // Redirect to explorer with barcode as search query
+            setTimeout(() => {
+              window.location.href = `/explorer?q=${encodeURIComponent(barcodeValue)}`
+              closeScanner()
+            }, 2000)
+          }
+        }
+      } catch (error) {
+        console.error('Error searching for barcode:', error)
+        if (window.toast) {
+          window.toast.error('Erreur lors de la recherche de l\'album')
+        }
+        // Fallback: redirect to explorer
+        setTimeout(() => {
+          window.location.href = `/explorer?q=${encodeURIComponent(barcodeValue)}`
+          closeScanner()
+        }, 2000)
+      }
+    }
+  }
+
+  // Initialize on page load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBarcodeScanner)
+  } else {
+    initBarcodeScanner()
+  }
+</script>
+
+<style>
+  .barcode-fab {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .barcode-fab:active {
+    transform: scale(0.95);
+  }
+
+  #scanner-video-container {
+    position: relative;
+  }
+
+  /* Scanning animation */
+  @keyframes scanLine {
+    0% {
+      top: 0;
+    }
+    100% {
+      top: 100%;
+    }
+  }
+
+  #scanner-video-container::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(to bottom, transparent, var(--color-primary), transparent);
+    animation: scanLine 2s linear infinite;
+    pointer-events: none;
+  }
+</style>

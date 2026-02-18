@@ -1,0 +1,292 @@
+---
+description: 'ENFORCE performance best practices for Astro'
+globs: *.astro, *.ts, src/**/*
+---
+
+## Context
+
+- Performance is crucial for user experience and SEO
+- Astro prioritizes server-side rendering for better performance
+- Optimize Web Vitals (LCP, CLS, FID, TTI)
+
+## Web Vitals
+
+Optimize Core Web Vitals metrics:
+
+### LCP (Largest Contentful Paint) - < 2.5s
+
+```astro
+---
+// ✅ GOOD - Optimize LCP
+---
+
+<!-- Load critical content first -->
+<header class="bg-white">
+  <h1>{criticalContent}</h1>
+</header>
+
+<!-- Optimized images -->
+<Image 
+  src="/hero.jpg" 
+  alt="Hero" 
+  width={1200} 
+  height={600}
+  loading="eager"
+  format="webp"
+/>
+
+<!-- ❌ AVOID -->
+<img src="/large-unoptimized.jpg" />
+```
+
+LCP Best Practices:
+- Use Astro's `<Image>` with explicit dimensions
+- Use WebP for images
+- Preload critical resources with `<link rel="preload">`
+- Minimize blocking JavaScript
+- Use streaming SSR
+
+### CLS (Cumulative Layout Shift) - < 0.1
+
+```astro
+---
+// ✅ GOOD - Avoid CLS
+---
+
+<!-- Explicit dimensions for images -->
+<Image 
+  src="/photo.jpg" 
+  alt="Photo" 
+  width={800} 
+  height={600}
+/>
+
+<!-- Placeholders for dynamic content -->
+<div class="min-h-[400px]">
+  {asyncContent}
+</div>
+
+<!-- ❌ AVOID -->
+<img src="/photo.jpg" />
+<div>{asyncContent}</div> <!-- No fixed height -->
+```
+
+CLS Best Practices:
+- Always specify `width` and `height` for images
+- Use placeholders for async content
+- Avoid inserting content above existing content
+- Use `font-display: swap` for fonts
+
+### FID (First Input Delay) - < 100ms
+
+```astro
+---
+// ✅ GOOD - Minimize FID
+---
+
+<!-- Minimize client JavaScript -->
+<script>
+  // Minimal and optimized code
+  document.addEventListener('click', handleClick);
+</script>
+
+<!-- ❌ AVOID - Too much JavaScript -->
+<script>
+  // Load heavy libraries unnecessarily
+  import heavyLibrary from 'heavy-library';
+</script>
+```
+
+FID Best Practices:
+- Minimize JavaScript sent to client
+- Defer loading non-critical scripts
+- Avoid long JavaScript tasks
+- Use `client:idle` or `client:visible` instead of `client:load`
+
+## Image Optimization
+
+```astro
+---
+// ✅ GOOD - Optimized images
+---
+
+<Image 
+  src="/image.jpg" 
+  alt="Description" 
+  width={800} 
+  height={600}
+  format="webp"
+  quality={80}
+  loading="lazy"
+  decoding="async"
+/>
+
+<!-- For critical images -->
+<Image 
+  src="/hero.jpg" 
+  alt="Hero" 
+  width={1200} 
+  height={600}
+  format="webp"
+  loading="eager"
+  fetchpriority="high"
+/>
+```
+
+Best Practices:
+- Use WebP with automatic fallback
+- Always specify `width` and `height`
+- Use `loading="lazy"` for non-critical images
+- Use `loading="eager"` and `fetchpriority="high"` for LCP
+- Adjust `quality` as needed (80 by default)
+
+## Async Loading and Streaming
+
+```astro
+---
+// ✅ GOOD - Progressive loading
+---
+
+<!-- Critical content loaded immediately -->
+<main>
+  <h1>{title}</h1>
+  {criticalContent}
+</main>
+
+<!-- Secondary content loaded after -->
+<aside>
+  <AsyncComponent />
+</aside>
+
+<!-- ❌ AVOID - Load everything in series -->
+---
+const data1 = await loadData1();
+const data2 = await loadData2();
+const data3 = await loadData3();
+---
+```
+
+Best Practices:
+- Load data in parallel with `Promise.all()`
+- Use streaming SSR for progressive content
+- Separate critical content from secondary content
+- Use slots to organize loading
+
+## JavaScript Optimization
+
+```astro
+---
+// ✅ GOOD - Minimal JavaScript
+---
+
+<!-- Inline scripts only if necessary -->
+<script>
+  // Minimal and optimized code
+  const button = document.getElementById('btn');
+  button?.addEventListener('click', handleClick);
+</script>
+
+<!-- ❌ AVOID -->
+<script>
+  // Import heavy libraries unnecessarily
+  import _ from 'lodash';
+  import moment from 'moment';
+</script>
+```
+
+Best Practices:
+- Minimize client JavaScript
+- Use native browser APIs
+- Avoid heavy dependencies if possible
+- Use tree-shaking
+- Defer non-critical scripts
+
+## Cache and CDN
+
+```astro
+---
+// Configuration in astro.config.mjs
+---
+
+// ✅ Use appropriate cache
+export default defineConfig({
+  // Static assets cache
+  build: {
+    assets: '_assets',
+  },
+  // Cache headers (if adapter supports it)
+});
+```
+
+Best Practices:
+- Use a CDN for static assets
+- Configure appropriate cache headers
+- Use browser cache (`Cache-Control`)
+- Use Service Workers for offline cache if necessary
+
+## DB Query Optimization
+
+```astro
+---
+// ✅ GOOD - Optimized queries
+---
+
+// Load in parallel
+const [users, posts, comments] = await Promise.all([
+  db.user.findMany({ take: 10 }),
+  db.post.findMany({ take: 5 }),
+  db.comment.findMany({ take: 20 }),
+]);
+
+// Avoid N+1 queries
+const posts = await db.post.findMany({
+  include: {
+    author: true, // Load author in a single query
+    comments: {
+      take: 10,
+    },
+  },
+});
+
+// ❌ AVOID - N+1 queries
+const posts = await db.post.findMany();
+for (const post of posts) {
+  const author = await db.user.findUnique({ where: { id: post.authorId } });
+}
+```
+
+Best Practices:
+- Use Prisma's `include` or `select` to avoid N+1
+- Load data in parallel with `Promise.all()`
+- Use `take` and `skip` for pagination
+- Index frequently used columns in queries
+
+## Metrics and Monitoring
+
+```astro
+---
+// Add Web Vitals monitoring
+---
+
+<script>
+  // Measure Web Vitals
+  import { onCLS, onFID, onLCP } from 'web-vitals';
+  
+  onCLS(console.log);
+  onFID(console.log);
+  onLCP(console.log);
+</script>
+```
+
+## Important Rules
+
+1. ✅ Optimize LCP: optimized images, critical content first
+2. ✅ Minimize CLS: explicit dimensions, placeholders
+3. ✅ Reduce FID: minimal JavaScript, defer scripts
+4. ✅ Use Astro's `<Image>` for all images
+5. ✅ Load data in parallel with `Promise.all()`
+6. ✅ Use streaming SSR for progressive content
+7. ✅ Minimize JavaScript sent to client
+8. ✅ Optimize DB queries (avoid N+1)
+9. ✅ Use appropriate cache (browser, CDN)
+10. ✅ Monitor Web Vitals in production

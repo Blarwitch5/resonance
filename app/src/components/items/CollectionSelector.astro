@@ -1,0 +1,117 @@
+---
+import ChevronDown from '@lucide/astro/icons/chevron-down'
+import type { Collection } from '@prisma/client'
+
+type CollectionSelectorProps = {
+  itemId: string
+  currentCollection: Collection | null
+  collections: Collection[]
+}
+
+const { itemId, currentCollection, collections } = Astro.props as CollectionSelectorProps
+---
+
+<div class="collection-selector-wrapper">
+  <label class="mb-2 block text-sm font-medium text-neutral">
+    Collection
+  </label>
+  <div class="relative">
+    <select
+      id={`collection-select-${itemId}`}
+      data-item-id={itemId}
+      class="w-full appearance-none rounded-xl border border-border bg-surface px-4 py-3 pr-10 text-neutral transition-colors focus:border-primary focus:ring-2 focus:ring-primary/50 focus:outline-none"
+    >
+      <option value="" {currentCollection === null ? 'selected' : ''}>
+        Non classé
+      </option>
+      {collections.map((collection) => (
+        <option
+          value={collection.id}
+          selected={currentCollection?.id === collection.id}
+        >
+          {collection.name}
+        </option>
+      ))}
+    </select>
+    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+      <ChevronDown size={20} class="fill-none stroke-2 text-muted stroke-muted" />
+    </div>
+  </div>
+  <p class="mt-1 text-xs text-muted">
+    Changer la collection de cet album
+  </p>
+</div>
+
+<script define:vars={{ itemId }}>
+  (function() {
+    const select = document.getElementById(`collection-select-${itemId}`)
+    if (!select) return
+
+    select.addEventListener('change', async function() {
+      const newCollectionId = select.value || null
+      const itemId = select.dataset.itemId
+
+      if (!itemId) return
+
+      // Désactiver le select pendant le chargement
+      select.disabled = true
+      const originalValue = select.value
+
+      try {
+        const response = await fetch(`/api/items/${itemId}/change-collection`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ collectionId: newCollectionId }),
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Erreur lors du changement de collection')
+        }
+
+        const updatedItem = await response.json()
+
+        // Afficher un message de succès
+        if (window.toast) {
+          const collectionName = newCollectionId
+            ? select.options[select.selectedIndex]?.text || 'Collection'
+            : 'Non classé'
+          window.toast.success(`Album déplacé vers "${collectionName}"`)
+        }
+
+        // Recharger la page pour afficher la nouvelle collection
+        setTimeout(() => {
+          window.location.reload()
+        }, 500)
+      } catch (error) {
+        console.error('Error changing collection:', error)
+        
+        // Restaurer la valeur précédente
+        select.value = originalValue
+
+        // Afficher un message d'erreur
+        const errorMessage = error instanceof Error ? error.message : 'Erreur lors du changement de collection'
+        if (window.toast) {
+          window.toast.error(errorMessage)
+        } else {
+          console.error('Erreur:', errorMessage)
+        }
+      } finally {
+        select.disabled = false
+      }
+    })
+  })()
+</script>
+
+<style>
+  .collection-selector-wrapper select {
+    cursor: pointer;
+  }
+
+  .collection-selector-wrapper select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+</style>

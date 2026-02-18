@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.astro/
+.env
+.env.local
+.env.production
+pnpm-lock.yaml
+package-lock.json
+*.log
+# Fichiers avec des problèmes de parsing spécifiques
+src/pages/collection/
+src/pages/dashboard.astro
+src/pages/search.astro

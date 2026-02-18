@@ -1,0 +1,35 @@
+---
+import Folder from '@lucide/astro/icons/folder'
+import { collectionRepository } from '../../repositories/collection-repository'
+import CollectionCard from '../collections/CollectionCard.astro'
+import EmptyState from '../ui/EmptyState.astro'
+
+type RecentCollectionsProps = {
+  userId: string
+}
+
+const { userId } = Astro.props as RecentCollectionsProps
+const collections = await collectionRepository.getRecentCollections(userId, 10)
+---
+
+<div class="min-w-0 space-y-6">
+  {collections.length === 0 ? (
+    <EmptyState
+      title="Aucune collection pour le moment"
+      description="Créez votre première collection pour organiser et classer vos albums par thème, genre ou période."
+      icon={Folder}
+      action={{
+        label: 'Créer une collection',
+        href: '/collections/new',
+      }}
+      size="sm"
+    />
+  ) : (
+    <div class="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {collections.map((collection) => (
+        <CollectionCard collection={collection} />
+      ))}
+    </div>
+  )}
+</div>
+

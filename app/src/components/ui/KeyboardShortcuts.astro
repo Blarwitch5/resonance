@@ -1,0 +1,112 @@
+---
+// Composant pour gérer les raccourcis clavier
+// Visible uniquement sur desktop (lg+)
+---
+
+<div class="hidden lg:block">
+  <script>
+    // TypeScript fonctionne nativement dans les scripts Astro !
+    (function () {
+      // Raccourcis clavier
+      const shortcuts = new Map<string, (event: KeyboardEvent) => void>()
+
+      // Navigation
+      shortcuts.set('meta+k', (event: KeyboardEvent) => {
+        event.preventDefault()
+        // Focus sur la recherche ou ouvrir la recherche globale
+        const searchInput = document.querySelector<HTMLInputElement>('input[type="search"], #search, .search-input')
+        if (searchInput) {
+          searchInput.focus()
+          searchInput.select()
+        } else {
+          // Naviguer vers l'explorer
+          window.location.href = '/explorer'
+        }
+      })
+
+      shortcuts.set('meta+n', (event: KeyboardEvent) => {
+        event.preventDefault()
+        // Ouvrir l'explorer pour ajouter un nouvel album
+        window.location.href = '/explorer'
+      })
+
+      // Fermer modals/overlays avec Escape
+      shortcuts.set('escape', (event: KeyboardEvent) => {
+        const modal = document.querySelector<HTMLElement>('[role="dialog"], .modal, .popup')
+        if (modal && !modal.classList.contains('hidden')) {
+          const closeButton = modal.querySelector<HTMLElement>('[aria-label*="Close"], [aria-label*="Fermer"], button[data-close]')
+          if (closeButton) {
+            closeButton.click()
+          } else {
+            modal.classList.add('hidden')
+          }
+        }
+      })
+
+      // Navigation avec les flèches (à implémenter selon le contexte)
+      shortcuts.set('arrowright', (event: KeyboardEvent) => {
+        // Navigation vers l'item suivant (si on est dans une collection)
+        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+          return // Ne pas intercepter si on est dans un input
+        }
+        const nextItem = document.querySelector('[data-item-index]:focus, .item-card:hover')
+        if (nextItem) {
+          const allItems = Array.from(document.querySelectorAll('[data-item-index]'))
+          const currentIndex = allItems.indexOf(nextItem)
+          if (currentIndex < allItems.length - 1) {
+            const next = allItems[currentIndex + 1]
+            next.focus()
+            next.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+          }
+        }
+      })
+
+      shortcuts.set('arrowleft', (event: KeyboardEvent) => {
+        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+          return
+        }
+        const prevItem = document.querySelector<HTMLElement>('[data-item-index]:focus, .item-card:hover')
+        if (prevItem) {
+          const allItems = Array.from(document.querySelectorAll('[data-item-index]'))
+          const currentIndex = allItems.indexOf(prevItem)
+          if (currentIndex > 0) {
+            const prev = allItems[currentIndex - 1]
+            prev.focus()
+            prev.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+          }
+        }
+      })
+
+      // Gestionnaire global
+      document.addEventListener('keydown', function (event: KeyboardEvent) {
+        const key = event.key.toLowerCase()
+        const metaKey = event.metaKey || event.ctrlKey
+
+        // Construire la combinaison de touches
+        let combination = ''
+        if (metaKey) combination += 'meta+'
+        combination += key
+
+        // Chercher le raccourci correspondant
+        const handler = shortcuts.get(combination) || shortcuts.get(key)
+        if (handler) {
+          handler(event)
+        }
+      })
+
+      // Afficher les raccourcis disponibles (⌘+?)
+      document.addEventListener('keydown', function (event: KeyboardEvent) {
+        if ((event.metaKey || event.ctrlKey) && event.key === '?') {
+          event.preventDefault()
+          // Afficher une modal avec les raccourcis disponibles
+          if (window.toast) {
+            window.toast.info(
+              'Raccourcis: ⌘K (Recherche), ⌘N (Nouveau), Esc (Fermer), →/← (Navigation)',
+              5000
+            )
+          }
+        }
+      })
+    })()
+  </script>
+</div>

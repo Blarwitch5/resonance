@@ -1,0 +1,7 @@
+---
+// Redirection depuis l'ancienne route /collection vers /bibliotheque
+const url = new URL(Astro.url)
+const searchParams = url.searchParams.toString()
+const redirectUrl = `/bibliotheque${searchParams ? `?${searchParams}` : ''}`
+return Astro.redirect(redirectUrl)
+---

@@ -1,0 +1,178 @@
+---
+// Composant pour l'import/export de collections
+---
+
+<div class="glass-card min-w-0 rounded-xl p-4 sm:p-6 border-2 border-emerald-500/20">
+  <h3 class="mb-4 text-lg font-semibold text-neutral">Import / Export</h3>
+  <p class="mb-6 text-sm text-muted">
+    Export your collections and items as JSON, or import them from a backup file.
+  </p>
+
+  <div class="flex flex-col gap-4 sm:flex-row">
+    <!-- Export Button -->
+    <button
+      id="export-btn"
+      class="btn-primary-gradient flex-1 py-3 px-4 rounded-lg flex items-center justify-center gap-2"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+      Export Collections
+    </button>
+
+    <!-- Import Button -->
+    <label
+      for="import-file"
+      class="btn-secondary-surface flex-1 py-3 px-4 rounded-lg flex items-center justify-center gap-2"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="17 8 12 3 7 8"></polyline>
+        <line x1="12" y1="3" x2="12" y2="15"></line>
+      </svg>
+      Import Collections
+      <input
+        type="file"
+        id="import-file"
+        accept=".json"
+        class="hidden"
+      />
+    </label>
+  </div>
+</div>
+
+<script>
+  // TypeScript fonctionne nativement dans les scripts Astro !
+  (function() {
+    function initImportExport(): void {
+      const exportBtn = document.getElementById('export-btn') as HTMLButtonElement | null
+      const importFile = document.getElementById('import-file') as HTMLInputElement | null
+
+      // Export
+      if (exportBtn) {
+        exportBtn.addEventListener('click', async function() {
+          const button = exportBtn
+          const originalText = button.innerHTML
+          button.disabled = true
+          button.innerHTML = '<svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Exporting...'
+
+          try {
+            const response = await fetch('/api/collections/export')
+            if (!response.ok) {
+              throw new Error('Export failed')
+            }
+
+            const blob = await response.blob()
+            const url = window.URL.createObjectURL(blob)
+            const downloadLink = document.createElement('a')
+            downloadLink.href = url
+            downloadLink.download = 'resonance-export-' + new Date().toISOString().split('T')[0] + '.json'
+            document.body.appendChild(downloadLink)
+            downloadLink.click()
+            document.body.removeChild(downloadLink)
+            window.URL.revokeObjectURL(url)
+
+            if (window.toast) {
+              window.toast.success('Collections exported successfully!')
+            }
+          } catch (error) {
+            console.error('Export error:', error)
+            if (window.toast) {
+              window.toast.error('Failed to export collections')
+            }
+          } finally {
+            button.disabled = false
+            button.innerHTML = originalText
+          }
+        })
+      }
+
+      // Import
+      if (importFile) {
+        importFile.addEventListener('change', async function(event: Event) {
+          const target = event.target as HTMLInputElement | null
+          if (!target || target.nodeName !== 'INPUT') return
+          const input = target
+          const file = input.files && input.files[0]
+          if (!file) return
+
+          const formData = new FormData()
+          formData.append('file', file)
+
+          if (window.toast) {
+            window.toast.info('Importing collections...', 5000)
+          }
+
+          try {
+            const response = await fetch('/api/collections/import', {
+              method: 'POST',
+              body: formData,
+            })
+
+            const data = await response.json()
+
+            if (response.ok) {
+              const message = 'Import completed! ' +
+                data.stats.collectionsCreated + ' collections created, ' +
+                data.stats.itemsCreated + ' items imported, ' +
+                data.stats.itemsSkipped + ' items skipped.'
+              
+              if (window.toast) {
+                window.toast.success(message, 8000)
+              }
+
+              // Reload page after 1 second to show new data
+              setTimeout(function() {
+                window.location.reload()
+              }, 1000)
+            } else {
+              if (window.toast) {
+                window.toast.error(data.error || 'Failed to import collections')
+              }
+            }
+          } catch (error) {
+            console.error('Import error:', error)
+            if (window.toast) {
+              window.toast.error('Failed to import collections')
+            }
+          } finally {
+            // Reset file input
+            if (input) {
+              input.value = ''
+            }
+          }
+        })
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initImportExport)
+    } else {
+      initImportExport()
+    }
+
+    document.addEventListener('astro:page-load', initImportExport)
+  })()
+</script>

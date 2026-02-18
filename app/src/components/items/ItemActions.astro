@@ -1,0 +1,107 @@
+---
+import Heart from '@lucide/astro/icons/heart'
+import Pencil from '@lucide/astro/icons/pencil'
+import Trash2 from '@lucide/astro/icons/trash-2'
+
+type ItemActionsProps = {
+  itemId: string
+  isFavorite?: boolean
+}
+
+const { itemId, isFavorite = false } = Astro.props as ItemActionsProps
+---
+
+<div class="absolute right-2 top-2 flex gap-2">
+  <button
+    type="button"
+    class="btn-icon rounded-full p-2 shadow-lg"
+    aria-label="Ajouter aux favoris"
+    data-action="favorite"
+    data-item-id={itemId}
+  >
+    <Heart size={16} class={`stroke-2 ${isFavorite ? 'fill-red-500 text-red-500 stroke-red-500' : 'fill-none text-muted stroke-muted'}`} />
+  </button>
+  
+  <button
+    type="button"
+    class="btn-icon rounded-full p-2 shadow-lg"
+    aria-label="Modifier"
+    data-action="edit"
+    data-item-id={itemId}
+  >
+    <Pencil size={16} class="fill-none stroke-2" />
+  </button>
+  
+  <button
+    type="button"
+    class="btn-icon rounded-full p-2 shadow-lg"
+    aria-label="Supprimer"
+    data-action="delete"
+    data-item-id={itemId}
+  >
+    <Trash2 size={16} class="fill-none stroke-2" />
+  </button>
+</div>
+
+<script>
+  document.addEventListener('click', async (event) => {
+    const target = event.target
+    const button = target.closest('button[data-action]')
+    
+    if (!button) return
+
+    const action = button.getAttribute('data-action')
+    const itemId = button.getAttribute('data-item-id')
+    const card = button.closest('article')
+
+    if (!itemId) return
+
+    try {
+      if (action === 'favorite') {
+        const response = await fetch(`/api/items/${itemId}/toggle-favorite`, {
+          method: 'POST',
+        })
+
+        if (response.ok) {
+          const heartIcon = button.querySelector('svg')
+          if (heartIcon) {
+            heartIcon.classList.toggle('fill-red-500')
+            heartIcon.classList.toggle('fill-none')
+            heartIcon.classList.toggle('text-red-500')
+            heartIcon.classList.toggle('stroke-red-500')
+            heartIcon.classList.toggle('text-muted')
+            heartIcon.classList.toggle('stroke-muted')
+          }
+        }
+      } else if (action === 'delete') {
+        const confirmed = await window.confirmDialog?.(
+          'Supprimer l\'album',
+          'Êtes-vous sûr de vouloir supprimer cet album ? Cette action est irréversible.',
+          'Supprimer',
+          'Annuler'
+        )
+        
+        if (!confirmed) {
+          return
+        }
+
+        const response = await fetch(`/api/items/${itemId}`, {
+          method: 'DELETE',
+        })
+
+        if (response.ok && card) {
+          card.style.transition = 'all 0.3s ease'
+          card.style.opacity = '0'
+          card.style.transform = 'scale(0.9)'
+          
+          setTimeout(() => {
+            card.remove()
+          }, 300)
+        }
+      }
+    } catch (error) {
+      console.error('Error performing action:', error)
+    }
+  })
+</script>
+

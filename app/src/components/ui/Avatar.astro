@@ -1,0 +1,65 @@
+---
+type AvatarProps = {
+  userName?: string | null
+  userEmail?: string | null
+  imageUrl?: string | null
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'
+  class?: string
+  id?: string
+}
+
+const {
+  userName,
+  userEmail,
+  imageUrl,
+  size = 'md',
+  class: className = '',
+  id,
+} = Astro.props as AvatarProps
+
+// Tailles pour l'avatar
+const sizeClasses = {
+  sm: 'h-8 w-8 text-xs',
+  md: 'h-10 w-10 text-sm',
+  lg: 'h-12 w-12 text-base',
+  xl: 'h-16 w-16 text-lg',
+  '2xl': 'h-24 w-24 text-2xl',
+}
+
+// Générer les initiales
+function getInitials(name: string | null | undefined, email: string | null | undefined): string {
+  if (name) {
+    const parts = name.trim().split(/\s+/)
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    }
+    return name[0].toUpperCase()
+  }
+  if (email) {
+    return email[0].toUpperCase()
+  }
+  return 'U'
+}
+
+const initials = getInitials(userName, userEmail)
+const sizeClass = sizeClasses[size]
+const hasImage = imageUrl && imageUrl.trim() !== '' && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://') || imageUrl.startsWith('/'))
+---
+
+{hasImage ? (
+  <img
+    id={id ? `${id}-img` : undefined}
+    src={imageUrl}
+    alt={userName || userEmail || 'Avatar'}
+    class={`${sizeClass} rounded-full object-cover ${className}`}
+    width={size === 'sm' ? 32 : size === 'md' ? 40 : size === 'lg' ? 48 : size === 'xl' ? 64 : 96}
+    height={size === 'sm' ? 32 : size === 'md' ? 40 : size === 'lg' ? 48 : size === 'xl' ? 64 : 96}
+    onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';"
+  />
+) : null}
+<div
+  class={`${sizeClass} ${hasImage ? 'hidden' : 'flex'} items-center justify-center rounded-full bg-gradient-resonance font-medium text-white ${className}`}
+  style={hasImage ? undefined : 'display: flex;'}
+>
+  {initials}
+</div>

@@ -1,0 +1,132 @@
+---
+import ChevronLeft from '@lucide/astro/icons/chevron-left'
+import ChevronRight from '@lucide/astro/icons/chevron-right'
+
+type PaginationProps = {
+  currentPage: number
+  totalPages: number
+  baseUrl: string
+  queryParams?: Record<string, string>
+}
+
+const { currentPage, totalPages, baseUrl, queryParams = {} } = Astro.props as PaginationProps
+
+if (totalPages <= 1) {
+  return null
+}
+
+const buildUrl = (page: number) => {
+  const url = new URL(baseUrl, Astro.url.origin)
+  url.searchParams.set('page', page.toString())
+  Object.entries(queryParams).forEach(([key, value]) => {
+    if (value) url.searchParams.set(key, value)
+  })
+  return url.pathname + url.search
+}
+
+const getPageNumbers = () => {
+  const pages: (number | string)[] = []
+  const maxVisible = 7
+
+  if (totalPages <= maxVisible) {
+    // Afficher toutes les pages si peu de pages
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i)
+    }
+  } else {
+    // Logique pour afficher les pages avec ellipsis
+    if (currentPage <= 3) {
+      // Début : 1, 2, 3, 4, ..., last
+      for (let i = 1; i <= 4; i++) {
+        pages.push(i)
+      }
+      pages.push('...')
+      pages.push(totalPages)
+    } else if (currentPage >= totalPages - 2) {
+      // Fin : 1, ..., n-3, n-2, n-1, n
+      pages.push(1)
+      pages.push('...')
+      for (let i = totalPages - 3; i <= totalPages; i++) {
+        pages.push(i)
+      }
+    } else {
+      // Milieu : 1, ..., current-1, current, current+1, ..., last
+      pages.push(1)
+      pages.push('...')
+      pages.push(currentPage - 1)
+      pages.push(currentPage)
+      pages.push(currentPage + 1)
+      pages.push('...')
+      pages.push(totalPages)
+    }
+  }
+
+  return pages
+}
+
+const pageNumbers = getPageNumbers()
+---
+
+<nav aria-label="Pagination" class="flex items-center justify-center gap-2">
+  <!-- Previous button -->
+  <a
+    href={buildUrl(currentPage - 1)}
+    class={`flex items-center gap-2 rounded-lg px-4 py-2 transition-colors ${
+      currentPage === 1
+        ? 'pointer-events-none opacity-50 cursor-not-allowed bg-surface text-muted'
+        : 'bg-surface text-neutral hover:bg-surface-elevated'
+    }`}
+    aria-label="Page précédente"
+    aria-disabled={currentPage === 1}
+  >
+    <ChevronLeft size={18} />
+    <span class="hidden sm:inline">Précédent</span>
+  </a>
+
+  <!-- Page numbers -->
+  <div class="flex items-center gap-1">
+    {pageNumbers.map((page) => {
+      if (page === '...') {
+        return (
+          <span class="px-2 py-2 text-muted" aria-hidden="true">
+            ...
+          </span>
+        )
+      }
+
+      const pageNum = Number(page)
+      const isActive = pageNum === currentPage
+
+      return (
+        <a
+          href={buildUrl(pageNum)}
+          class={`min-w-10 rounded-lg px-3 py-2 text-center text-sm font-medium transition-colors ${
+            isActive
+              ? 'bg-primary text-white !important shadow-lg'
+              : 'bg-surface text-neutral hover:bg-surface-elevated'
+          }`}
+          style={isActive ? 'color: white !important;' : ''}
+          aria-label={`Page ${pageNum}`}
+          aria-current={isActive ? 'page' : undefined}
+        >
+          {pageNum}
+        </a>
+      )
+    })}
+  </div>
+
+  <!-- Next button -->
+  <a
+    href={buildUrl(currentPage + 1)}
+    class={`flex items-center gap-2 rounded-lg px-4 py-2 transition-colors ${
+      currentPage === totalPages
+        ? 'pointer-events-none opacity-50 cursor-not-allowed bg-surface text-muted'
+        : 'bg-surface text-neutral hover:bg-surface-elevated'
+    }`}
+    aria-label="Page suivante"
+    aria-disabled={currentPage === totalPages}
+  >
+    <span class="hidden sm:inline">Suivant</span>
+    <ChevronRight size={18} />
+  </a>
+</nav>

@@ -1,0 +1,341 @@
+---
+description: 'EXPLAIN how streaming and progressive rendering work in Astro'
+globs: *.astro
+---
+
+## Context
+
+- Streaming allows dividing page HTML into small chunks and sending them progressively from server to client
+- This allows displaying certain parts of the page earlier, without waiting for all data to load
+- Astro supports SSR streaming in certain environments (like Node.js adapter)
+- Astro uses slots and async components to optimize progressive loading
+
+## Streaming with Astro SSR
+
+Astro supports streaming when using an SSR adapter like `@astrojs/node`:
+
+```bash
+npm install @astrojs/node
+```
+
+```typescript
+// astro.config.mjs
+import { defineConfig } from "astro/config";
+import node from "@astrojs/node";
+
+export default defineConfig({
+  output: "server",
+  adapter: node({
+    mode: "standalone",
+  }),
+});
+```
+
+## Progressive Rendering with Slots
+
+Use Astro slots to separate critical content from secondary content:
+
+```astro
+---
+// src/layouts/BaseLayout.astro
+type Props = {
+  title: string
+}
+
+const { title } = Astro.props
+---
+
+<html>
+  <head>
+    <title>{title}</title>
+  </head>
+  <body>
+    <!-- Critical content loaded immediately -->
+    <header>
+      <h1>{title}</h1>
+    </header>
+
+    <!-- Main content -->
+    <main>
+      <slot />
+    </main>
+
+    <!-- Secondary content with named slot (can load after) -->
+    <aside>
+      <slot name="sidebar" />
+    </aside>
+  </body>
+</html>
+```
+
+```astro
+---
+// src/pages/index.astro
+import BaseLayout from '../layouts/BaseLayout.astro'
+import { db } from '../lib/db'
+
+// Critical content - loaded first
+const featuredPosts = await db.post.findMany({
+  where: { featured: true },
+  take: 3,
+})
+---
+
+<BaseLayout title="My Blog">
+  <!-- Main content -->
+  <section>
+    <h2>Featured Articles</h2>
+    {
+      featuredPosts.map((post) => (
+        <article>
+          <h3>{post.title}</h3>
+          <p>{post.excerpt}</p>
+        </article>
+      ))
+    }
+  </section>
+
+  <!-- Secondary content (named slot) -->
+  <Fragment slot="sidebar">
+    <Sidebar />
+  </Fragment>
+</BaseLayout>
+```
+
+## Components with Async Loading
+
+Create components that load their data asynchronously with fallbacks:
+
+```astro
+---
+// src/components/AsyncPostList.astro
+import { db } from '../lib/db'
+
+type Props = {
+  categoryId?: string
+}
+
+export async function PostList(props: Props) {
+  // This function is async and can be called separately
+  const posts = await db.post.findMany({
+    where: props.categoryId ? { categoryId: props.categoryId } : undefined,
+    take: 10,
+    orderBy: { createdAt: 'desc' },
+  })
+
+  return { posts }
+}
+
+// Optional: fallback component
+export function PostListSkeleton() {
+  return (
+    <div class="animate-pulse space-y-4">
+      {[...Array(3)].map(() => (
+        <div class="h-24 rounded bg-gray-200"></div>
+      ))}
+    </div>
+  )
+}
+
+// Execute the function
+const result = await PostList(Astro.props)
+const { posts } = result
+---
+
+{
+  posts.length > 0 ? (
+    <div class="space-y-4">
+      {posts.map((post) => (
+        <article class="rounded border p-4">
+          <h3 class="text-xl font-bold">{post.title}</h3>
+          <p class="text-gray-600">{post.excerpt}</p>
+        </article>
+      ))}
+    </div>
+  ) : (
+    <p>No articles found</p>
+  )
+}
+```
+
+## Usage with Visual Fallback
+
+```astro
+---
+// src/pages/blog.astro
+import { db } from '../lib/db'
+import PostList from '../components/PostList.astro'
+import PostListSkeleton from '../components/PostList.astro'
+
+// Load main articles first
+const mainPosts = await db.post.findMany({
+  where: { featured: true },
+  take: 5,
+})
+---
+
+<main class="container mx-auto p-4">
+  <h1 class="mb-6 text-3xl font-bold">Blog</h1>
+
+  <!-- Critical content displayed immediately -->
+  <section class="mb-8">
+    <h2 class="mb-4 text-2xl font-semibold">Featured Articles</h2>
+    {
+      mainPosts.map((post) => (
+        <article class="mb-4 rounded border p-4">
+          <h3>{post.title}</h3>
+        </article>
+      ))
+    }
+  </section>
+
+  <!-- Secondary content - can use a skeleton -->
+  <section>
+    <h2 class="mb-4 text-2xl font-semibold">All Articles</h2>
+    <PostList />
+  </section>
+</main>
+```
+
+## Pattern: Component with Loading State
+
+To handle loading with a visual state:
+
+```astro
+---
+// src/components/LazyDataLoader.astro
+import { db } from '../lib/db'
+
+type Props = {
+  endpoint?: string
+  fallback?: string
+}
+
+export async function loadData(props: Props) {
+  // Simulate slower loading for secondary content
+  if (props.endpoint === 'slow') {
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+  }
+
+  const data = await db.post.findMany({ take: 5 })
+  return { data }
+}
+
+const { data } = await loadData(Astro.props)
+---
+
+<div class="lazy-content">
+  {
+    data.map((item) => (
+      <div class="mb-2 rounded border p-4">
+        <h4>{item.title}</h4>
+      </div>
+    ))
+  }
+</div>
+
+<style>
+  .lazy-content {
+    animation: fadeIn 0.3s ease-in;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+```
+
+## Optimization with View Transitions (Astro 3+)
+
+Astro View Transitions enable smooth transitions between pages:
+
+```astro
+---
+// src/layouts/BaseLayout.astro
+import { ViewTransitions } from 'astro:transitions'
+---
+
+<html>
+  <head>
+    <ViewTransitions />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
+```
+
+## Important Rules
+
+1. **Prioritize critical content**: Load essential content first (header, navigation, main content)
+2. **Defer secondary content**: Use slots or separate components for less critical content
+3. **Display fallbacks**: Use skeletons or loaders to improve perceived performance
+4. **Optimize DB queries**: Load data needed for initial render, load the rest after
+5. **Use SSR with streaming**: Configure an SSR adapter to benefit from native streaming
+6. **Avoid waterfalls**: Load data in parallel when possible with `Promise.all()`
+
+## Complete Example: Page with Progressive Loading
+
+```astro
+---
+// src/pages/article/[id].astro
+import { db } from '../../lib/db'
+import RelatedPosts from '../../components/RelatedPosts.astro'
+import Comments from '../../components/Comments.astro'
+
+const { id } = Astro.params
+
+// Load main article immediately
+const article = await db.post.findUnique({
+  where: { id },
+  include: { author: true },
+})
+
+if (!article) {
+  return Astro.redirect('/404')
+}
+
+// Load secondary content in parallel
+const [relatedPosts, comments] = await Promise.all([
+  db.post.findMany({
+    where: {
+      categoryId: article.categoryId,
+      id: { not: id },
+    },
+    take: 3,
+  }),
+  db.comment.findMany({
+    where: { postId: id },
+    take: 10,
+  }),
+])
+---
+
+<article class="container mx-auto max-w-4xl p-4">
+  <!-- Main content (displayed immediately) -->
+  <header class="mb-8">
+    <h1 class="mb-4 text-4xl font-bold">{article.title}</h1>
+    <p class="text-gray-600">By {article.author.name}</p>
+  </header>
+
+  <div class="prose">
+    {article.content}
+  </div>
+
+  <!-- Secondary content (can be rendered after) -->
+  <aside class="mt-12">
+    <RelatedPosts posts={relatedPosts} />
+  </aside>
+
+  <section class="mt-12">
+    <Comments postId={id} initialComments={comments} />
+  </section>
+</article>
+```

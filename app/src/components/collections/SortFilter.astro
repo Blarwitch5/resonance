@@ -1,0 +1,236 @@
+---
+// Composant pour le tri et les filtres avancés
+import ArrowUpDown from '@lucide/astro/icons/arrow-up-down'
+import Funnel from '@lucide/astro/icons/funnel'
+import X from '@lucide/astro/icons/x'
+import Heart from '@lucide/astro/icons/heart'
+import Calendar from '@lucide/astro/icons/calendar'
+import Music from '@lucide/astro/icons/music'
+import Folder from '@lucide/astro/icons/folder'
+
+type SortOption = 'addedAt-desc' | 'addedAt-asc' | 'title-asc' | 'title-desc' | 'artist-asc' | 'artist-desc' | 'year-desc' | 'year-asc'
+
+const currentSort = (Astro.url.searchParams.get('sort') || 'addedAt-desc') as SortOption
+const currentGenre = Astro.url.searchParams.get('genre') || ''
+const currentYear = Astro.url.searchParams.get('year') || ''
+const currentCollection = Astro.url.searchParams.get('collection') || ''
+const showFavorites = Astro.url.searchParams.get('favorites') === 'true'
+const isUncategorizedFilter = currentCollection === 'none'
+
+// Get available genres and years from items (passed as props)
+type SortFilterProps = {
+  genres?: string[]
+  years?: number[]
+  collections?: Array<{ id: string; name: string }>
+}
+
+const { genres = [], years = [], collections = [] } = Astro.props as SortFilterProps
+
+const sortOptions: Array<{ value: SortOption; label: string }> = [
+  { value: 'addedAt-desc', label: 'Récemment ajoutés' },
+  { value: 'addedAt-asc', label: 'Plus anciens' },
+  { value: 'title-asc', label: 'Titre A-Z' },
+  { value: 'title-desc', label: 'Titre Z-A' },
+  { value: 'artist-asc', label: 'Artiste A-Z' },
+  { value: 'artist-desc', label: 'Artiste Z-A' },
+  { value: 'year-desc', label: 'Année récente' },
+  { value: 'year-asc', label: 'Année ancienne' },
+]
+
+const hasActiveFilters = currentGenre || currentYear || currentCollection || showFavorites
+
+function buildUrl(params: Record<string, string | null>) {
+  const url = new URL(Astro.url)
+  // Preserve format if it exists
+  const format = url.searchParams.get('format') || 'ALL'
+  
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) {
+      url.searchParams.set(key, value)
+    } else {
+      url.searchParams.delete(key)
+    }
+  })
+  
+  // Preserve format
+  if (format) {
+    url.searchParams.set('format', format)
+  }
+  
+  // Reset to page 1 when filters change
+  url.searchParams.set('page', '1')
+  return url.pathname + url.search
+}
+---
+
+<div class="glass-card rounded-2xl border border-border p-5">
+  <div class="flex flex-col gap-6">
+    <!-- Header avec badges des filtres actifs -->
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+          <Funnel size={20} class="fill-none stroke-2 text-primary stroke-primary" />
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold text-neutral">Filtres et tri</h3>
+          <p class="text-xs text-muted">Organisez votre collection</p>
+        </div>
+      </div>
+
+      <!-- Badges des filtres actifs -->
+      {hasActiveFilters && (
+        <div class="flex flex-wrap items-center gap-2">
+          {currentGenre && (
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-primary">
+              <Music size={12} />
+              {currentGenre}
+            </span>
+          )}
+          {currentYear && (
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-primary">
+              <Calendar size={12} />
+              {currentYear}
+            </span>
+          )}
+          {currentCollection && (
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-primary">
+              <Folder size={12} />
+              {isUncategorizedFilter ? 'Non classés' : collections.find((c) => c.id === currentCollection)?.name || 'Collection'}
+            </span>
+          )}
+          {showFavorites && (
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-primary">
+              <Heart size={12} />
+              Favoris
+            </span>
+          )}
+          <a
+            href={buildUrl({ genre: null, year: null, collection: null, favorites: null })}
+            class="inline-flex items-center gap-1 rounded-full bg-surface-elevated px-3 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface hover:text-neutral"
+            title="Effacer tous les filtres"
+          >
+            <X size={12} />
+            Effacer
+          </a>
+        </div>
+      )}
+    </div>
+
+    <!-- Contrôles de tri et filtres -->
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <!-- Tri -->
+      <div class="flex flex-col gap-2">
+        <label for="sort-select" class="flex items-center gap-2 text-xs font-medium text-muted">
+          <ArrowUpDown size={14} class="fill-none stroke-2" />
+          Trier par
+        </label>
+        <select
+          id="sort-select"
+          class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          onchange="window.location.href = this.value"
+        >
+          {sortOptions.map((option) => (
+            <option value={buildUrl({ sort: option.value })} selected={currentSort === option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <!-- Filtre Genre -->
+      {genres.length > 0 && (
+        <div class="flex flex-col gap-2">
+          <label class="flex items-center gap-2 text-xs font-medium text-muted">
+            <Music size={14} />
+            Genre
+          </label>
+          <select
+            class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            onchange="window.location.href = this.value"
+          >
+            <option value={buildUrl({ genre: null })}>Tous les genres</option>
+            {genres.map((genre) => (
+              <option value={buildUrl({ genre })} selected={currentGenre === genre}>
+                {genre}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <!-- Filtre Année -->
+      {years.length > 0 && (
+        <div class="flex flex-col gap-2">
+          <label class="flex items-center gap-2 text-xs font-medium text-muted">
+            <Calendar size={14} class="fill-none stroke-2" />
+            Année
+          </label>
+          <select
+            class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            onchange="window.location.href = this.value"
+          >
+            <option value={buildUrl({ year: null })}>Toutes les années</option>
+            {years
+              .sort((a, b) => b - a)
+              .map((year) => (
+                <option value={buildUrl({ year: year.toString() })} selected={currentYear === year.toString()}>
+                  {year}
+                </option>
+              ))}
+          </select>
+        </div>
+      )}
+
+      <!-- Filtre Collection -->
+      {collections.length > 0 && (
+        <div class="flex flex-col gap-2">
+          <label class="flex items-center gap-2 text-xs font-medium text-muted">
+            <Folder size={14} class="fill-none stroke-2" />
+            Collection
+          </label>
+          <select
+            class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            onchange="window.location.href = this.value"
+          >
+            <option value={buildUrl({ collection: null })} selected={!currentCollection}>Toutes les collections</option>
+            <option value={buildUrl({ collection: 'none' })} selected={isUncategorizedFilter}>Non classés</option>
+            {collections.map((collection) => (
+              <option value={buildUrl({ collection: collection.id })} selected={currentCollection === collection.id && !isUncategorizedFilter}>
+                {collection.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+    </div>
+
+    <!-- Filtre Favoris -->
+    <div class="flex items-center justify-between rounded-xl border border-border bg-surface p-4">
+      <div class="flex items-center gap-3">
+        <div class={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
+          showFavorites ? 'bg-primary/20' : 'bg-surface-elevated'
+        }`}>
+          <Heart size={18} class={`fill-none stroke-2 ${showFavorites ? 'text-primary stroke-primary' : 'text-muted stroke-muted'}`} />
+        </div>
+        <div>
+          <label for="favorites-filter" class="text-sm font-medium text-neutral cursor-pointer">
+            Albums favoris uniquement
+          </label>
+          <p class="text-xs text-muted">Afficher seulement vos favoris</p>
+        </div>
+      </div>
+      <label class="relative inline-flex cursor-pointer items-center">
+        <input
+          type="checkbox"
+          id="favorites-filter"
+          checked={showFavorites}
+          data-favorites-url={buildUrl({ favorites: showFavorites ? null : 'true' })}
+          onchange="window.location.href = this.dataset.favoritesUrl"
+          class="peer sr-only"
+        />
+        <div class="h-6 w-11 rounded-full bg-surface-elevated transition-colors peer-checked:bg-primary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20"></div>
+        <div class="absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-5"></div>
+      </label>
+    </div>
+  </div>
+</div>

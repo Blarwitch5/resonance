@@ -1,0 +1,218 @@
+---
+import Plus from '@lucide/astro/icons/plus'
+import Heart from '@lucide/astro/icons/heart'
+import OptimizedImage from '../ui/OptimizedImage.astro'
+import { buildExplorerSlug } from '../../lib/slug'
+
+type SearchResultCardProps = {
+  result: {
+    id: string | number
+    slug?: string
+    title: string
+    cover_image?: string
+    thumb?: string
+    year?: string | number
+    format?: string[]
+  }
+}
+
+const { result } = Astro.props as SearchResultCardProps
+
+// Fonction pour extraire les formats affichables
+function extractDisplayFormats(formats: string[] | undefined): string[] {
+  if (!formats || formats.length === 0) return []
+  
+  const displayFormats: string[] = []
+  const normalized = formats.map(format => format.toUpperCase())
+  
+  if (normalized.some(format => format.includes('VINYL') || format.includes('LP') || format.includes('12"') || format.includes('7"') || format.includes('45') || format.includes('33'))) {
+    displayFormats.push('Vinyl')
+  }
+  if (normalized.some(format => format.includes('CD') || format.includes('COMPACT DISC'))) {
+    displayFormats.push('CD')
+  }
+  if (normalized.some(format => format.includes('CASSETTE') || format.includes('TAPE'))) {
+    displayFormats.push('Cassette')
+  }
+  
+  return displayFormats
+}
+
+const coverUrl = result.cover_image || result.thumb
+const [artist, ...titleParts] = result.title.split(' - ')
+const albumTitle = titleParts.join(' - ') || result.title
+const displayFormats = extractDisplayFormats(result.format)
+const formatsText = displayFormats.length > 0 ? displayFormats.join(', ') : ''
+const year = typeof result.year === 'number' ? result.year : (result.year ? parseInt(result.year) : null)
+const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, typeof result.id === 'number' ? result.id : parseInt(result.id))
+---
+
+<a
+  href={`/explorer/${explorerSlug}`}
+  class="group glass-card relative block overflow-hidden rounded-xl transition-all hover:scale-105"
+>
+  <!-- Cover -->
+  <div class="aspect-square overflow-hidden bg-surface">
+    {coverUrl ? (
+      <OptimizedImage
+        src={coverUrl}
+        alt={`${albumTitle} - ${artist || 'Unknown'}`}
+        width={400}
+        height={400}
+        loading="lazy"
+        aspectRatio="square"
+        class="h-full w-full object-cover"
+      />
+    ) : (
+      <div class="flex h-full items-center justify-center text-muted">
+        No image
+      </div>
+    )}
+  </div>
+
+  <!-- Info -->
+  <div class="p-3">
+    <p class="truncate text-sm font-medium text-neutral">{albumTitle}</p>
+    <p class="truncate text-xs text-muted">{artist || 'Unknown'}</p>
+    {formatsText && (
+      <p class="mt-1 text-xs font-medium text-primary">{formatsText}</p>
+    )}
+    {result.year && <p class="text-xs text-muted">{result.year}</p>}
+  </div>
+
+  <!-- Actions -->
+  <div
+    class="absolute right-2 top-2 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100"
+  >
+    <button
+      type="button"
+      class="rounded-full bg-white/90 p-2 shadow-lg backdrop-blur-sm hover:bg-white"
+      aria-label="Ajouter à la collection"
+      data-discogs-id={result.id}
+      data-action="collection"
+      onclick="event.preventDefault(); event.stopPropagation();"
+    >
+      <Plus size={14} class="fill-none stroke-2 text-gray-700 stroke-gray-700" />
+    </button>
+    <button
+      type="button"
+      class="rounded-full bg-pink-500/90 p-2 shadow-lg backdrop-blur-sm hover:bg-pink-500"
+      aria-label="Ajouter à la wishlist"
+      data-discogs-id={result.id}
+      data-action="wishlist"
+      onclick="event.preventDefault(); event.stopPropagation();"
+    >
+      <Heart size={14} class="fill-none stroke-2 text-white stroke-white" />
+    </button>
+  </div>
+</a>
+
+<script>
+  // TypeScript fonctionne nativement dans les scripts Astro !
+  document.addEventListener('click', async (event: Event) => {
+    const target = event.target as HTMLElement | null
+    const button = target?.closest('button[data-discogs-id]') as HTMLButtonElement | null
+    
+    if (!button) return
+
+    event.preventDefault()
+    event.stopPropagation()
+
+    const discogsId = button.getAttribute('data-discogs-id')
+    const action = button.getAttribute('data-action')
+    
+    if (!discogsId) return
+
+    if (action === 'collection') {
+      const modal = document.getElementById('add-to-collection-modal')
+      if (modal) {
+        modal.setAttribute('data-discogs-id', discogsId)
+        modal.classList.remove('hidden')
+      }
+    } else if (action === 'wishlist') {
+      // Ajouter directement à la wishlist
+      addToWishlist(discogsId)
+    }
+  })
+
+  async function addToWishlist(discogsId: string): Promise<void> {
+    try {
+      // Récupérer les détails de la release
+      const releaseResponse = await fetch(`/api/discogs/release/${discogsId}`)
+      if (!releaseResponse.ok) {
+        throw new Error('Failed to fetch release details')
+      }
+
+      // Types pour les releases Discogs
+      type DiscogsImage = { type?: string; uri?: string; resource_url?: string }
+      type DiscogsFormat = { name: string }
+      type DiscogsRelease = {
+        id: string
+        title: string
+        formats?: DiscogsFormat[]
+        artists?: Array<{ name: string }>
+        year?: number
+        released?: string
+        images?: DiscogsImage[]
+        cover_image?: string
+        thumb?: string
+        genres?: string[]
+        styles?: string[]
+      }
+
+      const release = await releaseResponse.json() as DiscogsRelease
+
+      // Déterminer le format
+      let format: 'VINYL' | 'CD' | 'CASSETTE' = 'VINYL'
+      const formatNames = release.formats?.map((formatItem: DiscogsFormat) => formatItem.name.toUpperCase()) || []
+      if (formatNames.some((formatName: string) => formatName.includes('CD'))) {
+        format = 'CD'
+      } else if (formatNames.some((formatName: string) => formatName.includes('CASSETTE'))) {
+        format = 'CASSETTE'
+      }
+
+      const primaryArtist = release.artists?.[0]?.name || 'Unknown Artist'
+      const year = release.year || parseInt(release.released || '0') || null
+
+      // Extraire la meilleure cover
+      const getBestCoverUrl = (releaseData: DiscogsRelease): string | null => {
+        if (releaseData.images && releaseData.images.length > 0) {
+          const primaryImage = releaseData.images.find((image: DiscogsImage) => image.type === 'primary') || releaseData.images[0]
+          return primaryImage.uri || primaryImage.resource_url || null
+        }
+        return releaseData.cover_image || releaseData.thumb || null
+      }
+
+      const wishlistResponse = await fetch('/api/wishlist/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          discogsId: release.id,
+          title: release.title,
+          artist: primaryArtist,
+          year,
+          genre: release.genres?.[0] || release.styles?.[0] || null,
+          coverUrl: getBestCoverUrl(release),
+          format,
+          priority: 1,
+        }),
+      })
+
+      if (!wishlistResponse.ok) {
+        const error = await wishlistResponse.json()
+        throw new Error(error.error || 'Failed to add to wishlist')
+      }
+
+      if (window.toast) {
+        window.toast.success('Album ajouté à la wishlist avec succès !')
+      }
+    } catch (error) {
+      console.error('Error adding to wishlist:', error)
+      if (window.toast) {
+        window.toast.error(`Erreur : ${error instanceof Error ? error.message : 'Une erreur est survenue'}`)
+      }
+    }
+  }
+</script>

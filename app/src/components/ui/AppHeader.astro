@@ -1,0 +1,207 @@
+---
+import Logo from './Logo.astro'
+import ThemeSwitcher from './ThemeSwitcher.astro'
+import Avatar from './Avatar.astro'
+import Settings from '@lucide/astro/icons/settings'
+import User from '@lucide/astro/icons/user'
+import LogOut from '@lucide/astro/icons/log-out'
+
+type AppHeaderProps = {
+  userName?: string | null
+  userEmail?: string | null
+  userImageUrl?: string | null
+}
+
+const { userName, userEmail, userImageUrl } = Astro.props as AppHeaderProps
+const hasUser = !!userName || !!userEmail
+---
+
+<header
+  class="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl transition-colors duration-200"
+>
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="flex h-16 items-center justify-between">
+      <!-- Logo à gauche -->
+      <div class="flex items-center">
+        <a href="/bibliotheque" aria-label="Retour à ma résonance">
+          <Logo size="md" showText={true} noHover={false} />
+        </a>
+      </div>
+
+      <!-- Actions à droite (mobile seulement) -->
+      <div class="flex items-center gap-2 md:hidden">
+        {hasUser ? (
+          <>
+            <!-- Theme toggle (mobile seulement) -->
+            <ThemeSwitcher size="md" variant="icon-only" />
+
+            <!-- Profil avec menu dropdown (mobile seulement) -->
+            <div class="relative group">
+              <a
+                href="/profil"
+                class="btn-icon flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden"
+                aria-label="Profil"
+                title={userName || userEmail || 'Profil'}
+              >
+                <Avatar
+                  userName={userName}
+                  userEmail={userEmail}
+                  imageUrl={userImageUrl}
+                  size="md"
+                  class="h-8 w-8"
+                />
+              </a>
+
+              <!-- Menu dropdown (visible au clic sur mobile) -->
+              <div id="user-menu-dropdown" class="absolute right-0 top-full mt-2 hidden w-48 rounded-xl border border-border bg-surface-elevated shadow-lg backdrop-blur-sm">
+                <div class="p-2">
+                  {userName && (
+                    <div class="px-3 py-2 text-sm font-medium text-neutral">
+                      {userName}
+                    </div>
+                  )}
+                  {userEmail && (
+                    <div class="px-3 py-2 text-xs text-muted truncate">
+                      {userEmail}
+                    </div>
+                  )}
+                  <div class="my-2 border-t border-border"></div>
+                  <a
+                    href="/profil"
+                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral transition-colors hover:bg-surface"
+                  >
+                    <User size={16} />
+                    <span>Mon profil</span>
+                  </a>
+                  <a
+                    href="/parametres"
+                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral transition-colors hover:bg-surface"
+                  >
+                    <Settings size={16} />
+                    <span>Paramètres</span>
+                  </a>
+                  <div class="my-2 border-t border-border"></div>
+                  <button
+                    type="button"
+                    id="header-signout-btn"
+                    class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-500 transition-colors hover:bg-red-500/10"
+                  >
+                    <LogOut size={16} />
+                    <span>Déconnexion</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <!-- Theme toggle (mobile seulement) -->
+            <ThemeSwitcher size="md" variant="icon-only" />
+            
+            <!-- Connexion -->
+            <a
+              href="/login"
+              class="btn-secondary-surface px-4 py-2 rounded-xl text-sm"
+            >
+              Connexion
+            </a>
+          </>
+        )}
+      </div>
+    </div>
+  </div>
+</header>
+
+<script>
+  // TypeScript fonctionne nativement dans les scripts Astro !
+  (function() {
+    // Gérer l'ouverture/fermeture du menu dropdown
+    const userMenuTrigger = document.querySelector('.group a[href="/profil"]') as HTMLElement | null
+    const userMenuDropdown = document.getElementById('user-menu-dropdown')
+    
+    if (userMenuTrigger && userMenuDropdown) {
+      // Sur mobile : toggle au clic
+      if (window.innerWidth < 768) {
+        userMenuTrigger.addEventListener('click', function(event: MouseEvent) {
+          event.preventDefault()
+          const isHidden = userMenuDropdown.classList.contains('hidden')
+          
+          // Fermer tous les autres menus
+          document.querySelectorAll('[id$="-dropdown"]').forEach(function(menu) {
+            if (menu !== userMenuDropdown) {
+              menu.classList.add('hidden')
+            }
+          })
+          
+          if (isHidden) {
+            userMenuDropdown.classList.remove('hidden')
+          } else {
+            userMenuDropdown.classList.add('hidden')
+          }
+        })
+        
+        // Fermer le menu en cliquant ailleurs
+        document.addEventListener('click', function(event: MouseEvent) {
+          const target = event.target as Node | null
+          if (target && !userMenuTrigger.contains(target) && !userMenuDropdown.contains(target)) {
+            userMenuDropdown.classList.add('hidden')
+          }
+        })
+      }
+    }
+
+    // Gérer le bouton de déconnexion dans le header
+    const signOutBtn = document.getElementById('header-signout-btn')
+    if (signOutBtn) {
+      signOutBtn.addEventListener('click', async function(event: MouseEvent) {
+        event.preventDefault()
+        event.stopPropagation()
+        
+        try {
+          // Import dynamique de signOut
+          const { signOut } = await import('../../lib/auth-client')
+          
+          // Afficher un toast de confirmation
+          if (window.toast) {
+            window.toast.info('Déconnexion en cours...', 2000)
+          }
+          
+          await signOut()
+          
+          // Stocker le succès de la déconnexion pour le toast sur la page de login
+          sessionStorage.setItem('showLogoutToast', 'true')
+          
+          // Rediriger vers la page de login
+          setTimeout(() => {
+            window.location.href = '/login'
+          }, 500)
+        } catch (error) {
+          console.error('Error signing out:', error)
+          if (window.toast) {
+            window.toast.error('Erreur lors de la déconnexion')
+          }
+          // Fallback: rediriger quand même après un délai
+          setTimeout(() => {
+            window.location.href = '/login'
+          }, 1000)
+        }
+      })
+    }
+  })()
+</script>
+
+<style>
+  /* Menu dropdown visible au hover sur desktop */
+  @media (min-width: 768px) {
+    .group:hover .group-hover\:block {
+      display: block;
+    }
+  }
+
+  /* Sur mobile, le menu dropdown s'ouvre au clic */
+  @media (max-width: 767px) {
+    .group {
+      position: relative;
+    }
+  }
+</style>

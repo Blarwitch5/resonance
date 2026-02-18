@@ -1,0 +1,24 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "organizeImports": {
+    "enabled": false
+  },
+  "linter": {
+    "enabled": false
+  },
+  "formatter": {
+    "enabled": false
+  },
+  "files": {
+    "ignore": [
+      "**/*.astro",
+      "**/*.astro?*",
+      "**/src/**/*.astro",
+      "**/pages/**/*.astro",
+      "**/components/**/*.astro",
+      "node_modules",
+      "dist",
+      ".astro"
+    ]
+  }
+}

@@ -1,0 +1,191 @@
+---
+import Trash2 from '@lucide/astro/icons/trash-2'
+import Star from '@lucide/astro/icons/star'
+import Heart from '@lucide/astro/icons/heart'
+import OptimizedImage from '../ui/OptimizedImage.astro'
+import EmptyState from '../ui/EmptyState.astro'
+import type { Wishlist } from '@prisma/client'
+
+type WishlistGridProps = {
+  wishlistItems: Wishlist[]
+}
+
+const { wishlistItems } = Astro.props as WishlistGridProps
+
+const getFormatColor = (format: string) => {
+  switch (format) {
+    case 'VINYL':
+      return 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+    case 'CD':
+      return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+    case 'CASSETTE':
+      return 'bg-pink-500/20 text-pink-400 border-pink-500/30'
+    default:
+      return 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'
+  }
+}
+
+const getPriorityStars = (priority: number) => {
+  return Array.from({ length: 5 }, (_, index) => index < priority)
+}
+---
+
+{wishlistItems.length === 0 ? (
+  <EmptyState
+    title="Votre wishlist vous attend"
+    description="Enregistrez les albums que vous souhaitez acquérir. Explorez Discogs et ajoutez-les à votre wishlist pour ne jamais les oublier."
+    icon={Heart}
+    action={{
+      label: 'Explorer Discogs',
+      href: '/explorer',
+    }}
+  />
+) : (
+  <div class="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {wishlistItems.map((item) => {
+      const formatColor = getFormatColor(item.format)
+      const priorityStars = getPriorityStars(item.priority)
+
+      return (
+        <div class="glass-card group relative rounded-xl p-4 transition-all hover:translate-y-[-2px]">
+          <!-- Image -->
+          <div class="mb-3 overflow-hidden rounded-lg bg-surface">
+            <OptimizedImage
+              src={item.coverUrl}
+              alt={`${item.title} - ${item.artist}`}
+              width={400}
+              height={400}
+              loading="lazy"
+              aspectRatio="square"
+              class="h-full w-full object-cover transition-transform group-hover:scale-105"
+            />
+          </div>
+
+          <!-- Content -->
+          <div class="space-y-2">
+            <div>
+              <h3 class="font-semibold text-neutral line-clamp-1">{item.title}</h3>
+              <p class="text-sm text-muted line-clamp-1">{item.artist}</p>
+              {item.year && (
+                <p class="text-xs text-muted">{item.year}</p>
+              )}
+            </div>
+
+            <!-- Format badge -->
+            <div class="flex items-center gap-2">
+              <span class={`rounded border px-2 py-1 text-xs font-medium ${formatColor}`}>
+                {item.format}
+              </span>
+              {item.genre && (
+                <span class="text-xs text-muted">{item.genre}</span>
+              )}
+            </div>
+
+            <!-- Priority stars -->
+            <div class="flex items-center gap-1">
+              {priorityStars.map((filled, index) => (
+                <Star
+                  size={14}
+                  class={`fill-none stroke-2 ${filled ? 'text-yellow-400 stroke-yellow-400' : 'text-muted stroke-muted'}`}
+                />
+              ))}
+            </div>
+
+            <!-- Notes -->
+            {item.notes && (
+              <p class="text-xs text-muted line-clamp-2">{item.notes}</p>
+            )}
+
+            <!-- Actions -->
+            <div class="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                class="wishlist-delete-btn btn-icon rounded-lg p-2 hover:bg-red-500/20 hover:text-red-400"
+                data-id={item.id}
+                aria-label={`Supprimer ${item.title} de la wishlist`}
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    })}
+  </div>
+)}
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const deleteButtons = document.querySelectorAll('.wishlist-delete-btn')
+
+    deleteButtons.forEach((button) => {
+      button.addEventListener('click', async () => {
+        const id = button.getAttribute('data-id')
+        if (!id) return
+
+        const confirmed = await window.confirmDialog?.(
+          'Supprimer de la wishlist',
+          'Êtes-vous sûr de vouloir supprimer cet album de votre wishlist ?',
+          'Supprimer',
+          'Annuler'
+        )
+        
+        if (!confirmed) {
+          return
+        }
+
+        try {
+          const response = await fetch(`/api/wishlist/${id}/delete`, {
+            method: 'DELETE',
+          })
+
+          if (response.ok) {
+            // Suppression optimiste
+            const card = button.closest('.glass-card') as HTMLElement | null
+            if (card) {
+              card.style.transition = 'opacity 0.3s, transform 0.3s'
+              card.style.opacity = '0'
+              card.style.transform = 'scale(0.9)'
+              setTimeout(() => {
+                card.remove()
+                // Recharger la page si plus d'items
+                const remainingItems = document.querySelectorAll('.glass-card')
+                if (remainingItems.length === 0) {
+                  window.location.reload()
+                }
+              }, 300)
+            }
+          } else {
+            const error = await response.json()
+            // @ts-ignore - toast is available globally
+            if (window.toast) {
+              window.toast.error(`Erreur: ${error.error || 'Impossible de supprimer l\'album'}`)
+            }
+          }
+        } catch (error) {
+          console.error('Error deleting wishlist item:', error)
+          // @ts-ignore - toast is available globally
+          if (window.toast) {
+            window.toast.error('Une erreur est survenue lors de la suppression')
+          }
+        }
+      })
+    })
+  })
+</script>
+
+<style>
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+</style>

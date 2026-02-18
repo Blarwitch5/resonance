@@ -1,0 +1,29 @@
+{
+  "semi": false,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingComma": "es5",
+  "printWidth": 80,
+  "useTabs": false,
+  "plugins": ["prettier-plugin-astro"],
+  "bracketSameLine": false,
+  "overrides": [
+    {
+      "files": "*.astro",
+      "options": {
+        "parser": "astro",
+        "printWidth": 100,
+        "astroAllowShorthand": true
+      }
+    },
+    {
+      "files": "*.{js,ts}",
+      "options": {
+        "printWidth": 80,
+        "semi": false,
+        "singleQuote": true,
+        "trailingComma": "es5"
+      }
+    }
+  ]
+}

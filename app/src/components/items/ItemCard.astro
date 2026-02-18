@@ -1,0 +1,123 @@
+---
+import Heart from '@lucide/astro/icons/heart'
+import EllipsisVertical from '@lucide/astro/icons/ellipsis-vertical'
+import OptimizedImage from '../ui/OptimizedImage.astro'
+import type { Item, ItemMetadata } from '@prisma/client'
+
+type ItemCardProps = {
+  item: Item & { metadata: ItemMetadata | null }
+}
+
+const { item } = Astro.props as ItemCardProps
+---
+
+<article
+  class="glass-card group relative overflow-hidden rounded-xl transition-all hover:scale-105"
+  data-item-card
+  data-item-title={item.title}
+  data-item-artist={item.artist}
+  data-item-genre={item.genre || ''}
+  data-item-year={item.year?.toString() || ''}
+>
+  <!-- Lien vers la page de détails -->
+  <a href={`/items/${item.slug}`} class="block no-underline">
+    <!-- Cover -->
+    <div class="overflow-hidden bg-surface">
+      <OptimizedImage
+        src={item.coverUrl}
+        alt={`${item.title} - ${item.artist}`}
+        width={400}
+        height={400}
+        loading="lazy"
+        aspectRatio="square"
+        class="h-full w-full object-cover"
+      />
+    </div>
+
+    <!-- Info -->
+    <div class="p-3">
+      <h3 class="truncate font-medium text-neutral">{item.title}</h3>
+      <p class="truncate text-sm text-muted">{item.artist}</p>
+      {item.year && <p class="text-xs text-muted">{item.year}</p>}
+    </div>
+  </a>
+
+  <!-- Actions (visible au hover) -->
+  <div
+    class="absolute top-2 right-2 z-10 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100"
+  >
+    <button
+      type="button"
+      class="item-favorite-btn rounded-full bg-white/90 p-2 shadow-lg backdrop-blur-sm hover:bg-white"
+      aria-label="Add to favorites"
+      data-item-id={item.id}
+      data-favorite={item.metadata?.isFavorite ? 'true' : 'false'}
+    >
+      <Heart
+        size={16}
+        class={`stroke-2 ${item.metadata?.isFavorite ? 'fill-red-500 text-red-500 stroke-red-500' : 'fill-none text-gray-700 stroke-gray-700'}`}
+      />
+    </button>
+    <button
+      type="button"
+      class="item-actions-btn rounded-full bg-white/90 p-2 shadow-lg backdrop-blur-sm hover:bg-white"
+      aria-label="More actions"
+      data-item-id={item.id}
+    >
+      <EllipsisVertical size={16} class="fill-none stroke-2 text-gray-700 stroke-gray-700" />
+    </button>
+  </div>
+</article>
+
+<script>
+  // Empêcher les clics sur les boutons d'action de déclencher le lien parent
+  document.addEventListener('click', (event) => {
+    const target = event.target
+    const button = target.closest('.item-favorite-btn, .item-actions-btn')
+    
+    if (button) {
+      event.stopPropagation()
+      event.preventDefault()
+    }
+  })
+
+  // Favorite toggle handling
+  document.addEventListener('click', async (event) => {
+    const target = event.target
+    const button = target.closest('.item-favorite-btn')
+
+    if (!button) return
+
+    const itemId = button.getAttribute('data-item-id')
+    const isFavorite = button.getAttribute('data-favorite') === 'true'
+
+    if (!itemId) return
+
+    try {
+      const response = await fetch(`/api/items/${itemId}/toggle-favorite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        // Update icon
+        const heartIcon = button.querySelector('svg')
+        if (heartIcon) {
+          heartIcon.classList.toggle('fill-red-500')
+          heartIcon.classList.toggle('fill-none')
+          heartIcon.classList.toggle('text-red-500')
+          heartIcon.classList.toggle('stroke-red-500')
+          heartIcon.classList.toggle('text-gray-700')
+          heartIcon.classList.toggle('stroke-gray-700')
+        }
+
+        // Update data attribute
+        button.setAttribute('data-favorite', (!isFavorite).toString())
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+    }
+  })
+</script>

@@ -1,0 +1,113 @@
+---
+description: 'EXPLAIN how to create components in Astro (pure Astro)'
+globs: *.astro
+---
+
+## Context
+
+* Creating an Astro component MUST ALWAYS follow these rules
+* This project uses pure Astro without client frameworks (React, Vue, etc.)
+
+## Rules for Astro Components
+
+- Always use `export function` without "default"
+- Always use a "props" object as the first argument of your component, and add the type directly in the object
+- The frontmatter (`---`) contains server logic
+- The template contains HTML/JSX
+- Inline scripts (`<script>`) for client interactivity
+
+## Astro Example
+
+**With 2 props or less:**
+
+```astro
+---
+export function MyComponent(props: { prop1: string; prop2: number }) {
+  // Server logic
+  const computed = props.prop2 * 2;
+  return { computed };
+}
+
+const { computed } = MyComponent(Astro.props);
+---
+
+<div class="my-component">
+  <p>{Astro.props.prop1}</p>
+  <p>Computed: {computed}</p>
+</div>
+```
+
+**With more than 2 props:**
+
+```astro
+---
+type MyComponentProps = {
+  prop1: string;
+  prop2: number;
+  prop3: number;
+}
+
+export function MyComponent(props: MyComponentProps) {
+  return <div>{props.prop1}</div>;
+}
+
+MyComponent(Astro.props);
+---
+
+<div>
+  {Astro.props.prop1}
+</div>
+```
+
+## Complete Component Structure
+
+```astro
+---
+// 1. Imports
+import { db } from '../lib/db';
+import { auth } from '../lib/auth';
+
+// 2. Types
+type ComponentProps = {
+  title: string;
+  userId?: string;
+}
+
+// 3. Main function
+export function MyComponent(props: ComponentProps) {
+  // Server logic
+  if (props.userId) {
+    const user = await db.user.findUnique({ 
+      where: { id: props.userId } 
+    });
+    return { user };
+  }
+  return {};
+}
+
+// 4. Execution
+const result = MyComponent(Astro.props);
+const { user } = result;
+---
+
+<!-- 5. HTML Template -->
+<div class="component">
+  <h1>{Astro.props.title}</h1>
+  {user && <p>User: {user.name}</p>}
+</div>
+
+<!-- 6. Client script (if necessary) -->
+<script>
+  // Client-side interactivity
+  document.querySelector('.component').addEventListener('click', () => {
+    console.log('Clicked');
+  });
+</script>
+
+<!-- 7. Styles (optional) -->
+<style>
+  .component {
+    padding: 1rem;
+  }
+</style>
+```

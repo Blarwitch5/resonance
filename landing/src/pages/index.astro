@@ -1,0 +1,306 @@
+---
+// Landing page principale Resonance
+const title = 'Resonance - Where your music resonates 🎵'
+const description =
+  "L'application mobile-first moderne pour cataloguer et gérer votre collection musicale multi-formats (Vinyl, CD, Cassette) avec l'API Discogs intégrée"
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content={description} />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&display=swap"
+    />
+  </head>
+  <body class="bg-gradient-to-br from-night-deep via-night-deep to-night-deep/90 min-h-screen">
+    <div class="min-h-screen flex flex-col">
+      <!-- Navigation -->
+      <nav class="container mx-auto px-4 py-6">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center space-x-3">
+            <div
+              class="w-10 h-10 bg-gradient-to-r from-electric-purple to-copper-warm rounded-xl flex items-center justify-center animate-resonance-pulse"
+            >
+              <div class="text-white text-xl">🎵</div>
+            </div>
+            <div class="text-2xl font-bold text-gradient-resonance">Resonance</div>
+          </div>
+          <div class="flex space-x-4">
+            <a href="#features" class="text-blue-gray hover:text-electric-purple transition-colors">
+              Fonctionnalités
+            </a>
+            <a href="#formats" class="text-blue-gray hover:text-copper-warm transition-colors">
+              Formats
+            </a>
+            <a href="#about" class="text-blue-gray hover:text-electric-purple transition-colors">
+              À propos
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Hero Section -->
+      <main class="flex-1 container mx-auto px-4 py-12">
+        <div class="max-w-4xl mx-auto text-center">
+          <h1 class="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+            <span class="text-gradient-resonance-vertical"> Where your music resonates </span>
+          </h1>
+          <p class="text-xl md:text-2xl text-blue-gray mb-8 max-w-3xl mx-auto">
+            Créez le carnet sonore moderne du mélomane : une expérience élégante, tactile et
+            émotionnelle, où chaque objet musical a sa résonance.
+          </p>
+
+          <!-- CTA Buttons -->
+          <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <a
+              href="/app"
+              class="bg-gradient-to-r from-electric-purple to-copper-warm text-white px-8 py-4 rounded-xl font-semibold hover:shadow-lg hover:shadow-electric-purple/25 transition-all duration-300 hover:scale-105 animate-resonance-vibrato"
+            >
+              🎵 Accéder à Resonance
+            </a>
+            <a
+              href="#features"
+              class="border border-electric-purple/30 bg-electric-purple/5 text-electric-purple px-8 py-4 rounded-xl font-semibold hover:border-electric-purple hover:bg-electric-purple/10 transition-all duration-300 backdrop-blur-sm"
+            >
+              Découvrir
+            </a>
+          </div>
+
+          <!-- Formats Preview -->
+          <div class="grid md:grid-cols-3 gap-8 mb-16" id="formats">
+            <div
+              class="bg-gradient-to-br from-electric-purple/10 to-electric-purple/5 border border-electric-purple/20 rounded-2xl p-6 backdrop-blur-sm hover:border-electric-purple/40 transition-all duration-300 group"
+            >
+              <div class="text-4xl mb-4 group-hover:animate-resonance-vibrato">💿</div>
+              <h3 class="text-lg font-semibold text-cream-white mb-2">Vinyl Collection</h3>
+              <p class="text-blue-gray/80">
+                L'analogique dans toute sa splendeur. Gérez vos vinyles avec passion et précision.
+              </p>
+            </div>
+            <div
+              class="bg-gradient-to-br from-copper-warm/10 to-copper-warm/5 border border-copper-warm/20 rounded-2xl p-6 backdrop-blur-sm hover:border-copper-warm/40 transition-all duration-300 group"
+            >
+              <div class="text-4xl mb-4 group-hover:animate-resonance-vibrato">💽</div>
+              <h3 class="text-lg font-semibold text-cream-white mb-2">CD Library</h3>
+              <p class="text-blue-gray/80">
+                Le numérique physique. Organisez vos CDs avec la même attention au détail.
+              </p>
+            </div>
+            <div
+              class="bg-gradient-to-br from-blue-gray/10 to-blue-gray/5 border border-blue-gray/20 rounded-2xl p-6 backdrop-blur-sm hover:border-blue-gray/40 transition-all duration-300 group"
+            >
+              <div class="text-4xl mb-4 group-hover:animate-resonance-vibrato">📼</div>
+              <h3 class="text-lg font-semibold text-cream-white mb-2">Cassette Revival</h3>
+              <p class="text-blue-gray/80">
+                Le retour de l'analogique. Redécouvrez vos cassettes avec nostalgie.
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Features Section -->
+      <section class="py-16 border-t border-electric-purple/20" id="features">
+        <div class="container mx-auto px-4">
+          <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-gradient-resonance mb-4">
+              Une expérience sensorielle
+            </h2>
+            <p class="text-lg text-blue-gray max-w-3xl mx-auto">
+              Pas une base de données. Un espace sensoriel où chaque objet musical a sa résonance.
+            </p>
+          </div>
+
+          <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div class="text-center">
+              <div
+                class="w-16 h-16 bg-gradient-to-r from-electric-purple to-electric-purple/70 rounded-2xl flex items-center justify-center text-white text-2xl mx-auto mb-4 animate-resonance-pulse"
+              >
+                🔍
+              </div>
+              <h3 class="text-lg font-semibold text-cream-white mb-2">Recherche Intelligente</h3>
+              <p class="text-blue-gray/80">
+                Scanner vos codes-barres pour importer automatiquement vos albums
+              </p>
+            </div>
+
+            <div class="text-center">
+              <div
+                class="w-16 h-16 bg-gradient-to-r from-copper-warm to-copper-warm/70 rounded-2xl flex items-center justify-center text-white text-2xl mx-auto mb-4 animate-resonance-pulse"
+              >
+                📊
+              </div>
+              <h3 class="text-lg font-semibold text-cream-white mb-2">Analytics Émotionnelles</h3>
+              <p class="text-blue-gray/80">Découvrez les patterns de votre collection musicale</p>
+            </div>
+
+            <div class="text-center">
+              <div
+                class="w-16 h-16 bg-gradient-to-r from-blue-gray to-blue-gray/70 rounded-2xl flex items-center justify-center text-white text-2xl mx-auto mb-4 animate-resonance-pulse"
+              >
+                📱
+              </div>
+              <h3 class="text-lg font-semibold text-cream-white mb-2">Mobile-First</h3>
+              <p class="text-blue-gray/80">Interface tactile optimisée pour l'expérience mobile</p>
+            </div>
+
+            <div class="text-center">
+              <div
+                class="w-16 h-16 bg-gradient-to-r from-cream-white to-cream-white/70 rounded-2xl flex items-center justify-center text-white text-2xl mx-auto mb-4 animate-resonance-pulse"
+              >
+                💫
+              </div>
+              <h3 class="text-lg font-semibold text-cream-white mb-2">Micro-Animations</h3>
+              <p class="text-blue-gray/80">Des interactions qui incarnent la vibration et la vie</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- About Section -->
+      <section class="py-16 border-t border-electric-purple/20" id="about">
+        <div class="container mx-auto px-4 text-center">
+          <h2 class="text-3xl font-bold text-gradient-resonance mb-8">
+            Créez votre écosystème d'écoute
+          </h2>
+          <div class="max-w-4xl mx-auto">
+            <p class="text-lg text-blue-gray mb-6">
+              Resonance est pensé pour les collectionneurs passionnés qui voient dans leurs objets
+              musicaux bien plus qu'une simple liste. Chaque vinyle, CD ou cassette raconte une
+              histoire, évoque un souvenir, résonne avec une émotion.
+            </p>
+            <p class="text-lg text-blue-gray mb-8">
+              Une interface moderne, rapide et intuitive pour organiser et découvrir votre
+              collection, avec des animations subtiles qui incarnent la vibration, la vie, la
+              musique — sans distraire.
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+              <a
+                href="/app"
+                class="bg-gradient-to-r from-electric-purple to-copper-warm text-white px-8 py-4 rounded-xl font-semibold hover:shadow-lg hover:shadow-electric-purple/25 transition-all duration-300 hover:scale-105"
+              >
+                Commencer maintenant
+              </a>
+              <a
+                href="#features"
+                class="border border-electric-purple/30 bg-electric-purple/5 text-electric-purple px-8 py-4 rounded-xl font-semibold hover:border-electric-purple hover:bg-electric-purple/10 transition-all duration-300 backdrop-blur-sm"
+              >
+                En savoir plus
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-electric-purple/20 py-8">
+      <div class="container mx-auto px-4 text-center">
+        <p class="text-blue-gray/60">© 2025 Resonance - Where your music resonates 🎵</p>
+      </div>
+    </footer>
+
+    <!-- Styles intégrés pour les animations -->
+    <style>
+      /* Couleurs Resonance */
+      :root {
+        --color-night-deep: #0f0f1a;
+        --color-electric-purple: #6b4eff;
+        --color-copper-warm: #b77a4b;
+        --color-blue-gray: #d7d9e0;
+        --color-cream-white: #f8f7f3;
+      }
+
+      /* Classes utilitaires */
+      .bg-night-deep {
+        background-color: var(--color-night-deep);
+      }
+      .text-electric-purple {
+        color: var(--color-electric-purple);
+      }
+      .text-copper-warm {
+        color: var(--color-copper-warm);
+      }
+      .text-blue-gray {
+        color: var(--color-blue-gray);
+      }
+      .text-cream-white {
+        color: var(--color-cream-white);
+      }
+      .border-electric-purple {
+        border-color: var(--color-electric-purple);
+      }
+      .border-copper-warm {
+        border-color: var(--color-copper-warm);
+      }
+      .border-blue-gray {
+        border-color: var(--color-blue-gray);
+      }
+
+      /* Gradients */
+      .text-gradient-resonance {
+        background: linear-gradient(135deg, var(--color-electric-purple), var(--color-copper-warm));
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+      }
+
+      .text-gradient-resonance-vertical {
+        background: linear-gradient(180deg, var(--color-electric-purple), var(--color-copper-warm));
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+      }
+
+      /* Animations */
+      @keyframes resonance-pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.05);
+          opacity: 0.8;
+        }
+      }
+
+      @keyframes resonance-vibrato {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        25% {
+          transform: translateX(-1px);
+        }
+        75% {
+          transform: translateX(1px);
+        }
+      }
+
+      .animate-resonance-pulse {
+        animation: resonance-pulse 2s ease-in-out infinite;
+      }
+
+      .animate-resonance-vibrato {
+        animation: resonance-vibrato 0.1s ease-in-out infinite;
+      }
+
+      .animate-resonance-vibrato:hover {
+        animation-duration: 0.05s;
+      }
+    </style>
+  </body>
+</html>

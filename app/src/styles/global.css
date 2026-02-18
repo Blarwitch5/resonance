@@ -1,0 +1,201 @@
+/* Import des fonts partagées RGPD-compliant */
+@import './fonts.css';
+
+@import 'tailwindcss';
+
+/* Empêcher le scroll horizontal sur mobile */
+html,
+body {
+  overflow-x: hidden;
+}
+
+#app {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+@import './theme.css';
+@import './design-tokens.css';
+@import './button-styles.css';
+@import './button-contrast-fix.css';
+/* Animations Resonance */
+@keyframes resonance-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes resonance-wave {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes resonance-vibrato {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-1px);
+  }
+  75% {
+    transform: translateX(1px);
+  }
+}
+
+.animate-resonance-pulse {
+  animation: resonance-pulse 2s ease-in-out infinite;
+}
+
+.animate-resonance-wave {
+  animation: resonance-wave 1.5s ease-out infinite;
+}
+
+.animate-resonance-vibrato {
+  animation: resonance-vibrato 0.1s ease-in-out infinite;
+}
+
+.animate-resonance-vibrato:hover {
+  animation-duration: 0.05s;
+}
+
+/* Ondes concentriques pour loading */
+.resonance-loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.resonance-loading::before,
+.resonance-loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border: 2px solid var(--color-primary);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: resonance-wave 2s ease-out infinite;
+}
+
+.resonance-loading::after {
+  animation-delay: 0.5s;
+  border-color: var(--color-secondary);
+}
+
+/* Effet hover pour les cartes */
+.hover-resonance:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(107, 78, 255, 0.15);
+}
+
+/* Styles pour le thème clair (si activé) */
+.light .glass-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.light .bottom-bar {
+  background: var(--color-background);
+  border-top: 1px solid var(--color-border);
+}
+
+.light .bottom-bar-item:hover:not(.active) {
+  background: var(--color-primary);
+  opacity: 0.1;
+}
+
+/* Transitions de thème simples */
+html.transitioning {
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+/* Assurer que les couleurs changent correctement pendant les transitions */
+html.transitioning * {
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+/* Animation de fade pour les éléments qui changent */
+.fade-transition {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+/* Transition personnalisée pour les cartes */
+.card-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-transition:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(107, 78, 255, 0.15);
+}
+
+/* Transitions de page améliorées */
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-transition {
+  animation: pageFadeIn 0.4s ease-out;
+}
+
+/* Transitions pour les éléments qui apparaissent */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+/* Stagger animation pour les listes */
+.fade-in-up-delay-1 {
+  animation: fadeInUp 0.5s ease-out 0.1s both;
+}
+
+.fade-in-up-delay-2 {
+  animation: fadeInUp 0.5s ease-out 0.2s both;
+}
+
+.fade-in-up-delay-3 {
+  animation: fadeInUp 0.5s ease-out 0.3s both;
+}
+
+/* Remonter le bouton scan quand la barre d’extrait audio est visible (éviter la superposition) */
+body.has-global-audio #barcode-scanner-container {
+  bottom: 10rem;
+}

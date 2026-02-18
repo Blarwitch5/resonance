@@ -1,0 +1,325 @@
+---
+import ArrowLeft from '@lucide/astro/icons/arrow-left'
+import Calendar from '@lucide/astro/icons/calendar'
+import Disc from '@lucide/astro/icons/disc'
+import MapPin from '@lucide/astro/icons/map-pin'
+import Music from '@lucide/astro/icons/music'
+import Package from '@lucide/astro/icons/package'
+import Tag from '@lucide/astro/icons/tag'
+import CollectionSelector from '../../components/items/CollectionSelector.astro'
+import DeleteItemModal from '../../components/items/DeleteItemModal.astro'
+import InCollectionBadge from '../../components/items/InCollectionBadge.astro'
+import ItemActionsMenu from '../../components/items/ItemActionsMenu.astro'
+import PersonalDataSection from '../../components/items/PersonalDataSection.astro'
+import TrackList from '../../components/items/TrackList.astro'
+import DashboardLayout from '../../components/layouts/DashboardLayout.astro'
+import EmptyState from '../../components/ui/EmptyState.astro'
+import OptimizedImage from '../../components/ui/OptimizedImage.astro'
+import { looksLikeItemId } from '../../lib/slug'
+import { collectionRepository } from '../../repositories/collection-repository'
+import { itemRepository } from '../../repositories/item-repository'
+import { discogsService } from '../../services/discogs-service'
+
+export const prerender = false
+
+// Utiliser la session depuis le middleware
+const session = Astro.locals.session
+if (!session) return Astro.redirect('/login')
+
+const slugOrId = Astro.params.id
+if (!slugOrId) return Astro.redirect('/bibliotheque')
+
+const userId = Astro.locals.user!.id
+// Résolution par slug puis par id (anciens liens)
+let item = await itemRepository.findByUserIdAndSlug(userId, slugOrId)
+if (!item && looksLikeItemId(slugOrId)) {
+  item = await itemRepository.findById(slugOrId, userId) ?? null
+  // Redirection vers l’URL canonique (slug) si on a trouvé par id
+  if (item && item.slug !== slugOrId) {
+    return Astro.redirect(`/items/${item.slug}`)
+  }
+}
+
+if (!item || item.userId !== userId) {
+  return Astro.redirect('/bibliotheque')
+}
+
+// Récupérer les détails complets depuis Discogs si disponible
+let discogsRelease = null
+let tracklist: Array<{ position: string; title: string; duration?: string }> = []
+let discogsDetails = null
+
+if (item.discogsId) {
+  try {
+    discogsRelease = await discogsService.getRelease(item.discogsId)
+    tracklist = discogsRelease.tracklist || []
+    discogsDetails = {
+      masterId: discogsRelease.master_id,
+      masterUrl: discogsRelease.master_url,
+      country: discogsRelease.country,
+      released: discogsRelease.released,
+      releasedFormatted: discogsRelease.released_formatted,
+      notes: discogsRelease.notes,
+      genres: discogsRelease.genres || [],
+      styles: discogsRelease.styles || [],
+      labels: discogsRelease.labels || [],
+      formats: discogsRelease.formats || [],
+      identifiers: discogsRelease.identifiers || [],
+      videos: discogsRelease.videos || [],
+      community: discogsRelease.community,
+    }
+  } catch (error) {
+    console.error('Error fetching Discogs release:', error)
+  }
+}
+
+// La collection est déjà incluse dans l'item
+const collection = item.collection || null
+
+// Récupérer toutes les collections de l'utilisateur pour le sélecteur
+const userCollections = await collectionRepository.findByUserId(Astro.locals.user!.id)
+---
+
+<DashboardLayout title={`${item.title} - ${item.artist} - Resonance`}>
+  <div class="space-y-6 page-transition pb-24 md:pb-20">
+    <!-- Bouton retour -->
+    <a
+      href={collection ? `/collections/${collection.slug}` : '/bibliotheque'}
+      class="inline-flex items-center gap-2 text-muted transition-colors hover:text-primary"
+    >
+      <ArrowLeft size={18} />
+      <span>Retour {collection ? `à ${collection.name}` : 'à la collection'}</span>
+    </a>
+
+    <!-- Header avec cover et infos principales -->
+    <div class="glass-card rounded-2xl p-4 md:p-6">
+      <div class="flex flex-col gap-6 md:flex-row">
+        <!-- Cover -->
+        <div class="shrink-0">
+          <div class="aspect-square w-full max-w-xs overflow-hidden rounded-xl bg-surface">
+            <OptimizedImage
+              src={item.coverUrl}
+              alt={`${item.title} - ${item.artist}`}
+              width={400}
+              height={400}
+              loading="eager"
+              aspectRatio="square"
+              class="h-full w-full object-cover"
+            />
+          </div>
+        </div>
+
+        <!-- Infos principales -->
+        <div class="flex-1 space-y-4">
+          <div>
+            <h1 class="text-2xl md:text-3xl font-bold text-neutral mb-2">{item.title}</h1>
+            <div class="flex flex-wrap items-center gap-2 mb-2">
+              <InCollectionBadge />
+            </div>
+            <p class="text-lg md:text-xl text-muted">{item.artist}</p>
+          </div>
+
+          <!-- Métadonnées principales -->
+          <div class="flex flex-wrap gap-4 text-sm">
+            {item.year && (
+              <div class="flex items-center gap-2 text-muted">
+                <Calendar size={16} />
+                <span>{item.year}</span>
+              </div>
+            )}
+            {item.format && (
+              <div class="flex items-center gap-2 text-muted">
+                <Disc size={16} />
+                <span>{item.format}</span>
+              </div>
+            )}
+            {item.country && (
+              <div class="flex items-center gap-2 text-muted">
+                <MapPin size={16} />
+                <span>{item.country}</span>
+              </div>
+            )}
+            {item.genre && (
+              <div class="flex items-center gap-2 text-muted">
+                <Tag size={16} />
+                <span>{item.genre}</span>
+              </div>
+            )}
+            {collection && (
+              <div class="flex items-center gap-2 text-muted">
+                <Package size={16} />
+                <a
+                  href={`/collections/${collection.slug}`}
+                  class="text-primary hover:text-primary/80 transition-colors"
+                >
+                  {collection.name}
+                </a>
+              </div>
+            )}
+          </div>
+
+          <!-- Sélecteur de collection -->
+          <div class="pt-4 border-t border-border">
+            <CollectionSelector
+              itemId={item.id}
+              currentCollection={collection}
+              collections={userCollections}
+            />
+          </div>
+
+          <!-- Actions -->
+          <div class="pt-4 border-t border-border">
+            <ItemActionsMenu
+              itemId={item.id}
+              itemTitle={item.title}
+              currentCollection={collection}
+              collections={userCollections}
+              isFavorite={item.metadata?.isFavorite || false}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tracklist avec previews Spotify -->
+    {tracklist.length > 0 && (
+      <TrackList
+        tracks={tracklist}
+        albumTitle={item.title}
+        albumArtist={item.artist}
+        coverUrl={item.coverUrl}
+        discogsId={item.discogsId}
+      />
+    )}
+
+    <!-- Détails supplémentaires depuis Discogs -->
+    {discogsDetails && (
+      <div class="grid gap-6 md:grid-cols-2">
+        <!-- Informations détaillées -->
+        <div class="glass-card rounded-2xl p-4 md:p-6">
+          <h2 class="mb-4 text-lg md:text-xl font-bold text-neutral">Informations</h2>
+          <div class="space-y-3 text-sm">
+            {discogsDetails.released && (
+              <div>
+                <span class="font-medium text-muted">Date de sortie :</span>
+                <span class="ml-2 text-neutral">
+                  {discogsDetails.releasedFormatted || discogsDetails.released}
+                </span>
+              </div>
+            )}
+            {discogsDetails.country && (
+              <div>
+                <span class="font-medium text-muted">Pays :</span>
+                <span class="ml-2 text-neutral">{discogsDetails.country}</span>
+              </div>
+            )}
+            {discogsDetails.labels.length > 0 && (
+              <div>
+                <span class="font-medium text-muted">Label(s) :</span>
+                <span class="ml-2 text-neutral">
+                  {discogsDetails.labels.map((label) => label.name).join(', ')}
+                </span>
+              </div>
+            )}
+            {discogsDetails.genres.length > 0 && (
+              <div>
+                <span class="font-medium text-muted">Genres :</span>
+                <span class="ml-2 text-neutral">
+                  {discogsDetails.genres.join(', ')}
+                </span>
+              </div>
+            )}
+            {discogsDetails.styles.length > 0 && (
+              <div>
+                <span class="font-medium text-muted">Styles :</span>
+                <span class="ml-2 text-neutral">
+                  {discogsDetails.styles.join(', ')}
+                </span>
+              </div>
+            )}
+            {discogsDetails.identifiers.length > 0 && (
+              <div>
+                <span class="font-medium text-muted">Identifiants :</span>
+                <div class="mt-1 space-y-1">
+                  {discogsDetails.identifiers.map((id) => (
+                    <div class="text-neutral">
+                      <span class="font-medium">{id.type}:</span> {id.value}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <!-- Format et communauté -->
+        <div class="glass-card rounded-2xl p-4 md:p-6">
+          <h2 class="mb-4 text-lg md:text-xl font-bold text-neutral">Format & Communauté</h2>
+          <div class="space-y-3 text-sm">
+            {discogsDetails.formats.length > 0 && (
+              <div>
+                <span class="font-medium text-muted">Format(s) :</span>
+                <div class="mt-1 space-y-1">
+                  {discogsDetails.formats.map((format) => (
+                    <div class="text-neutral">
+                      {format.name} {format.text && `(${format.text})`}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {discogsDetails.community && (
+              <div class="space-y-2">
+                <div>
+                  <span class="font-medium text-muted">Note moyenne :</span>
+                  <span class="ml-2 text-neutral">
+                    {discogsDetails.community.rating.average > 0
+                      ? `${discogsDetails.community.rating.average.toFixed(1)} / 5`
+                      : 'Non noté'}
+                    {discogsDetails.community.rating.count > 0 &&
+                      ` (${discogsDetails.community.rating.count} avis)`}
+                  </span>
+                </div>
+                <div>
+                  <span class="font-medium text-muted">Collectionneurs :</span>
+                  <span class="ml-2 text-neutral">
+                    {discogsDetails.community.have} ont cet album
+                  </span>
+                </div>
+                <div>
+                  <span class="font-medium text-muted">Souhaité par :</span>
+                  <span class="ml-2 text-neutral">
+                    {discogsDetails.community.want} personnes
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+
+    <!-- Notes Discogs -->
+    {discogsDetails?.notes && (
+      <div class="glass-card rounded-2xl p-4 md:p-6">
+        <h2 class="mb-4 text-lg md:text-xl font-bold text-neutral">Notes</h2>
+        <p class="whitespace-pre-wrap text-muted">{discogsDetails.notes}</p>
+      </div>
+    )}
+
+    <!-- Données personnelles -->
+    <PersonalDataSection itemId={item.id} metadata={item.metadata} />
+
+    <!-- Si pas de données Discogs -->
+    {!discogsRelease && item.discogsId && (
+      <EmptyState
+        title="Détails non disponibles"
+        description="Les détails complets de cet album ne sont pas disponibles pour le moment."
+        icon={Music}
+      />
+    )}
+
+    <!-- Modal de suppression -->
+    <DeleteItemModal itemId={item.id} itemTitle={item.title} />
+  </div>
+</DashboardLayout>

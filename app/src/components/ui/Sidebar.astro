@@ -1,0 +1,356 @@
+---
+import Library from '@lucide/astro/icons/library'
+import Search from '@lucide/astro/icons/scan-search'
+import User from '@lucide/astro/icons/user'
+import ChevronRight from '@lucide/astro/icons/chevron-right'
+import Settings from '@lucide/astro/icons/settings'
+import LogOut from '@lucide/astro/icons/log-out'
+import Layers from '@lucide/astro/icons/layers'
+import Disc3 from '@lucide/astro/icons/disc-3'
+import Disc2 from '@lucide/astro/icons/disc-2'
+import CassetteTape from '@lucide/astro/icons/cassette-tape'
+import Heart from '@lucide/astro/icons/heart'
+import Bookmark from '@lucide/astro/icons/bookmark'
+import BarChart3 from '@lucide/astro/icons/chart-bar'
+import FolderOpen from '@lucide/astro/icons/folder-open'
+import Logo from './Logo.astro'
+import ThemeSwitcher from './ThemeSwitcher.astro'
+import Avatar from './Avatar.astro'
+
+type SidebarProps = {
+  userName?: string | null
+  userEmail?: string | null
+  userImageUrl?: string | null
+}
+
+const { userName, userEmail, userImageUrl } = Astro.props as SidebarProps
+
+type NavItem = {
+  id: string
+  label: string
+  icon: typeof Library
+  href: string
+  badge?: number
+  children?: Array<{
+    id: string
+    label: string
+    href: string
+    icon?: typeof Layers
+    badge?: number
+  }>
+}
+
+// Fonction pour déterminer l'item actif
+function getActiveItem(path: string): { parent: string | null; child: string | null } {
+  if (path === '/' || path === '/index') {
+    return { parent: null, child: null }
+  }
+
+  // Discothèque
+  if (path.startsWith('/bibliotheque')) {
+    if (path.includes('format=vinyl')) return { parent: 'library', child: 'vinyl' }
+    if (path.includes('format=cassette')) return { parent: 'library', child: 'cassette' }
+    if (path.includes('format=cd')) return { parent: 'library', child: 'cd' }
+    return { parent: 'library', child: 'all' }
+  }
+
+  // Redirection depuis l'ancienne route /collection
+  if (path.startsWith('/collection') && !path.startsWith('/collections')) {
+    if (path.includes('format=vinyl')) return { parent: 'library', child: 'vinyl' }
+    if (path.includes('format=cassette')) return { parent: 'library', child: 'cassette' }
+    if (path.includes('format=cd')) return { parent: 'library', child: 'cd' }
+    return { parent: 'library', child: 'all' }
+  }
+
+  // Collections
+  if (path.startsWith('/collections')) {
+    return { parent: 'collections', child: null }
+  }
+
+  // Explorer
+  if (path.includes('/explorer') || path.includes('/recherche')) {
+    return { parent: 'explorer', child: null }
+  }
+
+  // Profile
+  if (path.includes('/profil') || path.includes('/profile')) {
+    if (path.includes('tab=favorites')) return { parent: 'profile', child: 'favorites' }
+    if (path.includes('tab=wishlist')) return { parent: 'profile', child: 'wishlist' }
+    if (path.includes('tab=statistics')) return { parent: 'profile', child: 'statistics' }
+    if (path.includes('tab=all-formats')) return { parent: 'profile', child: 'all-formats' }
+    return { parent: 'profile', child: null }
+  }
+
+  return { parent: null, child: null }
+}
+
+const currentPath = Astro.url.pathname + Astro.url.search
+const activeItem = getActiveItem(currentPath)
+
+const navItems: NavItem[] = [
+  {
+    id: 'library',
+    label: 'Résonance',
+    icon: Library,
+    href: '/bibliotheque',
+    children: [
+      { id: 'all', label: 'Tous les formats', href: '/bibliotheque', icon: Layers },
+      { id: 'vinyl', label: 'Vinyl', href: '/bibliotheque?format=vinyl', icon: Disc3 },
+      { id: 'cd', label: 'CD', href: '/bibliotheque?format=cd', icon: Disc2 },
+      { id: 'cassette', label: 'Cassette', href: '/bibliotheque?format=cassette', icon: CassetteTape },
+    ],
+  },
+  {
+    id: 'collections',
+    label: 'Collections',
+    icon: FolderOpen,
+    href: '/collections',
+  },
+  {
+    id: 'explorer',
+    label: 'Explorer',
+    icon: Search,
+    href: '/explorer',
+  },
+  {
+    id: 'profile',
+    label: 'Profil',
+    icon: User,
+    href: '/profil',
+    children: [
+      { id: 'favorites', label: 'Favoris', href: '/profil?tab=favorites', icon: Heart },
+      { id: 'wishlist', label: 'Wishlist', href: '/profil?tab=wishlist', icon: Bookmark },
+      { id: 'statistics', label: 'Statistiques', href: '/profil?tab=statistics', icon: BarChart3 },
+      { id: 'all-formats', label: 'Tous les formats', href: '/profil?tab=all-formats', icon: Layers },
+    ],
+  },
+]
+---
+
+<aside
+  id="sidebar"
+  class="sidebar fixed left-0 top-0 z-40 hidden h-screen w-64 border-r border-border/20 bg-surface-elevated transition-all duration-300 lg:block"
+  aria-label="Navigation principale"
+>
+  <div class="flex h-full flex-col">
+    <!-- Logo -->
+    <div class="p-6">
+      <Logo size="md" showText={true} noHover={true} />
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex-1 overflow-y-auto px-3 py-4">
+      <ul class="space-y-1">
+        {navItems.map((item) => {
+          const IconComponent = item.icon
+          const isParentActive = activeItem.parent === item.id
+          const hasChildren = item.children && item.children.length > 0
+
+          return (
+            <li>
+              <a
+                href={item.href}
+                class={`group flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                  isParentActive && !activeItem.child
+                    ? 'bg-gradient-resonance text-white shadow-lg shadow-primary/20'
+                    : 'text-muted hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2'
+                }`}
+                aria-current={isParentActive && !activeItem.child ? 'page' : undefined}
+              >
+                <div class="flex items-center gap-3">
+                  <IconComponent 
+                    size={20} 
+                    class={`fill-none stroke-2 transition-colors duration-200 ${
+                      isParentActive && !activeItem.child 
+                        ? 'text-white stroke-white' 
+                        : 'stroke-muted group-hover:text-primary group-hover:stroke-primary'
+                    }`} 
+                  />
+                  <span class="transition-colors duration-200">{item.label}</span>
+                </div>
+                {hasChildren && (
+                  <ChevronRight
+                    size={16}
+                    class={`fill-none stroke-2 transition-all duration-200 ${
+                      isParentActive 
+                        ? 'rotate-90 text-white stroke-white' 
+                        : 'text-muted stroke-muted group-hover:text-primary group-hover:stroke-primary'
+                    }`}
+                  />
+                )}
+              </a>
+
+              {/* Children */}
+              {hasChildren && isParentActive && (
+                <ul class="mt-1 space-y-1 pl-11">
+                  {item.children!.map((child) => {
+                    const isChildActive = activeItem.child === child.id
+                    const ChildIcon = child.icon
+
+                    return (
+                      <li>
+                        <a
+                          href={child.href}
+                          class={`group/child flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all duration-200 ${
+                            isChildActive
+                              ? 'bg-primary/15 text-primary font-semibold shadow-sm shadow-primary/10'
+                              : 'text-muted hover:bg-primary/8 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1'
+                          }`}
+                          aria-current={isChildActive ? 'page' : undefined}
+                        >
+                          {ChildIcon && (
+                            <ChildIcon
+                              size={16}
+                              class={`fill-none stroke-2 transition-colors duration-200 ${
+                                isChildActive
+                                  ? 'text-primary stroke-primary'
+                                  : 'text-muted stroke-muted group-hover/child:text-primary group-hover/child:stroke-primary'
+                              }`}
+                            />
+                          )}
+                          <span class="transition-colors duration-200">{child.label}</span>
+                        </a>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </nav>
+
+    <!-- Footer avec theme toggle et profil utilisateur -->
+    <div class="p-4 space-y-3">
+      <!-- Theme toggle -->
+      <div class="flex items-center justify-between rounded-lg bg-surface p-3 border border-border/50">
+        <div>
+          <p class="text-sm font-medium text-neutral mb-0.5">Thème</p>
+          <p class="text-xs text-muted">Clair / Sombre</p>
+        </div>
+        <ThemeSwitcher size="md" />
+      </div>
+
+      <!-- User profile cliquable vers profil -->
+      {userName || userEmail ? (
+        <div class="rounded-lg bg-surface overflow-hidden">
+          <div class="px-3 py-2">
+            <a
+              href="/profil"
+              class="group flex items-center gap-3 rounded-lg px-3 py-2 transition-all duration-200 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
+            >
+              <Avatar
+                userName={userName}
+                userEmail={userEmail}
+                imageUrl={userImageUrl}
+                size="md"
+                class="shrink-0"
+              />
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium text-neutral">
+                  {userName || 'Utilisateur'}
+                </p>
+                {userEmail && (
+                  <p class="truncate text-xs text-muted">{userEmail}</p>
+                )}
+              </div>
+            </a>
+          </div>
+          <div class="px-3 py-2 space-y-1">
+            <a
+              href="/parametres"
+              class="group flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted transition-all duration-200 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
+            >
+              <Settings size={14} class="fill-none stroke-2 transition-colors duration-200 text-muted stroke-muted group-hover:text-primary group-hover:stroke-primary" />
+              <span class="transition-colors duration-200">Paramètres</span>
+            </a>
+            <button
+              type="button"
+              id="sidebar-signout-btn"
+              class="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-red-500/80 transition-all duration-200 hover:bg-red-500/10 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 focus-visible:ring-offset-1"
+              aria-label="Se déconnecter"
+            >
+              <LogOut size={14} class="fill-none stroke-2 transition-colors duration-200 text-red-500/80 stroke-red-500/80 group-hover:text-red-500 group-hover:stroke-red-500" />
+              <span class="transition-colors duration-200">Déconnexion</span>
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  </div>
+</aside>
+
+<script>
+  // TypeScript fonctionne nativement dans les scripts Astro !
+  (function() {
+    // Gérer le bouton de déconnexion dans la sidebar
+    const signOutBtn = document.getElementById('sidebar-signout-btn')
+    if (signOutBtn) {
+      signOutBtn.addEventListener('click', async function() {
+        try {
+          // Import dynamique de signOut
+          const { signOut } = await import('../../lib/auth-client')
+          
+          // Afficher un toast de confirmation
+          if (window.toast) {
+            window.toast.info('Déconnexion en cours...', 2000)
+          }
+          
+          await signOut()
+          
+          // Stocker le succès de la déconnexion pour le toast sur la page de login
+          sessionStorage.setItem('showLogoutToast', 'true')
+          
+          // Rediriger vers la page de login
+          setTimeout(() => {
+            window.location.href = '/login'
+          }, 500)
+        } catch (error) {
+          console.error('Error signing out:', error)
+          if (window.toast) {
+            window.toast.error('Erreur lors de la déconnexion')
+          }
+          // Fallback: rediriger quand même après un délai
+          setTimeout(() => {
+            window.location.href = '/login'
+          }, 1000)
+        }
+      })
+    }
+  })()
+</script>
+
+<!-- Spacer for sidebar on desktop -->
+<div class="hidden lg:block lg:w-64"></div>
+
+<style>
+  /* Sidebar animations */
+  .sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+  }
+
+  .sidebar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .sidebar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar::-webkit-scrollbar-thumb {
+    background-color: var(--color-border);
+    border-radius: 3px;
+  }
+
+  .sidebar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-muted);
+  }
+
+  /* Force fill-none and stroke for icons */
+  .sidebar svg {
+    fill: none !important;
+    stroke-width: 2;
+  }
+</style>

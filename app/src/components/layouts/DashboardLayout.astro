@@ -1,0 +1,272 @@
+---
+import Layout from './Layout.astro'
+import Toast from '../ui/Toast.astro'
+import Sidebar from '../ui/Sidebar.astro'
+import AppHeader from '../ui/AppHeader.astro'
+import Logo from '../ui/Logo.astro'
+import KeyboardShortcuts from '../ui/KeyboardShortcuts.astro'
+import BarcodeScanner from '../ui/BarcodeScanner.astro'
+import ConfirmDialog from '../ui/ConfirmDialog.astro'
+
+// Utiliser la session depuis le middleware (Astro.locals)
+const session = Astro.locals.session
+const user = Astro.locals.user
+
+type SectionConfig = {
+  title: string
+  description: string
+  icon: string
+  color: string
+}
+
+type DashboardLayoutProps = {
+  title?: string
+  description?: string
+  currentPath?: string
+}
+
+// Fonction pour déterminer la section active
+function getActiveSection(path: string): string {
+  if (path.includes('/vinyl')) return 'vinyl'
+  if (path.includes('/cassette')) return 'cassette'
+  if (path.includes('/cd')) return 'cd'
+  if (path.includes('/explorer') || path.includes('/recherche')) return 'explorer'
+  if (path.includes('/profil') || path.includes('/profile')) return 'profil'
+  return 'vinyl'
+}
+
+const props = Astro.props as DashboardLayoutProps
+const title = props.title ?? 'Resonance - Dashboard'
+const description = props.description ?? 'Manage your music collection with Resonance'
+const currentPath = props.currentPath ?? Astro.url?.pathname ?? '/'
+
+const activeSection = getActiveSection(currentPath)
+const isHomePage = currentPath === '/' || currentPath === '/index'
+
+// Section configuration
+const sections: Record<string, SectionConfig> = {
+  vinyl: {
+    title: 'Vinyl Collection',
+    description: 'Manage your vinyl records',
+    icon: '💿',
+    color: 'format-vinyl',
+  },
+  cassette: {
+    title: 'Cassette Collection',
+    description: 'Manage your cassettes',
+    icon: '📼',
+    color: 'format-cassette',
+  },
+  cd: {
+    title: 'CD Collection',
+    description: 'Manage your CDs',
+    icon: '💽',
+    color: 'format-cd',
+  },
+  explorer: {
+    title: 'Explorer',
+    description: 'Discover new albums',
+    icon: '🔍',
+    color: 'format-explorer',
+  },
+  profil: {
+    title: 'Profile',
+    description: 'Your favorites and statistics',
+    icon: '👤',
+    color: 'format-profile',
+  },
+}
+
+const currentSection = sections[activeSection]
+
+// Générer un message de bienvenue personnalisé
+function getWelcomeMessage(userName: string | null | undefined, userEmail: string | null | undefined): string {
+  const name = userName || userEmail?.split('@')[0] || 'Utilisateur'
+  const hour = new Date().getHours()
+  
+  let greeting = 'Bonjour'
+  if (hour >= 5 && hour < 12) {
+    greeting = 'Bonjour'
+  } else if (hour >= 12 && hour < 18) {
+    greeting = 'Bon après-midi'
+  } else if (hour >= 18 && hour < 22) {
+    greeting = 'Bonsoir'
+  } else {
+    greeting = 'Bonne nuit'
+  }
+  
+  const messages = [
+    `${greeting} ${name} ! Prêt à explorer votre collection ?`,
+    `${greeting} ${name} ! Que souhaitez-vous découvrir aujourd'hui ?`,
+    `${greeting} ${name} ! Votre musique vous attend.`,
+    `${greeting} ${name} ! Continuons à enrichir votre collection.`,
+  ]
+  
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+---
+
+<Layout
+  title={title}
+  description={description}
+  showDashboardHeader={false}
+  sectionTitle={currentSection.title}
+  sectionDescription={currentSection.description}
+  showBottomBar={true}
+  showFooter={false}
+>
+  <!-- App Header (mobile seulement) -->
+  <div class="md:hidden">
+    <AppHeader userName={user?.name || null} userEmail={user?.email || null} userImageUrl={user?.image || null} />
+  </div>
+
+  <div class="flex">
+    <!-- Sidebar (desktop only) -->
+    <Sidebar userName={user?.name || null} userEmail={user?.email || null} userImageUrl={user?.image || null} />
+
+    <!-- Main content area (min-w-0 allows flex child to shrink on mobile, avoiding horizontal overflow) -->
+    <div class="min-w-0 flex-1 lg:ml-0">
+      <div class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <!-- Logo et titre (desktop seulement) -->
+        <div class="hidden md:block mb-6">
+          <!-- Logo animé -->
+          <div class="flex flex-col items-center mb-4">
+            <a href="/bibliotheque" aria-label="Retour à ma résonance" class="logo-animated">
+              <Logo size="2xl" showText={false} animated={true} noHover={false} />
+            </a>
+          </div>
+          {!isHomePage && (
+            <>
+              <!-- Titre de section -->
+              <h1 class="text-3xl md:text-4xl font-bold text-neutral text-center mb-2">
+                {currentSection.title}
+              </h1>
+              {currentSection.description && (
+                <p class="text-muted text-center">
+                  {currentSection.description}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+
+        <!-- Message de bienvenue personnalisé (desktop seulement) -->
+        {user && (
+          <div class="hidden md:block mb-6">
+            <div class="glass-card rounded-xl p-4 bg-gradient-resonance-subtle border border-primary/20">
+              <p class="text-center text-neutral font-medium">
+                {getWelcomeMessage(user.name, user.email)}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <!-- Page content -->
+        <div class="fade-in transition-colors duration-200">
+          <slot />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <Toast />
+
+  <!-- Confirm Dialog -->
+  <ConfirmDialog />
+
+  <!-- Keyboard shortcuts -->
+  <KeyboardShortcuts />
+
+  <!-- Barcode Scanner (mobile only) -->
+  <BarcodeScanner />
+
+  <!-- Loading utilities script -->
+  <script lang="ts">
+    // Loading utilities - make available globally
+    function setButtonLoading(button: HTMLElement | null, isLoading: boolean, originalText?: string) {
+      if (!button) return
+
+      if (isLoading) {
+        // Store original content
+        if (!button.hasAttribute('data-original-html')) {
+          button.setAttribute('data-original-html', button.innerHTML)
+        }
+        if (!button.hasAttribute('data-original-text')) {
+          button.setAttribute('data-original-text', button.textContent || '')
+        }
+
+        // Disable button
+        button.setAttribute('disabled', 'true')
+        button.style.cursor = 'not-allowed'
+        button.style.opacity = '0.6'
+
+        // Add spinner
+        const spinner = `
+          <svg class="inline-block w-4 h-4 animate-spin mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        `
+        const text = originalText || button.getAttribute('data-original-text') || 'Chargement...'
+        button.innerHTML = spinner + text
+      } else {
+        // Restore original content
+        const originalHtml = button.getAttribute('data-original-html')
+        if (originalHtml) {
+          button.innerHTML = originalHtml
+        } else {
+          const originalText = button.getAttribute('data-original-text') || ''
+          button.textContent = originalText
+        }
+
+        // Re-enable button
+        button.removeAttribute('disabled')
+        button.style.cursor = ''
+        button.style.opacity = ''
+      }
+    }
+
+    // Make available globally
+    if (typeof window !== 'undefined') {
+      window.setButtonLoading = setButtonLoading
+    }
+  </script>
+</Layout>
+
+<style>
+  /* Styles spécifiques au dashboard */
+  .fade-in {
+    animation: fadeIn 0.6s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Animation du logo sur desktop */
+  .logo-animated {
+    animation: logoFloat 3s ease-in-out infinite;
+  }
+
+  @keyframes logoFloat {
+    0%, 100% {
+      transform: translateY(0) scale(1);
+    }
+    50% {
+      transform: translateY(-10px) scale(1.05);
+    }
+  }
+
+  .logo-animated:hover {
+    animation-play-state: paused;
+    transform: scale(1.1);
+  }
+</style>

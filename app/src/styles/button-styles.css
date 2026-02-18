@@ -1,0 +1,192 @@
+/**
+ * Styles de boutons avec contraste garanti WCAG AA
+ * Assure que tous les boutons ont un texte lisible
+ */
+
+@layer components {
+  /* Bouton primaire avec gradient */
+  .btn-primary-gradient {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    color: white !important;
+    font-weight: 500;
+    transition: all var(--transition-base);
+  }
+
+  .btn-primary-gradient,
+  .btn-primary-gradient *,
+  .btn-primary-gradient svg,
+  .btn-primary-gradient span {
+    color: white !important;
+    fill: white !important;
+  }
+
+  .btn-primary-gradient:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-secondary) 100%);
+    color: white !important;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .btn-primary-gradient:hover:not(:disabled),
+  .btn-primary-gradient:hover:not(:disabled) *,
+  .btn-primary-gradient:hover:not(:disabled) svg,
+  .btn-primary-gradient:hover:not(:disabled) span {
+    color: white !important;
+    fill: white !important;
+  }
+
+  .btn-primary-gradient:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* Bouton secondaire avec surface */
+  .btn-secondary-surface {
+    background-color: var(--color-surface);
+    color: var(--color-neutral);
+    border: 1px solid var(--color-border);
+    font-weight: 500;
+    transition: all var(--transition-base);
+  }
+
+  /* Assurer le contraste en dark mode */
+  [data-theme='dark'] .btn-secondary-surface {
+    background-color: var(--color-surface-elevated);
+    color: var(--color-neutral);
+    border-color: var(--color-border);
+  }
+
+  .btn-secondary-surface:hover:not(:disabled) {
+    background-color: var(--color-surface-elevated);
+    border-color: var(--color-primary);
+    transform: translateY(-1px);
+  }
+
+  [data-theme='dark'] .btn-secondary-surface:hover:not(:disabled) {
+    background-color: var(--color-surface-overlay);
+  }
+
+  /* Bouton danger (rouge) */
+  .btn-danger {
+    background-color: #dc2626; /* red-600 */
+    color: white !important;
+    font-weight: 500;
+    transition: all var(--transition-base);
+  }
+
+  .btn-danger,
+  .btn-danger *,
+  .btn-danger svg,
+  .btn-danger span {
+    color: white !important;
+    fill: white !important;
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    background-color: #b91c1c; /* red-700 */
+    color: white !important;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .btn-danger:hover:not(:disabled),
+  .btn-danger:hover:not(:disabled) *,
+  .btn-danger:hover:not(:disabled) svg,
+  .btn-danger:hover:not(:disabled) span {
+    color: white !important;
+    fill: white !important;
+  }
+
+  .btn-danger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* Bouton ghost (transparent avec bordure) */
+  .btn-ghost {
+    background-color: transparent;
+    color: var(--color-neutral);
+    border: 1px solid var(--color-border);
+    font-weight: 500;
+    transition: all var(--transition-base);
+  }
+
+  .btn-ghost:hover:not(:disabled) {
+    background-color: var(--color-surface);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  [data-theme='dark'] .btn-ghost:hover:not(:disabled) {
+    background-color: var(--color-surface-elevated);
+  }
+
+  /* Bouton icon (pour les boutons avec seulement une icône) */
+  .btn-icon {
+    background-color: rgba(255, 255, 255, 0.9);
+    color: #374151; /* gray-700 */
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    transition: all var(--transition-base);
+  }
+
+  [data-theme='dark'] .btn-icon {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--color-neutral);
+    border: 1px solid var(--color-border);
+  }
+
+  .btn-icon:hover:not(:disabled) {
+    background-color: white;
+    transform: scale(1.05);
+  }
+
+  [data-theme='dark'] .btn-icon:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+
+  /* Bouton icon coloré (pour wishlist, etc.) */
+  .btn-icon-colored {
+    background-color: rgba(236, 72, 153, 0.9); /* pink-500/90 */
+    color: white !important;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    transition: all var(--transition-base);
+  }
+
+  .btn-icon-colored,
+  .btn-icon-colored *,
+  .btn-icon-colored svg,
+  .btn-icon-colored path {
+    color: white !important;
+    fill: none !important;
+    stroke: white !important;
+  }
+
+  .btn-icon-colored:hover:not(:disabled) {
+    background-color: #ec4899; /* pink-500 */
+    color: white !important;
+    transform: scale(1.05);
+  }
+
+  .btn-icon-colored:hover:not(:disabled),
+  .btn-icon-colored:hover:not(:disabled) *,
+  .btn-icon-colored:hover:not(:disabled) svg,
+  .btn-icon-colored:hover:not(:disabled) path {
+    color: white !important;
+    fill: none !important;
+    stroke: white !important;
+  }
+
+  /* Focus visible pour tous les boutons */
+  .btn-primary-gradient:focus-visible,
+  .btn-secondary-surface:focus-visible,
+  .btn-danger:focus-visible,
+  .btn-ghost:focus-visible,
+  .btn-icon:focus-visible,
+  .btn-icon-colored:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(var(--color-primary-rgb, 107, 78, 255), 0.2);
+  }
+}

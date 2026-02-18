@@ -1,0 +1,435 @@
+---
+import X from '@lucide/astro/icons/x'
+import Heart from '@lucide/astro/icons/heart'
+import type { Collection } from '@prisma/client'
+
+type AddToCollectionModalProps = {
+  collections: Collection[]
+  itemId?: string
+}
+
+const { collections, itemId } = Astro.props as AddToCollectionModalProps
+---
+
+<!-- Modal backdrop -->
+<div
+  id="add-to-collection-modal"
+  class="add-to-collection-modal fixed inset-0 z-50 hidden items-center justify-center p-4"
+>
+  <!-- Overlay glass -->
+  <div class="modal-overlay absolute inset-0 bg-black/60 backdrop-blur-md"></div>
+  
+  <!-- Modal content -->
+  <div class="modal-content glass-card relative z-10 w-full max-w-md rounded-2xl p-6 shadow-2xl">
+    <div class="mb-6 flex items-center justify-between">
+      <h2 class="text-2xl font-bold text-neutral">Ajouter à une collection</h2>
+      <button type="button" class="close-modal text-muted hover:text-neutral">
+        <X size={24} />
+      </button>
+    </div>
+
+    <div class="space-y-3">
+      <!-- Bouton Ajouter à la wishlist -->
+      <button
+        type="button"
+        class="wishlist-add-btn w-full rounded-xl border-2 border-pink-500/30 bg-pink-500/10 p-4 text-left transition-all hover:border-pink-500/50 hover:bg-pink-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+        data-original-text="Ajouter à la wishlist"
+      >
+        <div class="flex items-center gap-3">
+          <Heart size={20} class="fill-none stroke-2 text-pink-500 stroke-pink-500" />
+          <div>
+            <h3 class="font-medium text-neutral">Ajouter à la wishlist</h3>
+            <p class="text-sm text-muted">Sauvegarder pour plus tard</p>
+          </div>
+        </div>
+      </button>
+
+      <div class="my-4 border-t border-border"></div>
+
+      {collections.length === 0 ? (
+        <div class="rounded-xl border border-dashed border-border bg-surface p-8 text-center">
+          <p class="mb-4 font-medium text-neutral">Aucune collection disponible</p>
+          <p class="mb-4 text-sm text-muted">
+            Créez votre première collection pour organiser vos albums.
+          </p>
+          <a
+            href="/collections/new"
+            class="btn-primary-gradient inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm"
+          >
+            Créer une collection
+          </a>
+        </div>
+      ) : (
+        collections.map((collection) => (
+          <button
+            type="button"
+            class="collection-add-btn btn-secondary-surface w-full rounded-xl p-4 text-left disabled:opacity-50 disabled:cursor-not-allowed"
+            data-collection-id={collection.id}
+            data-original-text="Ajouter"
+          >
+            <h3 class="font-medium">{collection.name}</h3>
+            {collection.description && (
+              <p class="text-sm text-muted">{collection.description}</p>
+            )}
+          </button>
+        ))
+      )}
+    </div>
+
+    <div class="mt-6 flex justify-end gap-3">
+      <button
+        type="button"
+        class="btn-secondary-surface close-modal rounded-xl px-4 py-2"
+      >
+        Annuler
+      </button>
+      <a
+        href="/collections/new"
+        class="btn-primary-gradient rounded-xl px-4 py-2"
+      >
+        Nouvelle collection
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // TypeScript fonctionne nativement dans les scripts Astro !
+  (function() {
+    // Gestion ouverture/fermeture modal
+    const modal = document.getElementById('add-to-collection-modal')
+    if (!modal) return
+
+    const closeButtons = document.querySelectorAll('.close-modal')
+    function closeModal(): void {
+      const currentModal = document.getElementById('add-to-collection-modal')
+      if (!currentModal) return
+      currentModal.classList.add('hidden')
+      currentModal.style.display = ''
+      currentModal.removeAttribute('data-redirect-on-success')
+    }
+
+    closeButtons.forEach(function(btn) {
+      btn.addEventListener('click', closeModal)
+    })
+
+    // Fermer avec Escape
+    document.addEventListener('keydown', function(event: KeyboardEvent) {
+      if (modal && event.key === 'Escape' && !modal.classList.contains('hidden')) {
+        closeModal()
+      }
+    })
+
+    // Fermer en cliquant sur l'overlay
+    const modalOverlay = document.querySelector('.modal-overlay')
+    if (modalOverlay) {
+      modalOverlay.addEventListener('click', closeModal)
+    }
+
+    // Empêcher la fermeture en cliquant sur le contenu du modal
+    const modalContent = document.querySelector('.modal-content')
+    if (modalContent) {
+      modalContent.addEventListener('click', (event: Event) => {
+        event.stopPropagation()
+      })
+    }
+
+    // Fonction pour attacher les listeners aux boutons
+    function attachButtonListeners(): void {
+      // Bouton wishlist
+      const wishlistButton = document.querySelector('.wishlist-add-btn') as HTMLButtonElement | null
+      if (wishlistButton && !wishlistButton.hasAttribute('data-listener-attached')) {
+        wishlistButton.setAttribute('data-listener-attached', 'true')
+        wishlistButton.addEventListener('click', async function(event: Event) {
+          event.preventDefault()
+          event.stopPropagation()
+          
+          if (!modal) return
+          const discogsId = modal.getAttribute('data-discogs-id')
+          if (!discogsId) {
+            console.warn('No discogsId set on modal')
+            return
+          }
+
+          // Set loading state
+          const originalText = wishlistButton.getAttribute('data-original-text') || 'Ajouter à la wishlist'
+          if (window.setButtonLoading) {
+            window.setButtonLoading(wishlistButton, true, originalText)
+          } else {
+            wishlistButton.disabled = true
+            wishlistButton.textContent = 'Ajout en cours...'
+          }
+
+          try {
+            // Récupérer les détails de la release Discogs
+            const releaseResponse = await fetch(`/api/discogs/release/${discogsId}`)
+            if (!releaseResponse.ok) {
+              throw new Error('Failed to fetch release details')
+            }
+
+            const release = await releaseResponse.json()
+
+            // Déterminer le format
+            let format: 'VINYL' | 'CD' | 'CASSETTE' = 'VINYL'
+            const formatNames = release.formats?.map((formatItem: { name: string }) => formatItem.name.toUpperCase()) || []
+            if (formatNames.some((formatName: string) => formatName.includes('CD'))) {
+              format = 'CD'
+            } else if (formatNames.some((formatName: string) => formatName.includes('CASSETTE'))) {
+              format = 'CASSETTE'
+            }
+
+            const primaryArtist = release.artists?.[0]?.name || 'Unknown Artist'
+            const year = release.year || parseInt(release.released || '0') || null
+
+            // Extraire la meilleure cover
+            type DiscogsImage = { type?: string; uri?: string; resource_url?: string }
+            type DiscogsRelease = { images?: DiscogsImage[]; cover_image?: string; thumb?: string }
+            const getBestCoverUrl = (release: DiscogsRelease): string | null => {
+              if (release.images && release.images.length > 0) {
+                const primaryImage = release.images.find((image: DiscogsImage) => image.type === 'primary') || release.images[0]
+                return primaryImage.uri || primaryImage.resource_url || null
+              }
+              return release.cover_image || release.thumb || null
+            }
+
+            // Ajouter à la wishlist
+            const wishlistResponse = await fetch('/api/wishlist/create', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                discogsId: release.id,
+                title: release.title,
+                artist: primaryArtist,
+                year,
+                genre: release.genres?.[0] || release.styles?.[0] || null,
+                coverUrl: getBestCoverUrl(release),
+                format,
+                priority: 1,
+              }),
+            })
+
+            if (!wishlistResponse.ok) {
+              const error = await wishlistResponse.json()
+              throw new Error(error.error || 'Failed to add to wishlist')
+            }
+
+            // Succès
+            modal.classList.add('hidden')
+            modal.style.display = ''
+            modal.removeAttribute('data-discogs-id')
+            modal.removeAttribute('data-redirect-on-success')
+            
+            if (window.toast) {
+              window.toast.success('Album ajouté à la wishlist avec succès !')
+            }
+          } catch (error) {
+            console.error('Error adding to wishlist:', error)
+            if (window.toast) {
+              window.toast.error('Erreur : ' + (error instanceof Error ? error.message : 'Une erreur est survenue'))
+            }
+            // Reset loading state
+            if (window.setButtonLoading) {
+              window.setButtonLoading(wishlistButton, false)
+            } else {
+              wishlistButton.disabled = false
+              wishlistButton.textContent = originalText
+            }
+          }
+        })
+      }
+
+      // Boutons de collection
+      const collectionButtons = document.querySelectorAll('.collection-add-btn')
+      collectionButtons.forEach((button) => {
+        if (button.hasAttribute('data-listener-attached')) {
+          return
+        }
+        button.setAttribute('data-listener-attached', 'true')
+        
+        button.addEventListener('click', async function(event: Event) {
+          event.preventDefault()
+          event.stopPropagation()
+          
+          if (!modal) return
+          const collectionId = button.getAttribute('data-collection-id')
+          const discogsId = modal.getAttribute('data-discogs-id')
+
+          if (!collectionId || !discogsId) {
+            console.warn('Missing collectionId or discogsId', { collectionId, discogsId })
+            return
+          }
+
+          // Set loading state
+          const originalText = button.getAttribute('data-original-text') || 'Ajouter'
+          if (window.setButtonLoading) {
+            window.setButtonLoading(button as HTMLElement, true, originalText)
+          } else {
+            (button as HTMLButtonElement).disabled = true
+            button.textContent = 'Ajout en cours...'
+          }
+
+          try {
+            // Récupérer les détails de la release Discogs
+            const releaseResponse = await fetch(`/api/discogs/release/${discogsId}`)
+            if (!releaseResponse.ok) {
+              throw new Error('Failed to fetch release details')
+            }
+
+            const release = await releaseResponse.json()
+
+            // Déterminer le format
+            let format: 'VINYL' | 'CD' | 'CASSETTE' = 'VINYL'
+            const formatNames = release.formats?.map((formatItem: { name: string }) => formatItem.name.toUpperCase()) || []
+            if (formatNames.some((formatName: string) => formatName.includes('CD'))) {
+              format = 'CD'
+            } else if (formatNames.some((formatName: string) => formatName.includes('CASSETTE'))) {
+              format = 'CASSETTE'
+            }
+
+            const primaryArtist = release.artists?.[0]?.name || 'Unknown Artist'
+            const year = release.year || parseInt(release.released || '0') || null
+
+            // Extraire la meilleure cover
+            type DiscogsImage = { type?: string; uri?: string; resource_url?: string }
+            type DiscogsRelease = { images?: DiscogsImage[]; cover_image?: string; thumb?: string }
+            const getBestCoverUrl = (release: DiscogsRelease): string | null => {
+              if (release.images && release.images.length > 0) {
+                const primaryImage = release.images.find((image: DiscogsImage) => image.type === 'primary') || release.images[0]
+                return primaryImage.uri || primaryImage.resource_url || null
+              }
+              return release.cover_image || release.thumb || null
+            }
+
+            // Créer l'item
+            const createResponse = await fetch('/api/items/create', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                discogsId: release.id,
+                title: release.title,
+                artist: primaryArtist,
+                year,
+                genre: release.genres?.[0] || release.styles?.[0] || null,
+                country: release.country || null,
+                label: release.labels?.[0]?.name || null,
+                format,
+                barcode: release.identifiers?.find((id: { type: string; value: string }) => id.type === 'Barcode')?.value || null,
+                coverUrl: getBestCoverUrl(release),
+              }),
+            })
+
+            if (!createResponse.ok) {
+              const error = await createResponse.json()
+              throw new Error(error.error || 'Failed to create item')
+            }
+
+            const item = await createResponse.json()
+
+            // Ajouter l'item à la collection
+            const addResponse = await fetch(`/api/collections/${collectionId}/add-item`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ itemId: item.id }),
+            })
+
+            if (!addResponse.ok) {
+              const error = await addResponse.json()
+              throw new Error(error.error || 'Failed to add item to collection')
+            }
+
+            // Succès
+            if (!modal) return
+            const redirectOnSuccess = modal.getAttribute('data-redirect-on-success')
+            modal.classList.add('hidden')
+            modal.style.display = ''
+            modal.removeAttribute('data-discogs-id')
+            modal.removeAttribute('data-redirect-on-success')
+            
+            if (window.toast) {
+              window.toast.success('Album ajouté à la collection avec succès !')
+            }
+            if (redirectOnSuccess === 'true' && item && item.slug) {
+              setTimeout(function() {
+                window.location.href = '/items/' + item.slug
+              }, 500)
+            }
+          } catch (error) {
+            console.error('Error adding to collection:', error)
+            if (window.toast) {
+              window.toast.error('Erreur : ' + (error instanceof Error ? error.message : 'Une erreur est survenue'))
+            }
+            // Reset loading state
+            if (window.setButtonLoading) {
+              window.setButtonLoading(button as HTMLElement, false)
+            } else {
+              (button as HTMLButtonElement).disabled = false
+              button.textContent = originalText
+            }
+          }
+        })
+      })
+    }
+
+    // Attacher les listeners au chargement initial
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', attachButtonListeners)
+    } else {
+      attachButtonListeners()
+    }
+
+    // Réattacher les listeners quand le modal s'ouvre (au cas où les boutons seraient re-rendus)
+    const observer = new MutationObserver(() => {
+      if (modal && !modal.classList.contains('hidden')) {
+        attachButtonListeners()
+      }
+    })
+    if (modal) {
+      observer.observe(modal, { attributes: true, attributeFilter: ['class'], childList: true, subtree: true })
+    }
+  })()
+</script>
+
+<style>
+  .add-to-collection-modal:not(.hidden) {
+    display: flex;
+  }
+
+  .modal-overlay {
+    transition: opacity 0.3s ease, backdrop-filter 0.3s ease;
+  }
+
+  .modal-content {
+    animation: modalSlideIn 0.3s ease-out;
+    transform-origin: center;
+  }
+
+  @keyframes modalSlideIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95) translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  #add-to-collection-modal:not(.hidden) .modal-overlay {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+</style>

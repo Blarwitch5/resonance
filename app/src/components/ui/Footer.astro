@@ -1,0 +1,50 @@
+---
+import Logo from './Logo.astro'
+import ThemeSwitcher from './ThemeSwitcher.astro'
+
+const currentYear = new Date().getFullYear()
+---
+
+<footer
+  class="border-t border-border bg-surface py-8 transition-colors duration-200"
+>
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+      <!-- Logo et nom -->
+      <Logo size="md" showText={true} />
+
+      <!-- Liens et thème -->
+      <nav
+        class="flex items-center gap-6 text-sm text-muted transition-colors duration-200"
+        aria-label="Navigation du footer"
+      >
+        <a
+          href="/about"
+          class="transition-colors duration-200 hover:text-primary">À propos</a
+        >
+        <a
+          href="/help"
+          class="transition-colors duration-200 hover:text-primary">Aide</a
+        >
+        <a
+          href="/contact"
+          class="transition-colors duration-200 hover:text-primary">Contact</a
+        >
+
+        <ThemeSwitcher size="md" variant="icon-only" />
+      </nav>
+    </div>
+
+    <!-- Copyright -->
+    <div
+      class="mt-6 border-t border-border pt-6 text-center text-sm text-muted"
+    >
+      <p>
+        &copy; {currentYear} Resonance. Tous droits réservés. <em
+          >Where your music resonates</em
+        >
+      </p>
+    </div>
+  </div>
+</footer>
+

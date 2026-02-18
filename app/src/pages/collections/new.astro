@@ -1,0 +1,166 @@
+---
+import DashboardLayout from '../../components/layouts/DashboardLayout.astro'
+import Folder from '@lucide/astro/icons/folder'
+import Plus from '@lucide/astro/icons/plus'
+import { collectionRepository } from '../../repositories/collection-repository'
+import EmptyState from '../../components/ui/EmptyState.astro'
+import AlertCircle from '@lucide/astro/icons/alert-circle'
+
+export const prerender = false
+
+// Utiliser la session depuis le middleware (Astro.locals)
+const session = Astro.locals.session
+if (!session) return Astro.redirect('/login')
+
+const MAX_COLLECTIONS = 2
+const collectionsCount = await collectionRepository.countByUserId(Astro.locals.user!.id)
+const canCreateNewCollection = collectionsCount < MAX_COLLECTIONS
+
+if (!canCreateNewCollection) {
+  // Rediriger vers la page des collections si la limite est atteinte
+  return Astro.redirect('/collections')
+}
+---
+
+<DashboardLayout title="Nouvelle Collection - Resonance">
+  <div class="mx-auto max-w-2xl">
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold">Créer une collection</h1>
+      <p class="text-muted">Organisez vos albums en collections personnalisées</p>
+    </div>
+
+    <form class="glass-card space-y-6 rounded-2xl p-8" id="create-collection-form">
+      <div>
+        <label for="name" class="mb-2 block text-sm font-medium text-neutral">
+          Nom de la collection *
+        </label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          required
+          class="w-full rounded-xl border border-border bg-surface p-3 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+          placeholder="Ex: Jazz Legends, Années 80..."
+        />
+      </div>
+
+      <div>
+        <label for="description" class="mb-2 block text-sm font-medium text-neutral">
+          Description (optionnel)
+        </label>
+        <textarea
+          id="description"
+          name="description"
+          rows={4}
+          class="w-full rounded-xl border border-border bg-surface p-3 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+          placeholder="Décrivez votre collection..."
+        ></textarea>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <input
+          type="checkbox"
+          id="isPublic"
+          name="isPublic"
+          class="h-5 w-5 rounded border-border text-primary focus:ring-2 focus:ring-primary"
+        />
+        <label for="isPublic" class="text-sm text-neutral">
+          Rendre cette collection publique
+        </label>
+      </div>
+
+      <div class="flex gap-3">
+        <button
+          type="submit"
+          class="btn-primary-gradient flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3"
+        >
+          <Plus size={20} />
+          <span>Créer la collection</span>
+        </button>
+        <a
+          href="/collections"
+          class="flex items-center justify-center rounded-xl border border-border bg-surface px-6 py-3 font-medium text-neutral transition-colors hover:bg-surface-elevated"
+        >
+          Annuler
+        </a>
+      </div>
+    </form>
+  </div>
+</DashboardLayout>
+
+<script>
+  // TypeScript fonctionne nativement dans les scripts Astro !
+  (function() {
+    const form = document.getElementById('create-collection-form') as HTMLFormElement | null
+    if (!form) return
+    
+    form.addEventListener('submit', async function(event: SubmitEvent) {
+      event.preventDefault()
+      
+      const formData = new FormData(form)
+      const collectionData = {
+        name: formData.get('name'),
+        description: formData.get('description'),
+        isPublic: formData.get('isPublic') === 'on',
+      }
+
+      try {
+        const response = await fetch('/api/collections/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(collectionData),
+        })
+
+        const responseData = await response.json()
+
+        if (response.ok) {
+          if (window.toast) {
+            window.toast.success('Collection créée avec succès !')
+          }
+          document.location.href = '/collections/' + responseData.slug
+        } else {
+          // Afficher l'erreur
+          if (window.toast) {
+            window.toast.error(responseData.error || 'Erreur lors de la création de la collection')
+          }
+          
+          // Afficher aussi une alerte dans le formulaire
+          const existingError = form.previousElementSibling
+          if (existingError && existingError.classList && existingError.classList.contains('error-message')) {
+            existingError.remove()
+          }
+          
+          const errorDiv = document.createElement('div')
+          errorDiv.className = 'error-message mb-4 rounded-lg border border-error bg-error/10 p-4 text-error'
+          errorDiv.textContent = 'Erreur: ' + (responseData.error || 'Une erreur est survenue')
+          form.insertAdjacentElement('beforebegin', errorDiv)
+          
+          // Si la limite est atteinte, rediriger après 3 secondes
+          if (responseData.maxCollections && responseData.currentCount >= responseData.maxCollections) {
+            setTimeout(function() {
+              window.location.href = '/collections'
+            }, 3000)
+          }
+        }
+      } catch (error) {
+        console.error('Error creating collection:', error)
+        if (window.toast) {
+          window.toast.error('Une erreur est survenue')
+        }
+        const errorDiv = document.createElement('div')
+        errorDiv.className = 'error-message mt-4 rounded-lg border border-red-500 bg-red-500/10 p-4 text-red-500'
+        errorDiv.textContent = 'Une erreur est survenue'
+        form.insertAdjacentElement('beforebegin', errorDiv)
+      }
+    })
+  })()
+</script>
+
+<style>
+  .glass-card {
+    transition: all 0.3s ease;
+  }
+</style>
+

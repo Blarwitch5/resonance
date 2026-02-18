@@ -1,0 +1,88 @@
+---
+// Redirect to unified bibliotheque page with format filter
+return Astro.redirect('/bibliotheque?format=CASSETTE')
+---
+
+// Récupérer toutes les cassettes de l'utilisateur
+const itemsByCollection = await itemService.getItemsByFormatWithCollections(session.user.id, 'CASSETTE')
+const collections = await collectionRepository.findByUserId(session.user.id)
+
+const totalItems = Object.values(itemsByCollection).flat().length
+---
+
+<DashboardLayout title="Collection Cassette - Resonance">
+  <div class="space-y-6">
+    <!-- Header avec stats et actions -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold">{totalItems} Cassettes</h1>
+        <p class="text-muted">
+          {Object.keys(itemsByCollection).length} collections
+        </p>
+      </div>
+      <div class="flex gap-3">
+        <AddItemButton format="CASSETTE" />
+      </div>
+    </div>
+
+    <!-- Liste des items groupés par collection -->
+    {totalItems === 0 ? (
+      <!-- Collection vide -->
+      <div class="glass-card rounded-2xl p-12 text-center">
+        <div
+          class="bg-gradient-resonance-subtle mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full"
+        >
+          <CassetteTape size={48} class="text-copper-warm dark:text-copper-warm" />
+        </div>
+
+        <h3 class="font-display text-night-deep dark:text-cream-white mb-4 text-xl font-semibold">
+          Commencez votre collection cassette
+        </h3>
+
+        <p class="text-blue-gray dark:text-blue-gray mx-auto mb-8 max-w-md">
+          Ajoutez votre première cassette et commencez à construire votre collection personnalisée.
+        </p>
+
+        <div class="flex flex-col justify-center gap-4 sm:flex-row">
+          <a
+            href="/explorer"
+            class="bg-gradient-resonance hover:bg-gradient-resonance-hover flex items-center justify-center gap-2 rounded-xl px-6 py-3 font-medium text-white transition-all duration-300"
+          >
+            <Plus size={20} aria-hidden="true" />
+            <span>Ajouter une cassette</span>
+          </a>
+
+          <button
+            type="button"
+            class="bg-blue-gray/10 dark:bg-electric-purple/10 text-night-deep dark:text-cream-white hover:bg-blue-gray/20 dark:hover:bg-electric-purple/20 flex items-center justify-center gap-2 rounded-xl px-6 py-3 font-medium transition-all duration-300"
+          >
+            <Search size={20} aria-hidden="true" />
+            <span>Scanner un code-barres</span>
+          </button>
+        </div>
+      </div>
+    ) : (
+      Object.entries(itemsByCollection).map(([collectionId, items]) => (
+        <section class="space-y-4">
+          <h2 class="text-lg font-semibold">
+            {collectionId === 'no-collection'
+              ? 'Sans collection'
+              : collections.find((c) => c.id === collectionId)?.name}
+          </h2>
+          <ItemGrid items={items} columns={6} />
+        </section>
+      ))
+    )}
+  </div>
+</DashboardLayout>
+
+<style>
+  .glass-card {
+    transition: all 0.3s ease;
+  }
+
+  .glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(183, 122, 75, 0.1);
+  }
+</style>

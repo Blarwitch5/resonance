@@ -1,0 +1,53 @@
+---
+import Heart from '@lucide/astro/icons/heart'
+import type { Item, ItemMetadata } from '@prisma/client'
+import ItemCard from '../items/ItemCard.astro'
+import EmptyState from '../ui/EmptyState.astro'
+
+type FavoritesByGenreProps = {
+  favorites: Array<Item & { metadata: ItemMetadata | null }>
+}
+
+const { favorites } = Astro.props as FavoritesByGenreProps
+
+// Grouper par genre
+const byGenre = favorites.reduce((acc, item) => {
+  const genre = item.genre || 'Sans genre'
+  if (!acc[genre]) {
+    acc[genre] = []
+  }
+  acc[genre].push(item)
+  return acc
+}, {} as Record<string, typeof favorites>)
+
+const genreEntries = Object.entries(byGenre).sort((a, b) => b[1].length - a[1].length)
+---
+
+<div class="min-w-0 space-y-8">
+  {favorites.length === 0 ? (
+    <EmptyState
+      title="Aucun favori pour le moment"
+      description="Marquez vos albums préférés d'un cœur pour créer votre sélection personnelle et les retrouver facilement."
+      icon={Heart}
+      action={{
+        label: 'Explorer ma collection',
+        href: '/bibliotheque',
+      }}
+      size="sm"
+    />
+  ) : (
+    genreEntries.map(([genre, items]) => (
+      <section class="min-w-0">
+        <h3 class="mb-4 text-lg font-semibold">
+          {genre} <span class="text-muted">({items.length})</span>
+        </h3>
+        <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
+          {items.map((item) => (
+            <ItemCard item={item} />
+          ))}
+        </div>
+      </section>
+    ))
+  )}
+</div>
+

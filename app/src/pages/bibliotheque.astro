@@ -1,0 +1,374 @@
+---
+import CassetteTape from '@lucide/astro/icons/cassette-tape'
+import Disc from '@lucide/astro/icons/disc'
+import Package from '@lucide/astro/icons/package'
+import Turntable from '@lucide/astro/icons/turntable'
+import CollectionSearch from '../components/collections/CollectionSearch.astro'
+import SortFilter from '../components/collections/SortFilter.astro'
+import AddItemButton from '../components/items/AddItemButton.astro'
+import ItemGrid from '../components/items/ItemGrid.astro'
+import DashboardLayout from '../components/layouts/DashboardLayout.astro'
+import EmptyState from '../components/ui/EmptyState.astro'
+import Pagination from '../components/ui/Pagination.astro'
+import { collectionRepository } from '../repositories/collection-repository'
+import { itemRepository } from '../repositories/item-repository'
+
+export const prerender = false
+
+// Utiliser la session depuis le middleware (Astro.locals)
+const session = Astro.locals.session
+const user = Astro.locals.user
+
+if (!session || !user) {
+  return Astro.redirect('/login')
+}
+
+// Get format from query params (default: 'ALL')
+const formatParam = Astro.url.searchParams.get('format') || 'ALL'
+const validFormats = ['ALL', 'VINYL', 'CASSETTE', 'CD']
+const selectedFormat = validFormats.includes(formatParam.toUpperCase()) 
+  ? formatParam.toUpperCase() 
+  : 'ALL'
+
+// Get pagination params
+const page = Number.parseInt(Astro.url.searchParams.get('page') || '1')
+const perPage = 24
+
+// Get sort and filter params
+const sort = Astro.url.searchParams.get('sort') || 'addedAt-desc'
+const genre = Astro.url.searchParams.get('genre') || undefined
+const year = Astro.url.searchParams.get('year') || undefined
+const collectionParam = Astro.url.searchParams.get('collection') || undefined
+// Support pour "none" pour filtrer les items sans collection
+const collectionId = collectionParam === 'none' ? 'none' : collectionParam
+const favoritesOnly = Astro.url.searchParams.get('favorites') === 'true'
+const showUncategorizedOnly = collectionParam === 'none'
+
+// Get user's enabled formats (from settings - for now, all formats enabled)
+const enabledFormats = ['VINYL', 'CASSETTE', 'CD'] // TODO: Get from user settings
+
+// Get all user items to extract available filters
+const allUserItems = await itemRepository.findByUserId(user.id)
+const availableGenres = Array.from(new Set(allUserItems.map((item) => item.genre).filter(Boolean)))
+const availableYears = Array.from(new Set(allUserItems.map((item) => item.year).filter(Boolean)))
+const userCollections = await collectionRepository.findByUserId(user.id)
+
+// Get items with pagination
+type ItemWithMetadata = {
+  id: string
+  title: string
+  artist: string
+  year: number | null
+  genre: string | null
+  format: string
+  coverUrl: string | null
+  metadata: unknown
+  collectionId: string | null
+}
+
+let paginatedResult: {
+  items: ItemWithMetadata[]
+  pagination: {
+    page: number
+    perPage: number
+    total: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
+}
+
+// Build filter options
+const filterOptions = {
+  sort: sort as 'addedAt-desc' | 'addedAt-asc' | 'title-asc' | 'title-desc' | 'artist-asc' | 'artist-desc' | 'year-desc' | 'year-asc',
+  genre,
+  year,
+  collectionId,
+  favoritesOnly,
+}
+
+if (selectedFormat === 'ALL') {
+  // Pour "ALL", utiliser la pagination avec filtres
+  paginatedResult = await itemRepository.findByUserIdPaginated(
+    user.id,
+    page,
+    perPage,
+    undefined, // No format filter
+    filterOptions,
+  )
+} else {
+  paginatedResult = await itemRepository.findByUserIdPaginated(
+    user.id,
+    page,
+    perPage,
+    selectedFormat as 'VINYL' | 'CD' | 'CASSETTE',
+    filterOptions,
+  )
+}
+
+// Grouper les items par collection pour l'affichage
+const itemsByCollection = paginatedResult.items.reduce((acc, item) => {
+  const key = item.collectionId || 'no-collection'
+  if (!acc[key]) {
+    acc[key] = []
+  }
+  acc[key].push(item)
+  return acc
+}, {} as Record<string, ItemWithMetadata[]>)
+
+// Ajouter les collections vides pour les afficher aussi
+userCollections.forEach((collection) => {
+  if (!itemsByCollection[collection.id]) {
+    itemsByCollection[collection.id] = []
+  }
+})
+
+const totalItems = paginatedResult.pagination.total
+
+// Format display info
+const formatInfo = {
+  VINYL: { label: 'Vinyl', icon: Turntable, color: 'format-vinyl' },
+  CASSETTE: { label: 'Cassette', icon: CassetteTape, color: 'format-cassette' },
+  CD: { label: 'CD', icon: Disc, color: 'format-cd' },
+}
+---
+
+<DashboardLayout title="Ma Résonance - Resonance">
+  <div class="space-y-8">
+    <!-- Header with stats and actions -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-neutral mb-2">
+          Ma Résonance
+        </h1>
+        <p class="text-muted text-sm sm:text-base">
+          {totalItems} {totalItems === 1 ? 'album' : 'albums'}
+          {Object.keys(itemsByCollection).length > 0 && (
+            <span class="mx-2">•</span>
+            <span>{Object.keys(itemsByCollection).length} {Object.keys(itemsByCollection).length === 1 ? 'collection' : 'collections'}</span>
+          )}
+        </p>
+      </div>
+      <div class="flex gap-3">
+        <AddItemButton format={selectedFormat === 'ALL' ? 'VINYL' : selectedFormat} />
+      </div>
+    </div>
+
+    <!-- Format Selector (Chips/Pills) -->
+    <div class="flex flex-wrap gap-3">
+      <a
+        href="/bibliotheque?format=ALL"
+        class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
+          selectedFormat === 'ALL'
+            ? 'bg-gradient-resonance text-white shadow-lg shadow-primary/20'
+            : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
+        }`}
+      >
+        <span>Tous</span>
+      </a>
+      {totalItems > 0 && (
+        <a
+          href="/bibliotheque?format=ALL&collection=none"
+          class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
+            showUncategorizedOnly
+              ? 'bg-gradient-resonance text-white shadow-lg shadow-primary/20'
+              : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
+          }`}
+        >
+          <Package size={18} class="fill-none stroke-2" />
+          <span>Non classés</span>
+        </a>
+      )}
+      {enabledFormats.map((format) => {
+        const info = formatInfo[format as keyof typeof formatInfo]
+        const Icon = info.icon
+        return (
+          <a
+            href={`/bibliotheque?format=${format}`}
+            class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
+              selectedFormat === format
+                ? `bg-gradient-resonance text-white shadow-lg shadow-primary/20`
+                : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
+            }`}
+          >
+            <Icon size={18} class="fill-none stroke-2" />
+            <span>{info.label}</span>
+          </a>
+        )
+      })}
+    </div>
+
+    <!-- Search Bar -->
+    {totalItems > 0 && (
+      <div class="max-w-md">
+        <CollectionSearch />
+      </div>
+    )}
+
+    <!-- Filters -->
+    {totalItems > 0 && (
+      <SortFilter
+        genres={availableGenres}
+        years={availableYears}
+        collections={userCollections}
+      />
+    )}
+
+    <!-- Items grouped by collection -->
+    {totalItems === 0 ? (
+      <EmptyState
+        title={
+          selectedFormat === 'ALL'
+            ? 'Commencez votre collection musicale'
+            : `Créez votre collection ${formatInfo[selectedFormat as keyof typeof formatInfo]?.label || selectedFormat}`
+        }
+        description={
+          selectedFormat === 'ALL'
+            ? "Explorez plus de 25 millions d'albums sur Discogs et commencez à construire votre collection personnalisée. Chaque vinyle, CD ou cassette a une histoire à raconter."
+            : `Découvrez de magnifiques ${formatInfo[selectedFormat as keyof typeof formatInfo]?.label.toLowerCase()}s et commencez votre collection. Explorez Discogs pour trouver vos albums préférés.`
+        }
+        icon={
+          selectedFormat === 'ALL'
+            ? Turntable
+            : formatInfo[selectedFormat as keyof typeof formatInfo]?.icon || Turntable
+        }
+        action={{
+          label: `Ajouter ${selectedFormat === 'ALL' ? 'un album' : formatInfo[selectedFormat as keyof typeof formatInfo]?.label.toLowerCase() || 'un album'}`,
+          href: '/explorer',
+        }}
+        secondaryAction={{
+          label: 'Scanner un code-barres',
+          onClick: 'alert("Fonctionnalité à venir")',
+        }}
+      />
+    ) : (
+      <>
+        <div data-items-container class="space-y-10">
+          {Object.entries(itemsByCollection).map(([collectionId, items]) => {
+            const collection = collectionId === 'no-collection'
+              ? null
+              : userCollections.find((c) => c.id === collectionId)
+            
+            return (
+              <section class="space-y-5" data-item-section>
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-border">
+                  <div class="flex items-center gap-3">
+                    <h2 class="text-xl font-bold text-neutral">
+                      {collectionId === 'no-collection'
+                        ? 'Non classés'
+                        : collection?.name}
+                    </h2>
+                    {items.length > 0 && (
+                      <span class="inline-flex items-center justify-center rounded-full bg-surface px-3 py-1 text-xs font-medium text-muted">
+                        {items.length} {items.length === 1 ? 'album' : 'albums'}
+                      </span>
+                    )}
+                  </div>
+                  {collection && (
+                    <a
+                      href={`/collections/${collection.slug}`}
+                      class="inline-flex items-center gap-1 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+                    >
+                      <span>Voir la collection</span>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </a>
+                  )}
+                </div>
+                {items.length === 0 ? (
+                  <div class="glass-card rounded-2xl p-12 text-center border border-border">
+                    <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface">
+                      <svg class="h-8 w-8 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                      </svg>
+                    </div>
+                    <p class="mb-2 text-base font-medium text-neutral">
+                      {collectionId === 'no-collection'
+                        ? 'Aucun album non classé'
+                        : 'Cette collection est vide'}
+                    </p>
+                    <p class="mb-6 text-sm text-muted">
+                      {collectionId === 'no-collection'
+                        ? 'Les albums que vous ajoutez sans sélectionner de collection apparaîtront ici.'
+                        : 'Commencez à ajouter des albums à cette collection pour la remplir.'}
+                    </p>
+                    {collectionId !== 'no-collection' && (
+                      <a
+                        href="/explorer"
+                        class="btn-primary-gradient inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-medium"
+                      >
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Ajouter un album
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <ItemGrid items={items} columns={6} />
+                )}
+              </section>
+            )
+          })}
+        </div>
+
+        <!-- Pagination -->
+        {paginatedResult.pagination.totalPages > 1 && (
+          <div class="mt-12 pt-8 border-t border-border">
+            <Pagination
+              currentPage={paginatedResult.pagination.page}
+              totalPages={paginatedResult.pagination.totalPages}
+              baseUrl="/bibliotheque"
+              queryParams={{
+                format: selectedFormat,
+                sort,
+                ...(genre && { genre }),
+                ...(year && { year }),
+                ...(collectionId && { collection: collectionId }),
+                ...(favoritesOnly && { favorites: 'true' }),
+              }}
+            />
+          </div>
+        )}
+      </>
+    )}
+  </div>
+</DashboardLayout>
+
+<style>
+  /* Amélioration des transitions */
+  .glass-card {
+    transition: all var(--transition-base);
+  }
+
+  .glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Animation pour les sections de collections */
+  [data-item-section] {
+    animation: fadeInUp 0.4s ease-out;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Amélioration des badges de format */
+  a[href*="/bibliotheque?format="] {
+    transition: all var(--transition-base);
+  }
+
+  a[href*="/bibliotheque?format="]:hover {
+    transform: translateY(-1px);
+  }
+</style>

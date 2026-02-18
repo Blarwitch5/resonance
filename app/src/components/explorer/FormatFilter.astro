@@ -1,0 +1,74 @@
+---
+import Turntable from '@lucide/astro/icons/turntable'
+import CassetteTape from '@lucide/astro/icons/cassette-tape'
+import Disc from '@lucide/astro/icons/disc'
+---
+
+<div class="flex flex-wrap gap-3">
+  <button
+    type="button"
+    data-format=""
+    class="format-filter-btn rounded-xl border-2 border-border bg-surface px-4 py-2 font-medium transition-all active"
+    aria-label="All formats"
+  >
+    All
+  </button>
+
+  <button
+    type="button"
+    data-format="VINYL"
+    class="format-filter-btn rounded-xl border-2 border-border bg-surface px-4 py-2 font-medium transition-all flex items-center gap-2"
+    aria-label="Vinyl"
+  >
+    <Turntable size={18} />
+    <span>Vinyl</span>
+  </button>
+
+  <button
+    type="button"
+    data-format="CASSETTE"
+    class="format-filter-btn rounded-xl border-2 border-border bg-surface px-4 py-2 font-medium transition-all flex items-center gap-2"
+    aria-label="Cassette"
+  >
+    <CassetteTape size={18} />
+    <span>Cassette</span>
+  </button>
+
+  <button
+    type="button"
+    data-format="CD"
+    class="format-filter-btn rounded-xl border-2 border-border bg-surface px-4 py-2 font-medium transition-all flex items-center gap-2"
+    aria-label="CD"
+  >
+    <Disc size={18} />
+    <span>CD</span>
+  </button>
+</div>
+
+<script>
+  document.addEventListener('click', (event) => {
+    const target = event.target
+    const button = target.closest('.format-filter-btn')
+    
+    if (!button) return
+
+    const format = button.getAttribute('data-format')
+    
+    // Update active state
+    document.querySelectorAll('.format-filter-btn').forEach((btn) => {
+      btn.classList.remove('active', 'border-primary', 'bg-primary/10')
+      btn.classList.add('border-border', 'bg-surface')
+    })
+    
+    button.classList.add('active', 'border-primary', 'bg-primary/10')
+    button.classList.remove('border-border', 'bg-surface')
+  })
+</script>
+
+<style>
+  .format-filter-btn.active {
+    border-color: var(--color-primary);
+    background-color: oklch(0.55 0.25 280 / 0.1);
+  }
+</style>
+

@@ -1,0 +1,43 @@
+# Cursor Rules for Resonance
+
+## Astro Files - NO Auto-formatting
+
+**CRITICAL**: Never auto-format Astro files. The Cursor Astro plugin corrupts imports.
+
+### Rules:
+- Do NOT format `.astro` files on save
+- Do NOT organize imports in `.astro` files
+- Do NOT modify import statements in `.astro` files
+- Preserve exact import syntax as written
+
+### File Protection:
+All `.astro` files are protected from formatting:
+- `.prettierignore` includes `*.astro`
+- `.vscode/settings.json` disables formatting for Astro
+- `.cursor/settings.json` disables formatting for Astro
+
+### If imports are corrupted:
+1. Restore from git if possible
+2. Manually fix imports (do not use auto-format)
+3. Check Cursor extensions and disable Astro formatter if present
+
+## Variable Naming - No Single Letter Variables
+
+**CRITICAL**: Avoid single-letter variable names. Use descriptive, full-word names instead.
+
+### Rules:
+- NEVER use single-letter variables (e.g., `a`, `f`, `l`, `n`, `s`, `v`)
+- Use descriptive names that clearly indicate the variable's purpose
+- Examples:
+  - ❌ `a` → ✅ `artistItem`, `artist`
+  - ❌ `f` → ✅ `format`, `formatItem`, `formatName`
+  - ❌ `l` → ✅ `label`, `labelItem`
+  - ❌ `n` → ✅ `ratingValue`, `number`, `index`
+  - ❌ `s` → ✅ `statePart`, `stringValue`
+  - ❌ `v` → ✅ `value`, `validFormat`
+  - ❌ `e` → ✅ `event` (acceptable only in event handlers if context is clear)
+  - ❌ `vf` → ✅ `validFormat`
+
+### Exceptions:
+- Loop counters in simple iterations: `i`, `j`, `k` (only when context is extremely clear)
+- Mathematical formulas where single letters are standard (e.g., `x`, `y` in coordinate calculations)
