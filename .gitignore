@@ -75,6 +75,8 @@ dist
 # Gatsby files
 .cache/
 public
+# Exception: Astro public folder should be versioned
+!app/public/
 
 # Storybook build outputs
 .out
