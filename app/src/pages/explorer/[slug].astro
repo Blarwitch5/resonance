@@ -68,8 +68,11 @@ try {
     community: release.community,
   }
 } catch (error) {
-  console.error('Error fetching Discogs release:', error)
-  // Si l'album n'existe pas sur Discogs, rediriger vers explorer
+  const message = error instanceof Error ? error.message : String(error)
+  const isNotFound = message.includes('404') || (error as { statusCode?: number }).statusCode === 404
+  if (!isNotFound) {
+    console.error('Error fetching Discogs release:', error)
+  }
   return Astro.redirect('/explorer')
 }
 
@@ -342,25 +345,30 @@ const coverUrl = release.cover_image || release.thumb || null
 </DashboardLayout>
 
 <script>
-  // TypeScript fonctionne nativement dans les scripts Astro !
-  document.addEventListener('DOMContentLoaded', function() {
-    const btn = document.querySelector('.open-add-modal-btn')
-    const modal = document.getElementById('add-to-collection-modal')
-    if (!btn || !modal) return
+  document.addEventListener('click', (event: MouseEvent) => {
+    const target = event.target as Element | null
+    if (!target) return
 
-    btn.addEventListener('click', function() {
-      const discogsId = btn.getAttribute('data-discogs-id')
-      const redirectOnSuccess = btn.getAttribute('data-redirect-on-success')
-      if (discogsId) {
-        modal.setAttribute('data-discogs-id', discogsId)
-        if (redirectOnSuccess) {
-          modal.setAttribute('data-redirect-on-success', 'true')
-        } else {
-          modal.removeAttribute('data-redirect-on-success')
-        }
-        modal.classList.remove('hidden')
-        ;(modal as HTMLElement).style.display = 'flex'
-      }
-    })
+    const button = target.closest('.open-add-modal-btn') as HTMLButtonElement | null
+    if (!button) return
+
+    const modal = document.getElementById('add-to-collection-modal')
+    if (!modal) return
+
+    event.preventDefault()
+
+    const discogsId = button.getAttribute('data-discogs-id')
+    const redirectOnSuccess = button.getAttribute('data-redirect-on-success')
+
+    if (!discogsId) return
+
+    modal.setAttribute('data-discogs-id', discogsId)
+    if (redirectOnSuccess) {
+      modal.setAttribute('data-redirect-on-success', 'true')
+    } else {
+      modal.removeAttribute('data-redirect-on-success')
+    }
+    modal.classList.remove('hidden')
+    ;(modal as HTMLElement).style.display = 'flex'
   })
 </script>

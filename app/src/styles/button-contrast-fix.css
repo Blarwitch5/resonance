@@ -25,19 +25,7 @@
   stroke: white !important;
 }
 
-/* Boutons avec couleur primaire solide (sans opacité) */
-button.bg-\\[var\\(--color-primary\\)\\],
-a.bg-\\[var\\(--color-primary\\)\\] {
-  color: white !important;
-}
 
-button.bg-\\[var\\(--color-primary\\)\\] *,
-a.bg-\\[var\\(--color-primary\\)\\] *,
-button.bg-\\[var\\(--color-primary\\)\\] svg,
-a.bg-\\[var\\(--color-primary\\)\\] svg {
-  color: white !important;
-  fill: white !important;
-}
 
 /* Boutons rouges solides */
 .bg-red-600,
@@ -82,16 +70,4 @@ a[class*="bg-gradient"]:not([class*="subtle"]):not([class*="light"]) path {
   color: white !important;
   fill: none !important;
   stroke: white !important;
-}
-
-/* Correction spécifique pour les boutons avec bg-[var(--color-primary)] */
-a[class*="bg-\\[var\\(--color-primary\\)\\]"]:not([class*="/"]):not([class*="opacity"]),
-button[class*="bg-\\[var\\(--color-primary\\)\\]"]:not([class*="/"]):not([class*="opacity"]) {
-  color: white !important;
-}
-
-a[class*="bg-\\[var\\(--color-primary\\)\\]"]:not([class*="/"]):not([class*="opacity"]) *,
-button[class*="bg-\\[var\\(--color-primary\\)\\]"]:not([class*="/"]):not([class*="opacity"]) * {
-  color: white !important;
-  fill: white !important;
 }

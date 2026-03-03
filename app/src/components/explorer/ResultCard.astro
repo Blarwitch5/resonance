@@ -12,6 +12,7 @@ type ResultCardProps = {
     thumb?: string
     year?: number
     format?: string[]
+    slug?: string
   }
 }
 
@@ -42,7 +43,7 @@ const [artist, ...titleParts] = result.title.split(' - ')
 const albumTitle = titleParts.join(' - ') || result.title
 const displayFormats = extractDisplayFormats(result.format)
 const formatsText = displayFormats.length > 0 ? displayFormats.join(', ') : ''
-const explorerSlug = buildExplorerSlug(artist, albumTitle, result.year ?? null, result.id)
+const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result.year ?? null, result.id)
 ---
 
 <a

@@ -55,10 +55,9 @@ const iconSizes = {
 </button>
 
 <script>
-  // TypeScript fonctionne nativement dans les scripts Astro !
   (function() {
     // Fonction pour appliquer le thème
-    function applyTheme(): void {
+    function applyTheme() {
       const html = document.documentElement
       const prefersDark =
         typeof matchMedia !== 'undefined' ? matchMedia('(prefers-color-scheme: dark)').matches : false
@@ -71,7 +70,7 @@ const iconSizes = {
     }
 
     // Fonction pour mettre à jour toutes les icônes
-    function updateAllIcons(): void {
+    function updateAllIcons() {
       const html = document.documentElement
       const isDark = html.getAttribute('data-theme') === 'dark'
       
@@ -97,16 +96,15 @@ const iconSizes = {
     }
 
     // Fonction pour initialiser tous les ThemeSwitchers
-    function initThemeSwitchers(): void {
+    function initThemeSwitchers() {
       const toggleButtons = document.querySelectorAll('[data-theme-toggle]')
       
       toggleButtons.forEach(function(button) {
         // Supprimer les anciens listeners pour éviter les doublons
-        const newButton = button.cloneNode(true) as HTMLElement
+        const newButton = button.cloneNode(true)
         button.parentNode?.replaceChild(newButton, button)
         
-        // Ajouter le listener sur le nouveau bouton
-        newButton.addEventListener('click', function(event: MouseEvent) {
+        newButton.addEventListener('click', function(event) {
           event.preventDefault()
           event.stopPropagation()
 

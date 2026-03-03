@@ -5,16 +5,12 @@
 
 <div class="hidden lg:block">
   <script>
-    // TypeScript fonctionne nativement dans les scripts Astro !
     (function () {
-      // Raccourcis clavier
-      const shortcuts = new Map<string, (event: KeyboardEvent) => void>()
+      const shortcuts = new Map()
 
-      // Navigation
-      shortcuts.set('meta+k', (event: KeyboardEvent) => {
+      shortcuts.set('meta+k', (event) => {
         event.preventDefault()
-        // Focus sur la recherche ou ouvrir la recherche globale
-        const searchInput = document.querySelector<HTMLInputElement>('input[type="search"], #search, .search-input')
+        const searchInput = document.querySelector('input[type="search"], #search, .search-input')
         if (searchInput) {
           searchInput.focus()
           searchInput.select()
@@ -24,17 +20,17 @@
         }
       })
 
-      shortcuts.set('meta+n', (event: KeyboardEvent) => {
+      shortcuts.set('meta+n', (event) => {
         event.preventDefault()
         // Ouvrir l'explorer pour ajouter un nouvel album
         window.location.href = '/explorer'
       })
 
       // Fermer modals/overlays avec Escape
-      shortcuts.set('escape', (event: KeyboardEvent) => {
-        const modal = document.querySelector<HTMLElement>('[role="dialog"], .modal, .popup')
+      shortcuts.set('escape', (event) => {
+        const modal = document.querySelector('[role="dialog"], .modal, .popup')
         if (modal && !modal.classList.contains('hidden')) {
-          const closeButton = modal.querySelector<HTMLElement>('[aria-label*="Close"], [aria-label*="Fermer"], button[data-close]')
+          const closeButton = modal.querySelector('[aria-label*="Close"], [aria-label*="Fermer"], button[data-close]')
           if (closeButton) {
             closeButton.click()
           } else {
@@ -44,7 +40,7 @@
       })
 
       // Navigation avec les flèches (à implémenter selon le contexte)
-      shortcuts.set('arrowright', (event: KeyboardEvent) => {
+      shortcuts.set('arrowright', (event) => {
         // Navigation vers l'item suivant (si on est dans une collection)
         if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
           return // Ne pas intercepter si on est dans un input
@@ -61,11 +57,11 @@
         }
       })
 
-      shortcuts.set('arrowleft', (event: KeyboardEvent) => {
+      shortcuts.set('arrowleft', (event) => {
         if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
           return
         }
-        const prevItem = document.querySelector<HTMLElement>('[data-item-index]:focus, .item-card:hover')
+        const prevItem = document.querySelector('[data-item-index]:focus, .item-card:hover')
         if (prevItem) {
           const allItems = Array.from(document.querySelectorAll('[data-item-index]'))
           const currentIndex = allItems.indexOf(prevItem)
@@ -78,7 +74,7 @@
       })
 
       // Gestionnaire global
-      document.addEventListener('keydown', function (event: KeyboardEvent) {
+      document.addEventListener('keydown', function (event) {
         const key = event.key.toLowerCase()
         const metaKey = event.metaKey || event.ctrlKey
 
@@ -95,7 +91,7 @@
       })
 
       // Afficher les raccourcis disponibles (⌘+?)
-      document.addEventListener('keydown', function (event: KeyboardEvent) {
+      document.addEventListener('keydown', function (event) {
         if ((event.metaKey || event.ctrlKey) && event.key === '?') {
           event.preventDefault()
           // Afficher une modal avec les raccourcis disponibles

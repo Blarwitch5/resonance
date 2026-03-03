@@ -18,6 +18,16 @@ body {
 @import './design-tokens.css';
 @import './button-styles.css';
 @import './button-contrast-fix.css';
+
+/* Masquer les scrollbars pour certains conteneurs scrollables (ex: tabs profil) */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE et Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
 /* Animations Resonance */
 @keyframes resonance-pulse {
   0%,

@@ -81,20 +81,20 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
   </div>
 </div>
 
-<script lang="ts">
+<script>
   (function() {
     const menuWrapper = document.querySelector('.item-actions-menu')
     if (!menuWrapper) return
 
     const menuTrigger = menuWrapper.querySelector('[data-menu-trigger]')
     const menuDropdown = menuWrapper.querySelector('[data-menu-dropdown]')
-    const favoriteBtn = menuWrapper.querySelector('.favorite-btn') as HTMLElement | null
+    const favoriteBtn = menuWrapper.querySelector('.favorite-btn')
     const removeFromCollectionBtn = menuWrapper.querySelector(
       '[data-action="remove-from-collection"]'
-    ) as HTMLElement | null
+    )
     const deleteBtn = menuWrapper.querySelector('[data-action="delete"]')
 
-    const itemId = (favoriteBtn as HTMLElement)?.dataset.itemId
+    const itemId = favoriteBtn?.dataset?.itemId
     if (!itemId) return
 
     // Toggle menu
@@ -106,7 +106,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
 
       // Fermer le menu en cliquant ailleurs
       document.addEventListener('click', (event) => {
-        if (!menuWrapper.contains(event.target as Node)) {
+        if (!menuWrapper.contains(event.target)) {
           menuDropdown.classList.add('hidden')
         }
       })
@@ -115,7 +115,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
     // Toggle favoris
     if (favoriteBtn) {
       favoriteBtn.addEventListener('click', async () => {
-        const isFavorite = (favoriteBtn as HTMLElement).dataset.isFavorite === 'true'
+        const isFavorite = favoriteBtn?.dataset?.isFavorite === 'true'
 
         try {
           const response = await fetch(`/api/items/${itemId}/toggle-favorite`, {
@@ -133,7 +133,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
           const newIsFavorite = data.isFavorite
 
           // Mettre à jour l'UI
-          (favoriteBtn as HTMLElement).dataset.isFavorite = newIsFavorite.toString()
+          if (favoriteBtn) favoriteBtn.dataset.isFavorite = newIsFavorite.toString()
           const heartIcon = favoriteBtn.querySelector('svg')
           const text = favoriteBtn.querySelector('span:last-child')
 

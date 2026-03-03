@@ -51,11 +51,14 @@ const tabs: TabItem[] = [
 ]
 ---
 
+<!-- Barre flottante style Floating Bottom Navigation (mobile uniquement) -->
 <nav
   aria-label="Navigation principale"
-  class="bottom-bar fixed bottom-0 left-0 right-0 z-50 border-t border-border/20 bg-surface-elevated shadow-lg backdrop-blur-sm transition-colors duration-200 md:hidden"
+  class="bottom-bar fixed bottom-6 left-4 right-4 z-50 mx-auto max-w-sm rounded-[1.75rem] md:hidden"
 >
-  <div class="mx-auto flex w-full items-center justify-between px-4 py-2 sm:max-w-md sm:justify-center sm:gap-2">
+  <div
+    class="flex items-center justify-between gap-1 rounded-[1.75rem] border border-border/30 bg-surface-elevated/95 px-2 py-2 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] backdrop-blur-md transition-colors duration-200 dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.06)_inset]"
+  >
     {
       tabs.map((tab: TabItem) => {
         const IconComponent = tab.icon
@@ -64,16 +67,20 @@ const tabs: TabItem[] = [
         return (
           <a
             href={tab.href}
-            class={`group relative flex flex-1 items-center justify-center gap-2 rounded-xl px-2 py-2 transition-all duration-300 sm:flex-none sm:px-3 ${
+            class={`group relative flex flex-1 items-center justify-center gap-2 rounded-2xl px-3 py-2.5 transition-all duration-200 ${
               isActive
-                ? 'bg-gradient-resonance shadow-primary/25 text-white shadow-lg'
-                : 'text-muted hover:bg-surface/50 hover:text-primary'
+                ? 'bg-primary/12 text-primary shadow-sm'
+                : 'text-neutral hover:bg-primary/10 hover:text-primary active:scale-[0.98]'
             }`}
             aria-label={tab.label}
             aria-current={isActive ? 'page' : undefined}
           >
-            <IconComponent size={20} class={`fill-none stroke-2 ${isActive ? 'text-white stroke-white' : ''}`} aria-hidden="true" />
-            <span class={`text-sm font-medium whitespace-nowrap ${isActive ? 'text-white' : ''} hidden sm:inline`}>
+            <IconComponent
+              size={22}
+              class={`fill-none stroke-2 shrink-0 ${isActive ? 'text-primary stroke-primary' : 'text-neutral stroke-neutral group-hover:text-primary group-hover:stroke-primary'}`}
+              aria-hidden="true"
+            />
+            <span class="text-sm font-medium whitespace-nowrap hidden sm:inline">
               {tab.label}
             </span>
           </a>
@@ -83,5 +90,5 @@ const tabs: TabItem[] = [
   </div>
 </nav>
 
-<!-- Espace pour la bottom bar sur mobile -->
-<div class="h-20 md:hidden"></div>
+<!-- Espace réservé pour la barre flottante (éviter que le contenu passe en dessous) -->
+<div class="h-24 md:hidden" aria-hidden="true"></div>

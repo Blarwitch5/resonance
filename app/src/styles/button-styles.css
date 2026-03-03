@@ -79,7 +79,6 @@
   .btn-danger svg,
   .btn-danger span {
     color: white !important;
-    fill: white !important;
   }
 
   .btn-danger:hover:not(:disabled) {
@@ -94,7 +93,6 @@
   .btn-danger:hover:not(:disabled) svg,
   .btn-danger:hover:not(:disabled) span {
     color: white !important;
-    fill: white !important;
   }
 
   .btn-danger:disabled {

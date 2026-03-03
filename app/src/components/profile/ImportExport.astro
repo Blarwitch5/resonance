@@ -66,9 +66,9 @@
 <script>
   // TypeScript fonctionne nativement dans les scripts Astro !
   (function() {
-    function initImportExport(): void {
-      const exportBtn = document.getElementById('export-btn') as HTMLButtonElement | null
-      const importFile = document.getElementById('import-file') as HTMLInputElement | null
+    function initImportExport() {
+      const exportBtn = document.getElementById('export-btn')
+      const importFile = document.getElementById('import-file')
 
       // Export
       if (exportBtn) {
@@ -112,7 +112,7 @@
       // Import
       if (importFile) {
         importFile.addEventListener('change', async function(event: Event) {
-          const target = event.target as HTMLInputElement | null
+          const target = event.target
           if (!target || target.nodeName !== 'INPUT') return
           const input = target
           const file = input.files && input.files[0]

@@ -36,7 +36,6 @@
 </div>
 
 <script>
-  // TypeScript fonctionne nativement dans les scripts Astro !
   (function() {
     const dialog = document.getElementById('confirm-dialog')
     const title = document.getElementById('confirm-dialog-title')
@@ -48,9 +47,9 @@
       return
     }
 
-    let resolvePromise: ((value: boolean) => void) | null = null
+    let resolvePromise = null
 
-    function showDialog(dialogTitle: string, dialogMessage: string, confirmText?: string, cancelText?: string): Promise<boolean> {
+    function showDialog(dialogTitle, dialogMessage, confirmText, cancelText) {
       if (!dialog || !title || !message || !confirmBtn || !cancelBtn) {
         return Promise.resolve(false)
       }
@@ -72,7 +71,7 @@
       })
     }
 
-    function hideDialog(): void {
+    function hideDialog() {
       if (!dialog) return
       dialog.classList.add('hidden')
       dialog.classList.remove('flex')
@@ -95,7 +94,7 @@
     })
 
     // Fermer en cliquant sur l'overlay
-    dialog.addEventListener('click', function(event: MouseEvent) {
+    dialog.addEventListener('click', function(event) {
       if (event.target === dialog) {
         hideDialog()
         if (resolvePromise) {
@@ -106,7 +105,7 @@
     })
 
     // Fermer avec Escape
-    document.addEventListener('keydown', function(event: KeyboardEvent) {
+    document.addEventListener('keydown', function(event) {
       if (event.key === 'Escape' && !dialog.classList.contains('hidden')) {
         hideDialog()
         if (resolvePromise) {

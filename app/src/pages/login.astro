@@ -35,7 +35,7 @@ export const prerender = false
         </a>
       </div>
 
-      <form method="POST" action="/api/auth/sign-in" class="glass-card space-y-6 rounded-2xl p-8">
+      <form method="POST" action="/api/auth/sign-in/email" class="glass-card space-y-6 rounded-2xl p-8">
         <div>
           <label for="email" class="mb-2 block text-sm font-medium text-neutral">
             Email
@@ -121,7 +121,7 @@ export const prerender = false
 <script lang="ts">
   // Toggle password visibility
   const togglePasswordButton = document.getElementById('toggle-password')
-  const passwordInput = document.getElementById('password') as HTMLInputElement | null
+  const passwordInput = document.getElementById('password')
   const eyeIcon = document.getElementById('eye-icon')
   const eyeOffIcon = document.getElementById('eye-off-icon')
 
@@ -145,7 +145,7 @@ export const prerender = false
   }
 
   // Form submission
-  const form = document.querySelector('form[action="/api/auth/sign-in"]') as HTMLFormElement | null
+  const form = document.querySelector('form[action="/api/auth/sign-in/email"]')
 
   if (form) {
     form.addEventListener('submit', async function(event) {
@@ -163,30 +163,32 @@ export const prerender = false
       }
 
       try {
-        // Use better-auth client for sign in
-        const { signIn } = await import('../lib/auth-client')
-        const result = await signIn.email({
-          email: String(email),
-          password: String(password),
+        const body = new URLSearchParams()
+        body.append('email', String(email))
+        body.append('password', String(password))
+
+        const response = await fetch('/api/auth/sign-in/email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: body.toString(),
+          credentials: 'include',
         })
 
-      if (result.error) {
-        // Handle better-auth errors
-        if (window.toast) {
-          window.toast.error(result.error.message || 'Erreur lors de la connexion')
-        } else {
-          const errorDiv = document.createElement('div')
-          errorDiv.className = 'mt-4 rounded-lg border border-red-500 bg-red-500/10 p-4 text-red-500'
-          errorDiv.textContent = `Error: ${result.error.message || result.error}`
-          form?.insertAdjacentElement('beforebegin', errorDiv)
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}))
+          const message = data.message || data.error || 'Erreur lors de la connexion'
+          if (window.toast) {
+            window.toast.error(message)
+          } else {
+            const errorDiv = document.createElement('div')
+            errorDiv.className = 'mt-4 rounded-lg border border-red-500 bg-red-500/10 p-4 text-red-500'
+            errorDiv.textContent = message
+            form.insertAdjacentElement('beforebegin', errorDiv)
+          }
+          return
         }
-        return
-      }
 
-      // Store login success in sessionStorage for toast on redirect
-      sessionStorage.setItem('showWelcomeToast', 'true')
-      
-        // Redirect to home on success
+        sessionStorage.setItem('showWelcomeToast', 'true')
         document.location.href = '/'
       } catch (error) {
         console.error('Error signing in:', error)

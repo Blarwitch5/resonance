@@ -4,6 +4,7 @@ import Toast from '../ui/Toast.astro'
 import Sidebar from '../ui/Sidebar.astro'
 import AppHeader from '../ui/AppHeader.astro'
 import Logo from '../ui/Logo.astro'
+import Menu from '@lucide/astro/icons/menu'
 import KeyboardShortcuts from '../ui/KeyboardShortcuts.astro'
 import BarcodeScanner from '../ui/BarcodeScanner.astro'
 import ConfirmDialog from '../ui/ConfirmDialog.astro'
@@ -127,6 +128,19 @@ function getWelcomeMessage(userName: string | null | undefined, userEmail: strin
     <!-- Main content area (min-w-0 allows flex child to shrink on mobile, avoiding horizontal overflow) -->
     <div class="min-w-0 flex-1 lg:ml-0">
       <div class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <!-- Toggle sidebar (tablette uniquement : 768–1024) -->
+        <div class="hidden md:flex lg:hidden mb-4">
+          <button
+            type="button"
+            id="sidebar-toggle-btn"
+            class="flex items-center justify-center gap-2 rounded-xl border border-border/30 bg-surface-elevated/95 px-4 py-2.5 text-sm font-medium text-neutral shadow-sm transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            aria-label="Ouvrir le menu"
+            aria-expanded="false"
+          >
+            <Menu size={20} class="fill-none stroke-2 shrink-0" />
+            <span>Menu</span>
+          </button>
+        </div>
         <!-- Logo et titre (desktop seulement) -->
         <div class="hidden md:block mb-6">
           <!-- Logo animé -->
@@ -182,8 +196,7 @@ function getWelcomeMessage(userName: string | null | undefined, userEmail: strin
   <BarcodeScanner />
 
   <!-- Loading utilities script -->
-  <script lang="ts">
-    // Loading utilities - make available globally
+  <script>
     function setButtonLoading(button: HTMLElement | null, isLoading: boolean, originalText?: string) {
       if (!button) return
 

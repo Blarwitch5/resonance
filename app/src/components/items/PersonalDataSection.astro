@@ -128,7 +128,7 @@ const acquisitionDateStr =
             <div class="mt-2 flex flex-wrap gap-2">
               {tags.map((tag) => (
                 <span
-                  class="rounded-full bg-surface-elevated px-3 py-1 text-sm text-neutral"
+                  class="inline-flex items-center rounded-full border border-primary/40 bg-primary/15 px-3 py-1 text-sm text-primary"
                 >
                   {tag}
                 </span>
@@ -222,15 +222,15 @@ const acquisitionDateStr =
       <label class="mb-2 block text-sm font-medium text-neutral">
         Ma note (1–5)
       </label>
-      <div class="flex items-center gap-2" data-star-rating>
+      <div class="star-rating-container flex items-center gap-1" data-star-rating>
         {[1, 2, 3, 4, 5].map((ratingValue) => (
           <button
             type="button"
-            class="star-btn rounded p-1 text-muted transition-colors hover:text-primary"
+            class="star-btn star-outlined rounded p-1 transition-colors duration-150"
             data-value={ratingValue}
             aria-label={`${ratingValue} étoile${ratingValue > 1 ? 's' : ''}`}
           >
-            <Star size={24} />
+            <Star size={28} class="pointer-events-none" />
           </button>
         ))}
         <input type="hidden" name="personalRating" id={`personal-rating-value-${itemId}`} value={metadata?.personalRating != null ? Math.round(Number(metadata.personalRating)) : ''} />
@@ -241,15 +241,19 @@ const acquisitionDateStr =
       <label for="tags-input" class="mb-2 block text-sm font-medium text-neutral">
         Tags personnalisés
       </label>
-      <div class="tags-container flex flex-wrap gap-2 rounded-xl border border-border bg-surface p-3">
-        <template data-tags-list></template>
+      <p class="mb-2 text-xs text-muted">
+        Saisissez un tag puis appuyez sur <kbd class="rounded border border-border bg-surface-elevated px-1.5 py-0.5 font-mono text-[10px]">Entrée</kbd> ou <kbd class="rounded border border-border bg-surface-elevated px-1.5 py-0.5 font-mono text-[10px]">,</kbd> pour l'ajouter. Vous pouvez en ajouter plusieurs d'un coup en les séparant par des virgules (max 10 tags, 50 caractères chacun).
+      </p>
+      <div class="tags-container flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface p-3 min-h-[44px]">
+        <div class="tags-badges-container flex flex-wrap gap-2 empty:hidden" data-tags-badges-container></div>
         <input
           type="text"
           id="tags-input"
-          class="min-w-[120px] flex-1 rounded-lg border-0 bg-transparent px-2 py-1 text-neutral placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary/50"
-          placeholder="Ajouter un tag..."
+          class="min-w-[140px] flex-1 rounded-lg border-0 bg-transparent px-2 py-1.5 text-sm text-neutral placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary/50"
+          placeholder="Ex. vinyl, édition limitée, 2024"
           maxlength="50"
           data-tags-input
+          autocomplete="off"
         />
       </div>
       <input type="hidden" name="customTags" id={`custom-tags-value-${itemId}`} value={JSON.stringify(tags)} />
@@ -274,7 +278,7 @@ const acquisitionDateStr =
 </section>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  function initPersonalDataSection() {
     const section = document.querySelector('.personal-data-section')
     if (!section) return
 
@@ -320,62 +324,105 @@ const acquisitionDateStr =
 
     if (starContainer && starValueInput) {
       var rating = parseInt(starValueInput.value, 10) || 0
+      var hoverIndex = null
+
       function updateStarDisplay() {
         var stars = starContainer.querySelectorAll('.star-btn')
         stars.forEach(function(btn) {
           var value = parseInt(btn.getAttribute('data-value'), 10)
-          if (value <= rating) {
-            btn.classList.add('text-primary', 'star-filled')
+          btn.classList.remove('star-outlined', 'star-filled-primary', 'star-filled-secondary')
+          if (hoverIndex !== null) {
+            if (value <= rating) {
+              btn.classList.add('star-filled-primary')
+            } else if (value <= hoverIndex) {
+              btn.classList.add('star-filled-secondary')
+            } else {
+              btn.classList.add('star-outlined')
+            }
           } else {
-            btn.classList.remove('text-primary', 'star-filled')
+            if (value <= rating) {
+              btn.classList.add('star-filled-primary')
+            } else {
+              btn.classList.add('star-outlined')
+            }
           }
         })
       }
+
       updateStarDisplay()
+
       starContainer.querySelectorAll('.star-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
           rating = parseInt(btn.getAttribute('data-value'), 10)
-          starValueInput.value = rating
+          starValueInput.value = String(rating)
+          hoverIndex = null
           updateStarDisplay()
         })
+        btn.addEventListener('mouseenter', function() {
+          hoverIndex = parseInt(btn.getAttribute('data-value'), 10)
+          updateStarDisplay()
+        })
+      })
+
+      starContainer.addEventListener('mouseleave', function() {
+        hoverIndex = null
+        updateStarDisplay()
       })
     }
 
     if (tagsInput && customTagsValue) {
+      var badgesContainer = section.querySelector('[data-tags-badges-container]')
+      if (!badgesContainer) badgesContainer = tagsInput.parentElement
+
+      function addTagsFromString(str) {
+        var parts = str.split(',').map(function(s) { return s.trim() }).filter(Boolean)
+        var added = 0
+        for (var i = 0; i < parts.length && currentTags.length < 10; i++) {
+          var tag = parts[i].slice(0, 50)
+          if (tag && currentTags.indexOf(tag) === -1) {
+            currentTags.push(tag)
+            added++
+          }
+        }
+        if (added > 0) {
+          customTagsValue.value = JSON.stringify(currentTags)
+          renderTags()
+        }
+      }
+
       function renderTags() {
-        var container = tagsInput.parentElement
-        var list = container.querySelector('.tags-badges')
-        if (list) list.remove()
-        var wrap = document.createElement('div')
-        wrap.className = 'tags-badges flex flex-wrap gap-2'
-        currentTags.forEach(function(tag, index) {
-          var span = document.createElement('span')
-          span.className = 'inline-flex items-center gap-1 rounded-full bg-primary/20 px-3 py-1 text-sm text-primary'
-          span.textContent = tag
-          var remove = document.createElement('button')
-          remove.type = 'button'
-          remove.className = 'ml-1 rounded p-0.5 hover:bg-primary/30'
-          remove.textContent = '×'
-          remove.addEventListener('click', function() {
-            currentTags.splice(index, 1)
+        badgesContainer.innerHTML = ''
+        currentTags.forEach(function(tag) {
+          var pill = document.createElement('span')
+          pill.className = 'tag-pill inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/15 px-3 py-1 text-sm text-primary'
+          pill.setAttribute('data-tag', tag)
+          var text = document.createElement('span')
+          text.textContent = tag
+          pill.appendChild(text)
+          var removeBtn = document.createElement('button')
+          removeBtn.type = 'button'
+          removeBtn.className = 'tag-remove -mr-0.5 flex h-5 w-5 items-center justify-center rounded-full text-muted transition-colors hover:bg-primary/25 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/50'
+          removeBtn.setAttribute('aria-label', 'Supprimer le tag « ' + tag + ' »')
+          removeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
+          removeBtn.addEventListener('click', function() {
+            currentTags = currentTags.filter(function(t) { return t !== tag })
             customTagsValue.value = JSON.stringify(currentTags)
             renderTags()
           })
-          span.appendChild(remove)
-          wrap.appendChild(span)
+          pill.appendChild(removeBtn)
+          badgesContainer.appendChild(pill)
         })
-        container.insertBefore(wrap, tagsInput)
       }
+
       renderTags()
+
       tagsInput.addEventListener('keydown', function(event) {
         if (event.key === 'Enter' || event.key === ',') {
           event.preventDefault()
-          var value = tagsInput.value.trim().replace(/,$/, '')
-          if (value && currentTags.length < 10) {
-            currentTags.push(value)
-            customTagsValue.value = JSON.stringify(currentTags)
+          var value = tagsInput.value.trim()
+          if (value) {
+            addTagsFromString(value)
             tagsInput.value = ''
-            renderTags()
           }
         }
       })
@@ -440,12 +487,51 @@ const acquisitionDateStr =
         }
       })
     }
-  })
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPersonalDataSection)
+  } else {
+    initPersonalDataSection()
+  }
+  document.addEventListener('astro:page-load', initPersonalDataSection)
 </script>
 
 <style>
-  .star-btn.star-filled svg {
+  /* Outlined : pas de note ou étoile non sélectionnée */
+  .star-btn.star-outlined svg {
     fill: none;
-    stroke: currentColor;
+    stroke: var(--color-muted);
+    stroke-width: 2;
+  }
+  .star-btn.star-outlined:hover svg {
+    stroke: var(--color-primary);
+  }
+
+  /* Filled primary : sélectionné */
+  .star-btn.star-filled-primary svg {
+    fill: var(--color-primary);
+    stroke: var(--color-primary);
+    stroke-width: 2;
+  }
+
+  /* Filled secondary : prévisualisation au hover (au-delà de la note actuelle) */
+  .star-btn.star-filled-secondary svg {
+    fill: var(--color-secondary);
+    stroke: var(--color-secondary);
+    stroke-width: 2;
+  }
+
+  /* Tags : masquer le conteneur des badges quand vide */
+  [data-tags-badges-container]:empty {
+    display: none;
+  }
+  .tag-pill {
+    max-width: 100%;
+  }
+  .tag-pill > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 </style>

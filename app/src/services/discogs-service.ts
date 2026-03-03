@@ -247,7 +247,13 @@ export class DiscogsService {
         }
 
         if (!response.ok) {
-          // Pour les erreurs de rate limiting (429), attendre et réessayer
+          // 404 / 4xx : ne pas réessayer
+          if (response.status === 404 || (response.status >= 400 && response.status < 500)) {
+            const error = new Error(`Discogs API error: ${response.status} ${response.statusText}`) as Error & { statusCode?: number }
+            error.statusCode = response.status
+            throw error
+          }
+          // Rate limiting (429) : attendre et réessayer
           if (response.status === 429 && attempt < retries) {
             const retryAfter = response.headers.get('Retry-After')
             const delay = retryAfter ? Number.parseInt(retryAfter) * 1000 : 2000
@@ -268,12 +274,15 @@ export class DiscogsService {
 
         return data
       } catch (error) {
-        // Si c'est la dernière tentative, lancer l'erreur
+        const err = error as Error & { statusCode?: number }
+        // 404 / 4xx : ne pas réessayer, relancer tel quel
+        if (err.statusCode === 404 || (err.statusCode != null && err.statusCode >= 400 && err.statusCode < 500)) {
+          throw error
+        }
         if (attempt === retries) {
           console.error('Error fetching from Discogs:', error)
           throw error
         }
-        // Sinon, continuer la boucle pour réessayer
         console.warn(`Discogs API error, retrying... (attempt ${attempt + 1}/${retries + 1})`)
       }
     }
@@ -298,7 +307,28 @@ export class DiscogsService {
       params.format = formatMap[format]
     }
 
-    // Cache de 5 minutes pour les recherches
+    const results: DiscogsSearchResult = await this.fetchDiscogs(
+      '/database/search',
+      params,
+      2,
+      true,
+      300000,
+    )
+    return results
+  }
+
+  /**
+   * Recherche Discogs par code-barres uniquement (paramètre barcode de l’API).
+   * Ne mélange pas avec la recherche texte (q).
+   */
+  async searchByBarcode(barcode: string, page = 1, perPage = 10) {
+    const normalized = barcode.trim().replace(/\s+/g, ' ')
+    const params: Record<string, string> = {
+      barcode: normalized,
+      type: 'release',
+      page: page.toString(),
+      per_page: perPage.toString(),
+    }
     const results: DiscogsSearchResult = await this.fetchDiscogs(
       '/database/search',
       params,
@@ -329,7 +359,8 @@ export class DiscogsService {
         const popularTerms = ['rock', 'jazz', 'electronic', 'pop', 'classical']
         const randomTerm = popularTerms[Math.floor(Math.random() * popularTerms.length)]
         const results = await this.search(randomTerm, undefined, 1, limit)
-        return results.results || []
+        const onlyReleases = (results.results || []).filter((item) => item.type === 'release')
+        return onlyReleases
       }
 
       // Rechercher des albums dans les genres de l'utilisateur
@@ -337,7 +368,8 @@ export class DiscogsService {
         genres.slice(0, 3).map(async (genre) => {
           try {
             const results = await this.search(genre, undefined, 1, Math.ceil(limit / genres.length))
-            return results.results || []
+            const onlyReleases = (results.results || []).filter((item) => item.type === 'release')
+            return onlyReleases
           } catch (error) {
             console.warn(`Error searching for genre "${genre}":`, error)
             return []

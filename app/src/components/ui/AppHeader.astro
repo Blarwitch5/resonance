@@ -113,16 +113,15 @@ const hasUser = !!userName || !!userEmail
 </header>
 
 <script>
-  // TypeScript fonctionne nativement dans les scripts Astro !
   (function() {
     // Gérer l'ouverture/fermeture du menu dropdown
-    const userMenuTrigger = document.querySelector('.group a[href="/profil"]') as HTMLElement | null
+    const userMenuTrigger = document.querySelector('.group a[href="/profil"]')
     const userMenuDropdown = document.getElementById('user-menu-dropdown')
     
     if (userMenuTrigger && userMenuDropdown) {
       // Sur mobile : toggle au clic
       if (window.innerWidth < 768) {
-        userMenuTrigger.addEventListener('click', function(event: MouseEvent) {
+        userMenuTrigger.addEventListener('click', function(event) {
           event.preventDefault()
           const isHidden = userMenuDropdown.classList.contains('hidden')
           
@@ -141,8 +140,8 @@ const hasUser = !!userName || !!userEmail
         })
         
         // Fermer le menu en cliquant ailleurs
-        document.addEventListener('click', function(event: MouseEvent) {
-          const target = event.target as Node | null
+        document.addEventListener('click', function(event) {
+          const target = event.target
           if (target && !userMenuTrigger.contains(target) && !userMenuDropdown.contains(target)) {
             userMenuDropdown.classList.add('hidden')
           }
@@ -153,7 +152,7 @@ const hasUser = !!userName || !!userEmail
     // Gérer le bouton de déconnexion dans le header
     const signOutBtn = document.getElementById('header-signout-btn')
     if (signOutBtn) {
-      signOutBtn.addEventListener('click', async function(event: MouseEvent) {
+      signOutBtn.addEventListener('click', async function(event) {
         event.preventDefault()
         event.stopPropagation()
         

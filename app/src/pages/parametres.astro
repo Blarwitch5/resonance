@@ -6,6 +6,7 @@ import Camera from '@lucide/astro/icons/camera'
 import Pencil from '@lucide/astro/icons/pencil'
 import Check from '@lucide/astro/icons/check'
 import X from '@lucide/astro/icons/x'
+import ArrowLeft from '@lucide/astro/icons/arrow-left'
 
 const session = Astro.locals.session
 const user = Astro.locals.user
@@ -19,7 +20,14 @@ if (!session || !user) {
   <div class="mx-auto max-w-4xl space-y-8">
     <!-- En-tête -->
     <div>
-      <h1 class="text-3xl font-bold text-neutral mb-2">Paramètres</h1>
+      <a
+        href="/profil"
+        class="mb-3 inline-flex items-center gap-2 text-sm text-muted transition-colors hover:text-primary"
+      >
+        <ArrowLeft size={16} />
+        <span>Retour au profil</span>
+      </a>
+      <h1 class="text-3xl font-bold text-neutral mb-1">Paramètres</h1>
       <p class="text-muted">Gérez vos préférences et paramètres de compte</p>
     </div>
 
@@ -265,45 +273,51 @@ if (!session || !user) {
       
       <div class="space-y-4">
         <!-- Export de données -->
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-3 border-b border-border/60 pb-4 md:flex-row md:items-center md:justify-between md:border-b-0 md:pb-0">
           <div>
             <h3 class="font-medium text-neutral mb-1">Exporter mes données</h3>
             <p class="text-sm text-muted">Téléchargez toutes vos collections et données au format JSON</p>
           </div>
-          <button
-            id="export-data-btn"
-            class="btn-secondary-surface px-4 py-2 rounded-lg"
-          >
-            Exporter
-          </button>
+          <div>
+            <button
+              id="export-data-btn"
+              class="btn-secondary-surface w-full px-4 py-2 rounded-lg md:w-auto"
+            >
+              Exporter
+            </button>
+          </div>
         </div>
 
         <!-- Supprimer toutes les données -->
-        <div class="flex items-center justify-between border-t border-border pt-4">
+        <div class="flex flex-col gap-3 border-b border-border/60 pt-4 pb-4 md:flex-row md:items-center md:justify-between md:border-b-0 md:pt-4 md:pb-0">
           <div>
             <h3 class="font-medium text-neutral mb-1">Supprimer toutes les données</h3>
             <p class="text-sm text-muted">Supprime toutes vos collections et items, mais conserve votre compte</p>
           </div>
-          <button
-            id="delete-all-data-btn"
-            class="btn-danger px-4 py-2 rounded-lg"
-          >
-            Supprimer les données
-          </button>
+          <div>
+            <button
+              id="delete-all-data-btn"
+              class="btn-danger w-full px-4 py-2 rounded-lg md:w-auto"
+            >
+              Supprimer les données
+            </button>
+          </div>
         </div>
 
         <!-- Supprimer le compte -->
-        <div class="flex items-center justify-between border-t border-border pt-4">
+        <div class="flex flex-col gap-3 border-t border-border pt-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h3 class="font-medium text-neutral mb-1">Supprimer mon compte</h3>
             <p class="text-sm text-muted">Cette action est irréversible et supprimera définitivement votre compte et toutes vos données</p>
           </div>
-          <button
-            id="delete-account-btn"
-            class="btn-danger px-4 py-2 rounded-lg"
-          >
-            Supprimer le compte
-          </button>
+          <div>
+            <button
+              id="delete-account-btn"
+              class="btn-danger w-full px-4 py-2 rounded-lg md:w-auto"
+            >
+              Supprimer le compte
+            </button>
+          </div>
         </div>
       </div>
     </section>

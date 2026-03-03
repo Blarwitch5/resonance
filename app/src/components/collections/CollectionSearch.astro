@@ -24,7 +24,7 @@ import X from '@lucide/astro/icons/x'
   </button>
 </div>
 
-<script lang="ts">
+<script>
   document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('collection-search')
     const clearButton = document.getElementById('clear-search')
@@ -33,7 +33,7 @@ import X from '@lucide/astro/icons/x'
 
     if (!searchInput) return
 
-    function performSearch(query: string) {
+    function performSearch(query) {
       const searchTerm = query.toLowerCase().trim()
       let visibleCount = 0
 

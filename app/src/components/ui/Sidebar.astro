@@ -16,6 +16,7 @@ import FolderOpen from '@lucide/astro/icons/folder-open'
 import Logo from './Logo.astro'
 import ThemeSwitcher from './ThemeSwitcher.astro'
 import Avatar from './Avatar.astro'
+import X from '@lucide/astro/icons/x'
 
 type SidebarProps = {
   userName?: string | null
@@ -127,15 +128,33 @@ const navItems: NavItem[] = [
 ]
 ---
 
+<!-- Backdrop (tablette uniquement, quand sidebar ouverte) -->
+<div
+  data-sidebar-backdrop
+  class="sidebar-backdrop fixed inset-0 z-30 hidden bg-black/20 backdrop-blur-sm"
+  aria-hidden="true"
+></div>
+
 <aside
   id="sidebar"
-  class="sidebar fixed left-0 top-0 z-40 hidden h-screen w-64 border-r border-border/20 bg-surface-elevated transition-all duration-300 lg:block"
+  class="sidebar fixed left-4 top-4 bottom-4 z-40 hidden h-[calc(100vh-2rem)] w-64 flex-col rounded-2xl border border-border/30 bg-surface-elevated/95 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.15),0_0_0_1px_rgba(255,255,255,0.05)_inset] backdrop-blur-md transition-transform duration-300 md:!flex lg:translate-x-0 dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.06)_inset]"
   aria-label="Navigation principale"
+  data-sidebar-panel
 >
-  <div class="flex h-full flex-col">
-    <!-- Logo -->
-    <div class="p-6">
-      <Logo size="md" showText={true} noHover={true} />
+  <div class="flex h-full flex-col overflow-hidden rounded-2xl">
+    <!-- En-tête : logo + bouton fermer (tablette) -->
+    <div class="flex items-center justify-between gap-2 p-4">
+      <div class="min-w-0 flex-1">
+        <Logo size="md" showText={true} noHover={true} />
+      </div>
+      <button
+        type="button"
+        id="sidebar-close-btn"
+        class="sidebar-close-btn -mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-neutral transition-colors hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 lg:hidden"
+        aria-label="Fermer le menu"
+      >
+        <X size={20} class="fill-none stroke-2" />
+      </button>
     </div>
 
     <!-- Navigation -->
@@ -147,33 +166,33 @@ const navItems: NavItem[] = [
           const hasChildren = item.children && item.children.length > 0
 
           return (
-            <li>
+            <li class={hasChildren ? 'sidebar-item sidebar-item-has-children' : 'sidebar-item'}>
               <a
                 href={item.href}
-                class={`group flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                class={`group flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 ${
                   isParentActive && !activeItem.child
-                    ? 'bg-gradient-resonance text-white shadow-lg shadow-primary/20'
-                    : 'text-muted hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2'
+                    ? 'border-l-2 border-primary bg-primary/10 text-primary'
+                    : 'border-l-2 border-transparent text-neutral hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2'
                 }`}
                 aria-current={isParentActive && !activeItem.child ? 'page' : undefined}
               >
                 <div class="flex items-center gap-3">
                   <IconComponent 
                     size={20} 
-                    class={`fill-none stroke-2 transition-colors duration-200 ${
+                    class={`fill-none stroke-2 transition-colors duration-150 ${
                       isParentActive && !activeItem.child 
-                        ? 'text-white stroke-white' 
-                        : 'stroke-muted group-hover:text-primary group-hover:stroke-primary'
+                        ? 'text-primary stroke-primary' 
+                        : 'text-neutral stroke-neutral group-hover:text-primary group-hover:stroke-primary'
                     }`} 
                   />
-                  <span class="transition-colors duration-200">{item.label}</span>
+                  <span class="transition-colors duration-150">{item.label}</span>
                 </div>
                 {hasChildren && (
                   <ChevronRight
                     size={16}
-                    class={`fill-none stroke-2 transition-all duration-200 ${
+                    class={`fill-none stroke-2 transition-all duration-150 ${
                       isParentActive 
-                        ? 'rotate-90 text-white stroke-white' 
+                        ? 'rotate-90 text-primary stroke-primary' 
                         : 'text-muted stroke-muted group-hover:text-primary group-hover:stroke-primary'
                     }`}
                   />
@@ -181,8 +200,8 @@ const navItems: NavItem[] = [
               </a>
 
               {/* Children */}
-              {hasChildren && isParentActive && (
-                <ul class="mt-1 space-y-1 pl-11">
+              {hasChildren && (
+                <ul class={`mt-1 space-y-1 pl-11 sidebar-children ${isParentActive ? 'sidebar-children-active' : ''}`}>
                   {item.children!.map((child) => {
                     const isChildActive = activeItem.child === child.id
                     const ChildIcon = child.icon
@@ -191,24 +210,24 @@ const navItems: NavItem[] = [
                       <li>
                         <a
                           href={child.href}
-                          class={`group/child flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all duration-200 ${
+                          class={`group/child flex items-center gap-2 rounded-lg border-l-2 px-3 py-2 text-sm transition-colors duration-150 ${
                             isChildActive
-                              ? 'bg-primary/15 text-primary font-semibold shadow-sm shadow-primary/10'
-                              : 'text-muted hover:bg-primary/8 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1'
+                              ? 'border-primary bg-primary/10 text-primary font-medium'
+                              : 'border-transparent text-neutral hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1'
                           }`}
                           aria-current={isChildActive ? 'page' : undefined}
                         >
                           {ChildIcon && (
                             <ChildIcon
                               size={16}
-                              class={`fill-none stroke-2 transition-colors duration-200 ${
+                              class={`fill-none stroke-2 transition-colors duration-150 shrink-0 ${
                                 isChildActive
                                   ? 'text-primary stroke-primary'
-                                  : 'text-muted stroke-muted group-hover/child:text-primary group-hover/child:stroke-primary'
+                                  : 'text-neutral stroke-neutral group-hover/child:text-primary group-hover/child:stroke-primary'
                               }`}
                             />
                           )}
-                          <span class="transition-colors duration-200">{child.label}</span>
+                          <span class="transition-colors duration-150">{child.label}</span>
                         </a>
                       </li>
                     )
@@ -238,7 +257,7 @@ const navItems: NavItem[] = [
           <div class="px-3 py-2">
             <a
               href="/profil"
-              class="group flex items-center gap-3 rounded-lg px-3 py-2 transition-all duration-200 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
+              class="group flex items-center gap-3 rounded-lg px-3 py-2 transition-colors duration-150 hover:bg-secondary/10 hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
             >
               <Avatar
                 userName={userName}
@@ -248,7 +267,7 @@ const navItems: NavItem[] = [
                 class="shrink-0"
               />
               <div class="min-w-0 flex-1">
-                <p class="truncate text-sm font-medium text-neutral">
+                <p class="truncate text-sm font-medium text-neutral group-hover:text-secondary">
                   {userName || 'Utilisateur'}
                 </p>
                 {userEmail && (
@@ -260,10 +279,10 @@ const navItems: NavItem[] = [
           <div class="px-3 py-2 space-y-1">
             <a
               href="/parametres"
-              class="group flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted transition-all duration-200 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
+              class="group flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-neutral transition-colors duration-150 hover:bg-secondary/10 hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
             >
-              <Settings size={14} class="fill-none stroke-2 transition-colors duration-200 text-muted stroke-muted group-hover:text-primary group-hover:stroke-primary" />
-              <span class="transition-colors duration-200">Paramètres</span>
+              <Settings size={14} class="fill-none stroke-2 transition-colors duration-150 text-neutral stroke-neutral group-hover:text-secondary group-hover:stroke-secondary" />
+              <span class="transition-colors duration-150">Paramètres</span>
             </a>
             <button
               type="button"
@@ -281,51 +300,33 @@ const navItems: NavItem[] = [
   </div>
 </aside>
 
-<script>
-  // TypeScript fonctionne nativement dans les scripts Astro !
-  (function() {
-    // Gérer le bouton de déconnexion dans la sidebar
-    const signOutBtn = document.getElementById('sidebar-signout-btn')
-    if (signOutBtn) {
-      signOutBtn.addEventListener('click', async function() {
-        try {
-          // Import dynamique de signOut
-          const { signOut } = await import('../../lib/auth-client')
-          
-          // Afficher un toast de confirmation
-          if (window.toast) {
-            window.toast.info('Déconnexion en cours...', 2000)
-          }
-          
-          await signOut()
-          
-          // Stocker le succès de la déconnexion pour le toast sur la page de login
-          sessionStorage.setItem('showLogoutToast', 'true')
-          
-          // Rediriger vers la page de login
-          setTimeout(() => {
-            window.location.href = '/login'
-          }, 500)
-        } catch (error) {
-          console.error('Error signing out:', error)
-          if (window.toast) {
-            window.toast.error('Erreur lors de la déconnexion')
-          }
-          // Fallback: rediriger quand même après un délai
-          setTimeout(() => {
-            window.location.href = '/login'
-          }, 1000)
-        }
-      })
-    }
-  })()
-</script>
+<!-- Clics sidebar (toggle, fermer, déconnexion) gérés par délégation dans Layout.astro pour survivre aux View Transitions -->
 
-<!-- Spacer for sidebar on desktop -->
-<div class="hidden lg:block lg:w-64"></div>
+<!-- Spacer pour la sidebar flottante (desktop) : marge + largeur sidebar -->
+<div class="hidden lg:block lg:w-[17rem]"></div>
 
 <style>
-  /* Sidebar animations */
+  /* Tablette (768–1024) : sidebar fermée par défaut, ouverte au toggle */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    #sidebar {
+      transform: translateX(calc(-100% - 1rem));
+    }
+    body.sidebar-open #sidebar {
+      transform: translateX(0);
+    }
+    body.sidebar-open .sidebar-backdrop {
+      display: block;
+    }
+  }
+
+  /* Desktop (1024+) : toujours visible */
+  @media (min-width: 1024px) {
+    #sidebar {
+      transform: translateX(0);
+    }
+  }
+
+  /* Sidebar scrollbar & icons */
   .sidebar {
     scrollbar-width: thin;
     scrollbar-color: var(--color-border) transparent;
@@ -352,5 +353,20 @@ const navItems: NavItem[] = [
   .sidebar svg {
     fill: none !important;
     stroke-width: 2;
+  }
+
+  /* Sous-menus : ouverts si actif, ou au survol sur desktop */
+  .sidebar-children {
+    display: none;
+  }
+  .sidebar-children-active {
+    display: block;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .sidebar-item-has-children:hover > .sidebar-children,
+    .sidebar-item-has-children:focus-within > .sidebar-children {
+      display: block;
+    }
   }
 </style>

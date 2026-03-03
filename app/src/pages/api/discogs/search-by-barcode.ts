@@ -25,20 +25,14 @@ export const GET: APIRoute = async ({ request }) => {
       )
     }
 
-    // Search Discogs by barcode
-    // Note: Discogs search API supports barcode search when formatted correctly
-    // We search with the barcode as query and filter results
-    const results = await discogsService.search(barcode, undefined, 1, 10)
+    // Recherche Discogs via le paramètre barcode (recherche par code-barres uniquement)
+    const results = await discogsService.searchByBarcode(barcode, 1, 15)
 
-    // Filter results to find exact barcode match
-    // Check identifiers in the results (we'll need to fetch release details for exact match)
-    // For now, return the first result if available
     if (results.results && results.results.length > 0) {
-      // Return the first result as it's likely the match
-      // In production, you might want to fetch each release to verify barcode
       return new Response(JSON.stringify({
         success: true,
         found: true,
+        results: results.results,
         result: results.results[0],
       }), {
         status: 200,

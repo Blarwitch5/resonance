@@ -120,14 +120,17 @@ const showFooter = props.showFooter ?? true
         <slot />
       </main>
 
-      <!-- Barre d’extrait audio fixe en bas (remplie par TrackList) -->
+      <!-- Barre d’extrait audio flottante en bas (remplie par TrackList) -->
       <div
         id="global-audio-bar"
-        class="global-audio-bar hidden fixed left-0 right-0 bottom-20 z-40 border-t border-border bg-surface-elevated shadow-lg backdrop-blur-sm md:bottom-0"
+        class="global-audio-bar hidden fixed inset-x-0 bottom-20 z-40 flex justify-center pointer-events-none border-t border-border bg-surface-elevated shadow-lg backdrop-blur-sm md:bottom-6 md:border-none md:bg-transparent md:shadow-none"
         aria-live="polite"
         aria-label="Extrait en cours"
       >
-        <div class="mx-auto max-w-3xl px-4 py-2 md:py-3" data-global-audio-slot></div>
+        <div
+          class="pointer-events-auto mx-auto max-w-3xl px-4"
+          data-global-audio-slot
+        ></div>
       </div>
 
       {showBottomBar && <BottomBar />}
@@ -137,10 +140,8 @@ const showFooter = props.showFooter ?? true
   </body>
 </html>
 <script>
-  // TypeScript fonctionne nativement dans les scripts Astro !
-  function applyTheme(): void {
+  function applyTheme() {
     const html = document.documentElement
-    // matchMedia est disponible globalement dans les navigateurs modernes
     const prefersDark =
       typeof matchMedia !== 'undefined' ? matchMedia('(prefers-color-scheme: dark)').matches : false
 
@@ -151,11 +152,9 @@ const showFooter = props.showFooter ?? true
     html.setAttribute('data-theme', theme)
   }
 
-  // Gérer les transitions Astro pour appliquer le thème sur le nouveau document
   document.addEventListener('astro:before-swap', function (event: Event) {
-    // Appliquer le thème sur le nouveau document avant le swap
-    const swapEvent = event as CustomEvent<{ newDocument?: Document }>
-    if (swapEvent.detail?.newDocument) {
+    const newDoc = (event as CustomEvent<{ newDocument?: Document }>).detail?.newDocument
+    if (newDoc) {
       const prefersDark =
         typeof matchMedia !== 'undefined'
           ? matchMedia('(prefers-color-scheme: dark)').matches
@@ -165,7 +164,47 @@ const showFooter = props.showFooter ?? true
         localStorage.theme === 'dark' || (!('theme' in localStorage) && prefersDark)
           ? 'dark'
           : 'light'
-      swapEvent.detail.newDocument.documentElement.setAttribute('data-theme', theme)
+      newDoc.documentElement.setAttribute('data-theme', theme)
+    }
+  })
+
+  // Sidebar : délégation d’événements pour survivre aux View Transitions (changement de thème, navigation)
+  document.addEventListener('click', async function (event) {
+    const target = event.target instanceof Node ? event.target : null
+    if (!target) return
+
+    if ((target as Element).closest?.('#sidebar-toggle-btn')) {
+      document.body.classList.toggle('sidebar-open')
+      const open = document.body.classList.contains('sidebar-open')
+      const button = document.getElementById('sidebar-toggle-btn')
+      if (button) {
+        button.setAttribute('aria-expanded', String(open))
+        button.setAttribute('aria-label', open ? 'Fermer le menu' : 'Ouvrir le menu')
+      }
+      return
+    }
+
+    if ((target as Element).closest?.('#sidebar-close-btn') || (target as Element).closest?.('[data-sidebar-backdrop]')) {
+      document.body.classList.remove('sidebar-open')
+      return
+    }
+
+    if ((target as Element).closest?.('#sidebar-signout-btn')) {
+      event.preventDefault()
+      event.stopPropagation()
+      try {
+        const win = typeof window !== 'undefined' ? window : null
+        if (win?.toast?.info) win.toast.info('Déconnexion en cours...', 2000)
+        const { signOut } = await import('../../lib/auth-client')
+        await signOut()
+        sessionStorage.setItem('showLogoutToast', 'true')
+        setTimeout(() => { window.location.href = '/login' }, 500)
+      } catch (error) {
+        console.error('Error signing out:', error)
+        const winErr = typeof window !== 'undefined' ? window : null
+        if (winErr?.toast?.error) winErr.toast.error('Erreur lors de la déconnexion')
+        setTimeout(() => { window.location.href = '/login' }, 1000)
+      }
     }
   })
 </script>

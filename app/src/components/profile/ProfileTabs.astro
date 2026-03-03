@@ -15,42 +15,46 @@ const { activeTab = 'favorites', slot: defaultSlot } = Astro.props as ProfileTab
 
 <div class="min-w-0 space-y-6">
   <!-- Tabs -->
-  <div class="flex min-w-0 flex-wrap gap-1 border-b border-border pb-0 md:gap-2">
-    <button
-      type="button"
-      data-tab="favorites"
-      class="tab-btn flex items-center gap-2 rounded-t-lg border-b-2 border-transparent px-4 py-3 font-medium transition-all hover:bg-surface hover:text-primary md:px-6"
+  <div class="border-b border-border pb-0">
+    <div
+      class="flex min-w-0 gap-2 overflow-x-auto px-4 -mx-4 pb-1 no-scrollbar snap-x snap-mandatory md:mx-0 md:px-0 md:overflow-visible md:snap-none"
     >
-      <Heart size={18} class="fill-none stroke-2" />
-      <span>Favorites</span>
-    </button>
+      <button
+        type="button"
+        data-tab="favorites"
+        class="tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3"
+      >
+        <Heart size={18} class="fill-none stroke-2" />
+        <span>Favorites</span>
+      </button>
 
-    <button
-      type="button"
-      data-tab="wishlist"
-      class="tab-btn flex items-center gap-2 rounded-t-lg border-b-2 border-transparent px-4 py-3 font-medium transition-all hover:bg-surface hover:text-primary md:px-6"
-    >
-      <ShoppingCart size={18} class="fill-none stroke-2" />
-      <span>Wishlist</span>
-    </button>
+      <button
+        type="button"
+        data-tab="wishlist"
+        class="tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3"
+      >
+        <ShoppingCart size={18} class="fill-none stroke-2" />
+        <span>Wishlist</span>
+      </button>
 
-    <button
-      type="button"
-      data-tab="statistics"
-      class="tab-btn flex items-center gap-2 rounded-t-lg border-b-2 border-transparent px-4 py-3 font-medium transition-all hover:bg-surface hover:text-primary md:px-6"
-    >
-      <BarChart size={18} class="fill-none stroke-2" />
-      <span>Statistics</span>
-    </button>
+      <button
+        type="button"
+        data-tab="statistics"
+        class="tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3"
+      >
+        <BarChart size={18} class="fill-none stroke-2" />
+        <span>Statistics</span>
+      </button>
 
-    <button
-      type="button"
-      data-tab="all-formats"
-      class="tab-btn flex items-center gap-2 rounded-t-lg border-b-2 border-transparent px-4 py-3 font-medium transition-all hover:bg-surface hover:text-primary md:px-6"
-    >
-      <Library size={18} class="fill-none stroke-2" />
-      <span>All Formats</span>
-    </button>
+      <button
+        type="button"
+        data-tab="all-formats"
+        class="tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3"
+      >
+        <Library size={18} class="fill-none stroke-2" />
+        <span>All Formats</span>
+      </button>
+    </div>
   </div>
 
   <!-- Tab content -->
@@ -71,9 +75,8 @@ const { activeTab = 'favorites', slot: defaultSlot } = Astro.props as ProfileTab
 </div>
 
 <script>
-  // TypeScript fonctionne nativement dans les scripts Astro !
   (function() {
-    function initTabs(): void {
+    function initTabs() {
       const tabs = document.querySelectorAll('.tab-btn')
       const tabContent = document.getElementById('tab-content')
       
@@ -101,7 +104,7 @@ const { activeTab = 'favorites', slot: defaultSlot } = Astro.props as ProfileTab
       // Récupérer les slots (peut-être mis à jour)
       const finalSlots = tabContent.querySelectorAll('[data-tab-content]')
       
-      function showTab(tabName: string | null): void {
+      const showTab = (tabName: string | null) => {
         if (!tabName) return
         
         // Mettre à jour les boutons
@@ -129,22 +132,23 @@ const { activeTab = 'favorites', slot: defaultSlot } = Astro.props as ProfileTab
         })
 
         // Afficher le contenu correspondant
-        finalSlots.forEach(function(slot) {
+        ;(finalSlots as NodeListOf<HTMLElement>).forEach(function(slot) {
           const slotName = slot.getAttribute('data-tab-content')
+          const element = slot
           if (slotName === tabName) {
-            slot.classList.remove('hidden')
-            slot.classList.add('active')
-            ;(slot as HTMLElement).style.display = 'block'
+            element.classList.remove('hidden')
+            element.classList.add('active')
+            element.style.display = 'block'
           } else {
-            slot.classList.add('hidden')
-            slot.classList.remove('active')
-            ;(slot as HTMLElement).style.display = 'none'
+            element.classList.add('hidden')
+            element.classList.remove('active')
+            element.style.display = 'none'
           }
         })
       }
 
       // Récupérer le tab depuis l'URL ou utiliser le premier par défaut
-      function getTabFromURL(): string | null {
+      function getTabFromURL() {
         const urlParams = new URLSearchParams(window.location.search)
         const tabParam = urlParams.get('tab')
         if (tabParam) {

@@ -114,9 +114,8 @@ const decadesChartData = {
 </div>
 
 <!-- Load Chart.js and initialize charts -->
-<script lang="ts">
-  // Store chart instances to avoid duplicates
-  const chartInstances = new Map<string, any>()
+<script>
+  const chartInstances = new Map()
 
   // Load Chart.js dynamically
   async function loadCharts() {
@@ -125,7 +124,7 @@ const decadesChartData = {
       const { Chart } = await import('chart.js/auto')
 
       // Format Pie Chart
-      const formatCanvas = document.getElementById('format-chart') as HTMLCanvasElement | null
+      const formatCanvas = document.getElementById('format-chart')
       if (formatCanvas) {
         // Destroy existing chart if it exists
         if (chartInstances.has('format-chart')) {
@@ -134,7 +133,7 @@ const decadesChartData = {
         }
 
         const formatData = JSON.parse(formatCanvas.getAttribute('data-chart') || '{}')
-        if (formatData && formatData.data && formatData.data.some((count: number) => count > 0)) {
+        if (formatData && formatData.data && formatData.data.some((count) => count > 0)) {
           const chart = new Chart(formatCanvas, {
             type: 'pie',
             data: {
@@ -174,7 +173,7 @@ const decadesChartData = {
       }
 
       // Genre Bar Chart
-      const genreCanvas = document.getElementById('genre-chart') as HTMLCanvasElement | null
+      const genreCanvas = document.getElementById('genre-chart')
       if (genreCanvas) {
         // Destroy existing chart if it exists
         if (chartInstances.has('genre-chart')) {
@@ -235,7 +234,7 @@ const decadesChartData = {
       }
 
       // Decades Bar Chart
-      const decadesCanvas = document.getElementById('decades-chart') as HTMLCanvasElement | null
+      const decadesCanvas = document.getElementById('decades-chart')
       if (decadesCanvas) {
         // Destroy existing chart if it exists
         if (chartInstances.has('decades-chart')) {

@@ -15,10 +15,10 @@ export default defineConfig({
   vite: {
     plugins: [tailwindcss()],
     optimizeDeps: {
-      include: ['lucide-astro', '@lucide/astro'],
+      include: ['@lucide/astro'],
     },
     ssr: {
-      noExternal: ['lucide-astro', '@lucide/astro'],
+      noExternal: ['@lucide/astro'],
     },
     cacheDir: '.vite',
     // Résoudre le problème de casse sur macOS
@@ -32,6 +32,7 @@ export default defineConfig({
       },
       hmr: {
         overlay: false,
+        clientPort: 4321,
       },
       watch: {
         ignored: ['**/.astro/**', '**/node_modules/**', '**/.vite/**', '**/dist/**'],
