@@ -2,7 +2,7 @@ import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { db } from './db'
 
-// Configuration better-auth pour Astro avec SQLite
+// Configuration better-auth pour Astro avec PostgreSQL (Neon)
 // Documentation: https://www.better-auth.com/docs/installation
 // https://www.better-auth.com/docs/integrations/astro
 
@@ -16,7 +16,7 @@ if (!import.meta.env.BETTER_AUTH_SECRET) {
 
 export const auth = betterAuth({
   database: prismaAdapter(db, {
-    provider: 'sqlite',
+    provider: 'postgresql',
   }),
   emailAndPassword: {
     enabled: true,
@@ -27,11 +27,19 @@ export const auth = betterAuth({
     'development-secret-change-in-production-minimum-32-characters',
   baseURL:
     import.meta.env.BETTER_AUTH_URL ||
+    import.meta.env.PUBLIC_APP_URL ||
     import.meta.env.PUBLIC_SITE_URL ||
-    (import.meta.env.PORT 
-      ? `http://localhost:${import.meta.env.PORT}` 
+    (import.meta.env.PORT
+      ? `http://localhost:${import.meta.env.PORT}`
       : 'http://localhost:4321'),
   basePath: '/api/auth',
+  trustedOrigins: [
+    import.meta.env.BETTER_AUTH_URL,
+    import.meta.env.PUBLIC_APP_URL,
+    import.meta.env.PUBLIC_SITE_URL,
+    'http://localhost:4321',
+    'http://localhost:4322',
+  ].filter(Boolean) as string[],
 })
 
 export type Session = typeof auth.$Infer.Session
