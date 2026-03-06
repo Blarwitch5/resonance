@@ -43,15 +43,6 @@ const showFooter = props.showFooter ?? true
     
     <link rel="canonical" href={canonical} />
 
-    <!-- Preload critical fonts for better performance -->
-    <link
-      rel="preload"
-      href="/fonts/Poppins-Regular.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
-
     <!-- Social media meta tags -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
@@ -92,15 +83,6 @@ const showFooter = props.showFooter ?? true
         html.setAttribute('data-theme', theme)
       })()
     </script>
-
-    <!-- Preload critical fonts -->
-    <link
-      rel="preload"
-      href="/fonts/Poppins-Medium.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
   </head>
   <body
     class="bg-background font-sans text-neutral antialiased transition-colors duration-200"
