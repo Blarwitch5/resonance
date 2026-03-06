@@ -1,14 +1,12 @@
 // @ts-check
 
-import node from '@astrojs/node'
+import vercel from '@astrojs/vercel'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'astro/config'
 
 export default defineConfig({
   output: 'server',
-  adapter: node({
-    mode: 'standalone',
-  }),
+  adapter: vercel(),
   integrations: [],
   // Désactiver temporairement le prefetch pour éviter les erreurs de cache
   prefetch: false,
@@ -19,6 +17,12 @@ export default defineConfig({
     },
     ssr: {
       noExternal: ['@lucide/astro'],
+      external: ['bcryptjs'],
+    },
+    build: {
+      rollupOptions: {
+        external: ['bcryptjs'],
+      },
     },
     cacheDir: '.vite',
     // Résoudre le problème de casse sur macOS
