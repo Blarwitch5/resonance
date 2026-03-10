@@ -27,11 +27,11 @@ const genreEntries = Object.entries(byGenre).sort((a, b) => b[1].length - a[1].l
   {favorites.length === 0 ? (
     <EmptyState
       title="Aucun favori pour le moment"
-      description="Marquez vos albums préférés d'un cœur pour créer votre sélection personnelle et les retrouver facilement."
+      description="Mark your favorite albums with a heart to build your personal selection and find them easily."
       icon={Heart}
       action={{
         label: 'Explorer ma collection',
-        href: '/bibliotheque',
+        href: '/library',
       }}
       size="sm"
     />

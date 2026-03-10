@@ -150,7 +150,7 @@ const showFooter = props.showFooter ?? true
     }
   })
 
-  // Sidebar : délégation d’événements pour survivre aux View Transitions (changement de thème, navigation)
+  // Sidebar: event delegation to survive View Transitions (theme changes, navigation)
   document.addEventListener('click', async function (event) {
     const target = event.target instanceof Node ? event.target : null
     if (!target) return
@@ -176,7 +176,7 @@ const showFooter = props.showFooter ?? true
       event.stopPropagation()
       try {
         const win = typeof window !== 'undefined' ? window : null
-        if (win?.toast?.info) win.toast.info('Déconnexion en cours...', 2000)
+        if (win?.toast?.info) win.toast.info('Signing out...', 2000)
         const { signOut } = await import('../../lib/auth-client')
         await signOut()
         sessionStorage.setItem('showLogoutToast', 'true')
@@ -184,7 +184,7 @@ const showFooter = props.showFooter ?? true
       } catch (error) {
         console.error('Error signing out:', error)
         const winErr = typeof window !== 'undefined' ? window : null
-        if (winErr?.toast?.error) winErr.toast.error('Erreur lors de la déconnexion')
+        if (winErr?.toast?.error) winErr.toast.error('Error while signing out')
         setTimeout(() => { window.location.href = '/login' }, 1000)
       }
     }

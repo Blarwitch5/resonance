@@ -1,5 +1,5 @@
 ---
-// Composant pour le tri et les filtres avancés
+// Component for advanced sorting and filters
 import ArrowUpDown from '@lucide/astro/icons/arrow-up-down'
 import Funnel from '@lucide/astro/icons/funnel'
 import X from '@lucide/astro/icons/x'
@@ -27,14 +27,14 @@ type SortFilterProps = {
 const { genres = [], years = [], collections = [] } = Astro.props as SortFilterProps
 
 const sortOptions: Array<{ value: SortOption; label: string }> = [
-  { value: 'addedAt-desc', label: 'Récemment ajoutés' },
-  { value: 'addedAt-asc', label: 'Plus anciens' },
-  { value: 'title-asc', label: 'Titre A-Z' },
-  { value: 'title-desc', label: 'Titre Z-A' },
-  { value: 'artist-asc', label: 'Artiste A-Z' },
-  { value: 'artist-desc', label: 'Artiste Z-A' },
-  { value: 'year-desc', label: 'Année récente' },
-  { value: 'year-asc', label: 'Année ancienne' },
+  { value: 'addedAt-desc', label: 'Recently added' },
+  { value: 'addedAt-asc', label: 'Oldest first' },
+  { value: 'title-asc', label: 'Title A-Z' },
+  { value: 'title-desc', label: 'Title Z-A' },
+  { value: 'artist-asc', label: 'Artist A-Z' },
+  { value: 'artist-desc', label: 'Artist Z-A' },
+  { value: 'year-desc', label: 'Newest year' },
+  { value: 'year-asc', label: 'Oldest year' },
 ]
 
 const hasActiveFilters = currentGenre || currentYear || currentCollection || showFavorites
@@ -65,7 +65,7 @@ function buildUrl(params: Record<string, string | null>) {
 
 <div class="glass-card rounded-2xl border border-border p-5">
   <div class="flex flex-col gap-6">
-    <!-- Header avec badges des filtres actifs -->
+    <!-- Header with active filter badges -->
     <div class="flex flex-wrap items-center justify-between gap-4">
       <div class="flex items-center gap-3">
         <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -77,7 +77,7 @@ function buildUrl(params: Record<string, string | null>) {
         </div>
       </div>
 
-      <!-- Badges des filtres actifs -->
+      <!-- Active filter badges -->
       {hasActiveFilters && (
         <div class="flex flex-wrap items-center gap-2">
           {currentGenre && (
@@ -95,7 +95,7 @@ function buildUrl(params: Record<string, string | null>) {
           {currentCollection && (
             <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-primary">
               <Folder size={12} />
-              {isUncategorizedFilter ? 'Non classés' : collections.find((c) => c.id === currentCollection)?.name || 'Collection'}
+              {isUncategorizedFilter ? 'Uncategorized' : collections.find((c) => c.id === currentCollection)?.name || 'Collection'}
             </span>
           )}
           {showFavorites && (
@@ -107,22 +107,22 @@ function buildUrl(params: Record<string, string | null>) {
           <a
             href={buildUrl({ genre: null, year: null, collection: null, favorites: null })}
             class="inline-flex items-center gap-1 rounded-full bg-surface-elevated px-3 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface hover:text-neutral"
-            title="Effacer tous les filtres"
+            title="Clear all filters"
           >
             <X size={12} />
-            Effacer
+            Clear
           </a>
         </div>
       )}
     </div>
 
-    <!-- Contrôles de tri et filtres -->
+    <!-- Sorting and filter controls -->
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <!-- Tri -->
+      <!-- Sort -->
       <div class="flex flex-col gap-2">
         <label for="sort-select" class="flex items-center gap-2 text-xs font-medium text-muted">
           <ArrowUpDown size={14} class="fill-none stroke-2" />
-          Trier par
+          Sort by
         </label>
         <select
           id="sort-select"
@@ -137,7 +137,7 @@ function buildUrl(params: Record<string, string | null>) {
         </select>
       </div>
 
-      <!-- Filtre Genre -->
+      <!-- Genre filter -->
       {genres.length > 0 && (
         <div class="flex flex-col gap-2">
           <label class="flex items-center gap-2 text-xs font-medium text-muted">
@@ -148,7 +148,7 @@ function buildUrl(params: Record<string, string | null>) {
             class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             onchange="window.location.href = this.value"
           >
-            <option value={buildUrl({ genre: null })}>Tous les genres</option>
+            <option value={buildUrl({ genre: null })}>All genres</option>
             {genres.map((genre) => (
               <option value={buildUrl({ genre })} selected={currentGenre === genre}>
                 {genre}
@@ -158,18 +158,18 @@ function buildUrl(params: Record<string, string | null>) {
         </div>
       )}
 
-      <!-- Filtre Année -->
+      <!-- Year filter -->
       {years.length > 0 && (
         <div class="flex flex-col gap-2">
           <label class="flex items-center gap-2 text-xs font-medium text-muted">
             <Calendar size={14} class="fill-none stroke-2" />
-            Année
+            Year
           </label>
           <select
             class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             onchange="window.location.href = this.value"
           >
-            <option value={buildUrl({ year: null })}>Toutes les années</option>
+            <option value={buildUrl({ year: null })}>All years</option>
             {years
               .sort((a, b) => b - a)
               .map((year) => (
@@ -181,7 +181,7 @@ function buildUrl(params: Record<string, string | null>) {
         </div>
       )}
 
-      <!-- Filtre Collection -->
+      <!-- Collection filter -->
       {collections.length > 0 && (
         <div class="flex flex-col gap-2">
           <label class="flex items-center gap-2 text-xs font-medium text-muted">
@@ -192,8 +192,8 @@ function buildUrl(params: Record<string, string | null>) {
             class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             onchange="window.location.href = this.value"
           >
-            <option value={buildUrl({ collection: null })} selected={!currentCollection}>Toutes les collections</option>
-            <option value={buildUrl({ collection: 'none' })} selected={isUncategorizedFilter}>Non classés</option>
+            <option value={buildUrl({ collection: null })} selected={!currentCollection}>All collections</option>
+            <option value={buildUrl({ collection: 'none' })} selected={isUncategorizedFilter}>Uncategorized</option>
             {collections.map((collection) => (
               <option value={buildUrl({ collection: collection.id })} selected={currentCollection === collection.id && !isUncategorizedFilter}>
                 {collection.name}
@@ -204,7 +204,7 @@ function buildUrl(params: Record<string, string | null>) {
       )}
     </div>
 
-    <!-- Filtre Favoris -->
+      <!-- Favorites filter -->
     <div class="flex items-center justify-between rounded-xl border border-border bg-surface p-4">
       <div class="flex items-center gap-3">
         <div class={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
@@ -214,9 +214,9 @@ function buildUrl(params: Record<string, string | null>) {
         </div>
         <div>
           <label for="favorites-filter" class="text-sm font-medium text-neutral cursor-pointer">
-            Albums favoris uniquement
+            Favorites only
           </label>
-          <p class="text-xs text-muted">Afficher seulement vos favoris</p>
+          <p class="text-xs text-muted">Show only your favorites</p>
         </div>
       </div>
       <label class="relative inline-flex cursor-pointer items-center">

@@ -36,7 +36,7 @@ const getPageNumbers = () => {
   } else {
     // Logique pour afficher les pages avec ellipsis
     if (currentPage <= 3) {
-      // Début : 1, 2, 3, 4, ..., last
+      // Start: 1, 2, 3, 4, ..., last
       for (let i = 1; i <= 4; i++) {
         pages.push(i)
       }
@@ -76,11 +76,11 @@ const pageNumbers = getPageNumbers()
         ? 'pointer-events-none opacity-50 cursor-not-allowed bg-surface text-muted'
         : 'bg-surface text-neutral hover:bg-surface-elevated'
     }`}
-    aria-label="Page précédente"
+    aria-label="Previous page"
     aria-disabled={currentPage === 1}
   >
     <ChevronLeft size={18} />
-    <span class="hidden sm:inline">Précédent</span>
+    <span class="hidden sm:inline">Previous</span>
   </a>
 
   <!-- Page numbers -->

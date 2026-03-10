@@ -1,9 +1,9 @@
 ---
-// Redirect to unified bibliotheque page with format filter
-return Astro.redirect('/bibliotheque?format=VINYL')
+// Redirect to unified library page with format filter
+return Astro.redirect('/library?format=VINYL')
 ---
 
-// Récupérer tous les vinyles de l'utilisateur
+// Fetch all user vinyls
 const itemsByCollection = await itemService.getItemsByFormatWithCollections(session.user.id, 'VINYL')
 const collections = await collectionRepository.findByUserId(session.user.id)
 
@@ -25,7 +25,7 @@ const totalItems = Object.values(itemsByCollection).flat().length
       </div>
     </div>
 
-    <!-- Liste des items groupés par collection -->
+    <!-- List of items grouped by collection -->
     {totalItems === 0 ? (
       <!-- Collection vide -->
       <div class="glass-card rounded-2xl p-12 text-center">
@@ -40,7 +40,7 @@ const totalItems = Object.values(itemsByCollection).flat().length
         </h3>
 
         <p class="text-blue-gray dark:text-blue-gray mx-auto mb-8 max-w-md">
-          Ajoutez votre premier vinyle et commencez à construire votre collection personnalisée.
+          Add your first vinyl and start building your personalized collection.
         </p>
 
         <div class="flex flex-col justify-center gap-4 sm:flex-row">
@@ -87,7 +87,7 @@ const totalItems = Object.values(itemsByCollection).flat().length
             Scanner automatique
           </h4>
           <p class="text-blue-gray dark:text-blue-gray text-sm">
-            Utilisez la caméra pour scanner le code-barres et récupérer automatiquement les informations.
+            Use the camera to scan the barcode and automatically retrieve information.
           </p>
         </div>
 
@@ -98,10 +98,10 @@ const totalItems = Object.values(itemsByCollection).flat().length
             <Turntable size={24} class="text-copper-warm dark:text-copper-warm" />
           </div>
           <h4 class="font-display text-night-deep dark:text-cream-white mb-2 font-semibold">
-            Métadonnées complètes
+            Complete metadata
           </h4>
           <p class="text-blue-gray dark:text-blue-gray text-sm">
-            Artiste, album, année, genre, condition - tout est automatiquement récupéré.
+            Artist, album, year, genre, condition – everything is automatically retrieved.
           </p>
         </div>
 
@@ -115,7 +115,7 @@ const totalItems = Object.values(itemsByCollection).flat().length
             Organisation flexible
           </h4>
           <p class="text-blue-gray dark:text-blue-gray text-sm">
-            Créez des collections personnalisées et organisez selon vos préférences.
+            Create custom collections and organize them however you like.
           </p>
         </div>
       </div>

@@ -28,7 +28,7 @@ const spotifyEnabled = true // Sera vérifié côté client
       <Music size={20} class="fill-none stroke-2 text-primary stroke-primary" />
       <h2 class="text-xl font-bold text-neutral">Tracklist</h2>
       <span class="ml-auto text-sm text-muted">
-        {tracks.length} {tracks.length === 1 ? 'titre' : 'titres'}
+        {tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}
       </span>
     </div>
     <div class="space-y-2" data-tracklist>
@@ -59,7 +59,7 @@ const spotifyEnabled = true // Sera vérifié côté client
                 data-track-name={track.title}
                 data-track-artist={albumArtist}
                 data-track-index={index}
-                aria-label={`Écouter un extrait de ${track.title}`}
+                aria-label={`Listen to a preview of ${track.title}`}
               >
                 <svg
                   class="h-5 w-5"

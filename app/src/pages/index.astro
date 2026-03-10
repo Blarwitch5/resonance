@@ -72,8 +72,9 @@ if (isLoggedIn && user?.id) {
     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
       <!-- Collection -->
       <a
-        href="/bibliotheque"
+        href={isLoggedIn ? '/library' : '/login?redirectTo=/library'}
         class="group glass-card hover-resonance rounded-2xl p-8 transition-all duration-300"
+        aria-label={isLoggedIn ? 'Go to your library' : 'Sign in to access your library'}
       >
         <div class="text-center">
           <div
@@ -82,19 +83,22 @@ if (isLoggedIn && user?.id) {
             <Disc3 size={32} class="text-white" />
           </div>
           <h3 class="font-display text-neutral mb-2 text-xl font-semibold">
-            Ma Résonance
+            My Library
           </h3>
-          <p class="text-muted text-sm">Vos albums qui résonnent avec vous</p>
+          <p class="text-muted text-sm">
+            {isLoggedIn ? 'Albums that resonate with you' : 'Sign in to see your collection'}
+          </p>
         </div>
       </a>
+    </div>
 
     <!-- Actions rapides -->
     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
       <!-- Explorer -->
       <a
-        href="/explorer"
+        href={isLoggedIn ? '/explorer' : '/login?redirectTo=/explorer'}
         class="group glass-card hover-resonance flex items-center gap-4 rounded-2xl p-6 transition-all duration-300"
-        aria-label="Explore collection"
+        aria-label={isLoggedIn ? 'Explorer la collection' : 'Se connecter pour explorer les albums'}
       >
         <div
           class="from-accent to-accent/80 group-hover:animate-resonance-vibrato flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br"
@@ -102,16 +106,18 @@ if (isLoggedIn && user?.id) {
           <Search size={24} class="text-white" />
         </div>
         <div>
-          <h3 class="font-display text-neutral font-semibold">Explorer</h3>
-          <p class="text-muted text-sm">Discover new albums</p>
+          <h3 class="font-display text-neutral font-semibold">Explore</h3>
+          <p class="text-muted text-sm">
+            {isLoggedIn ? 'Discover new albums' : 'Sign in to discover albums'}
+          </p>
         </div>
       </a>
 
       <!-- Profile -->
       <a
-        href="/profil"
+        href={isLoggedIn ? '/profile' : '/login?redirectTo=/profile'}
         class="group glass-card hover-resonance flex items-center gap-4 rounded-2xl p-6 transition-all duration-300"
-        aria-label="View profile"
+        aria-label={isLoggedIn ? 'View your profile' : 'Sign in to view your profile'}
       >
         <div
           class="from-accent to-accent/80 group-hover:animate-resonance-vibrato flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br"
@@ -120,7 +126,11 @@ if (isLoggedIn && user?.id) {
         </div>
         <div>
           <h3 class="font-display text-neutral font-semibold">Profile</h3>
-          <p class="text-muted text-sm">Favorites, wishlist, and statistics</p>
+          <p class="text-muted text-sm">
+            {isLoggedIn
+              ? 'Favorites, wishlist, and statistics'
+              : 'Sign in to see your favorites and statistics'}
+          </p>
         </div>
       </a>
     </div>
@@ -139,7 +149,7 @@ if (isLoggedIn && user?.id) {
             type="button"
             id="sign-out-btn"
             class="p-2 rounded-lg hover:bg-surface transition-colors"
-            aria-label="Se déconnecter"
+            aria-label="Sign out"
           >
             <LogOut size={20} class="text-muted" />
           </button>
@@ -213,21 +223,21 @@ if (isLoggedIn && user?.id) {
     <!-- Actions rapides -->
     <div class="flex flex-col gap-4 sm:flex-row">
       <a
-        href="/explorer"
-        aria-label="Ajouter un album"
+        href={isLoggedIn ? '/explorer' : '/login?redirectTo=/explorer'}
+        aria-label={isLoggedIn ? 'Add an album' : 'Sign in to add an album'}
         class="btn-primary-gradient flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3"
       >
         <Plus size={20} />
-        <span>Add Album</span>
+        <span>{isLoggedIn ? 'Add Album' : 'Sign in to add an album'}</span>
       </a>
 
       <a
-        href="/profil?tab=statistics"
-        aria-label="View statistics"
+        href={isLoggedIn ? '/profile?tab=statistics' : '/login?redirectTo=/profile?tab=statistics'}
+        aria-label={isLoggedIn ? 'View your statistics' : 'Sign in to view your statistics'}
         class="btn-secondary-surface flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3"
       >
         <BarChart3 size={20} />
-        <span>View Statistics</span>
+        <span>{isLoggedIn ? 'View Statistics' : 'Sign in to view your statistics'}</span>
       </a>
     </div>
 
@@ -305,16 +315,16 @@ if (isLoggedIn && user?.id) {
       if (isNewUser) {
         window.toast.success(
           userName 
-            ? `Bienvenue ${userName} ! Votre compte a été créé avec succès.` 
-            : 'Bienvenue ! Votre compte a été créé avec succès.',
+            ? `Welcome ${userName}! Your account has been created successfully.` 
+            : 'Welcome! Your account has been created successfully.',
           5000
         )
         sessionStorage.removeItem('isNewUser')
       } else {
         window.toast.success(
           userName 
-            ? `Bon retour ${userName} ! Vous êtes connecté.` 
-            : 'Bon retour ! Vous êtes connecté.',
+            ? `Welcome back ${userName}! You are signed in.` 
+            : 'Welcome back! You are signed in.',
           4000
         )
       }
@@ -328,7 +338,7 @@ if (isLoggedIn && user?.id) {
         try {
           // Show confirmation toast before signing out
           if (window.toast) {
-            window.toast.info('Déconnexion en cours...', 2000)
+            window.toast.info('Signing out...', 2000)
           }
           
           await signOut()
@@ -343,7 +353,7 @@ if (isLoggedIn && user?.id) {
         } catch (error) {
           console.error('Error signing out:', error)
           if (window.toast) {
-            window.toast.error('Erreur lors de la déconnexion')
+            window.toast.error('Error while signing out')
           }
           // Fallback: redirect anyway after a delay
           setTimeout(() => {

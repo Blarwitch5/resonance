@@ -27,24 +27,24 @@ const session = Astro.locals.session
 if (!session) return Astro.redirect('/login')
 
 const slugOrId = Astro.params.id
-if (!slugOrId) return Astro.redirect('/bibliotheque')
+if (!slugOrId) return Astro.redirect('/library')
 
 const userId = Astro.locals.user!.id
-// Résolution par slug puis par id (anciens liens)
+// Resolve by slug, then by id (legacy links)
 let item = await itemRepository.findByUserIdAndSlug(userId, slugOrId)
 if (!item && looksLikeItemId(slugOrId)) {
   item = await itemRepository.findById(slugOrId, userId) ?? null
-  // Redirection vers l’URL canonique (slug) si on a trouvé par id
+  // Redirect to canonical URL (slug) if we found by id
   if (item && item.slug !== slugOrId) {
     return Astro.redirect(`/items/${item.slug}`)
   }
 }
 
 if (!item || item.userId !== userId) {
-  return Astro.redirect('/bibliotheque')
+  return Astro.redirect('/library')
 }
 
-// Récupérer les détails complets depuis Discogs si disponible
+// Fetch complete details from Discogs when available
 let discogsRelease = null
 let tracklist: Array<{ position: string; title: string; duration?: string }> = []
 let discogsDetails = null
@@ -73,10 +73,10 @@ if (item.discogsId) {
   }
 }
 
-// La collection est déjà incluse dans l'item
+// Collection is already included in item
 const collection = item.collection || null
 
-// Récupérer toutes les collections de l'utilisateur pour le sélecteur
+// Fetch all user collections for the selector
 const userCollections = await collectionRepository.findByUserId(Astro.locals.user!.id)
 ---
 
@@ -84,11 +84,11 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
   <div class="space-y-6 page-transition pb-24 md:pb-20">
     <!-- Bouton retour -->
     <a
-      href={collection ? `/collections/${collection.slug}` : '/bibliotheque'}
+      href={collection ? `/collections/${collection.slug}` : '/library'}
       class="inline-flex items-center gap-2 text-muted transition-colors hover:text-primary"
     >
       <ArrowLeft size={18} />
-      <span>Retour {collection ? `à ${collection.name}` : 'à la collection'}</span>
+      <span>Back {collection ? `to ${collection.name}` : 'to the collection'}</span>
     </a>
 
     <!-- Header avec cover et infos principales -->
@@ -119,7 +119,7 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
             <p class="text-lg md:text-xl text-muted">{item.artist}</p>
           </div>
 
-          <!-- Métadonnées principales -->
+          <!-- Main metadata -->
           <div class="flex flex-wrap gap-4 text-sm">
             {item.year && (
               <div class="flex items-center gap-2 text-muted">
@@ -158,7 +158,7 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
             )}
           </div>
 
-          <!-- Sélecteur de collection -->
+          <!-- Collection selector -->
           <div class="pt-4 border-t border-border">
             <CollectionSelector
               itemId={item.id}
@@ -192,10 +192,10 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
       />
     )}
 
-    <!-- Détails supplémentaires depuis Discogs -->
+    <!-- Additional details from Discogs -->
     {discogsDetails && (
       <div class="grid gap-6 md:grid-cols-2">
-        <!-- Informations détaillées -->
+        <!-- Detailed information -->
         <div class="glass-card rounded-2xl p-4 md:p-6">
           <h2 class="mb-4 text-lg md:text-xl font-bold text-neutral">Informations</h2>
           <div class="space-y-3 text-sm">
@@ -252,9 +252,9 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
           </div>
         </div>
 
-        <!-- Format et communauté -->
+        <!-- Format and community -->
         <div class="glass-card rounded-2xl p-4 md:p-6">
-          <h2 class="mb-4 text-lg md:text-xl font-bold text-neutral">Format & Communauté</h2>
+          <h2 class="mb-4 text-lg md:text-xl font-bold text-neutral">Format & Community</h2>
           <div class="space-y-3 text-sm">
             {discogsDetails.formats.length > 0 && (
               <div>
@@ -275,7 +275,7 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
                   <span class="ml-2 text-neutral">
                     {discogsDetails.community.rating.average > 0
                       ? `${discogsDetails.community.rating.average.toFixed(1)} / 5`
-                      : 'Non noté'}
+                      : 'Not rated'}
                     {discogsDetails.community.rating.count > 0 &&
                       ` (${discogsDetails.community.rating.count} avis)`}
                   </span>
@@ -287,7 +287,7 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
                   </span>
                 </div>
                 <div>
-                  <span class="font-medium text-muted">Souhaité par :</span>
+                  <span class="font-medium text-muted">Wanted by:</span>
                   <span class="ml-2 text-neutral">
                     {discogsDetails.community.want} personnes
                   </span>
@@ -307,14 +307,14 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
       </div>
     )}
 
-    <!-- Données personnelles -->
+    <!-- Personal data -->
     <PersonalDataSection itemId={item.id} metadata={item.metadata} />
 
-    <!-- Si pas de données Discogs -->
+    <!-- When Discogs data is not available -->
     {!discogsRelease && item.discogsId && (
       <EmptyState
-        title="Détails non disponibles"
-        description="Les détails complets de cet album ne sont pas disponibles pour le moment."
+        title="Details not available"
+        description="The full details for this album are not available at the moment."
         icon={Music}
       />
     )}

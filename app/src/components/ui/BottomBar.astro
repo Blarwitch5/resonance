@@ -16,12 +16,12 @@ function getActiveTab(path: string): string | null {
   if (path === '/' || path === '/index') return null
   
   // Collection (unified view with format selector)
-  if (path.includes('/bibliotheque') || path.includes('/collection') || path.includes('/vinyl') || path.includes('/cassette') || path.includes('/cd')) {
+  if (path.includes('/library') || path.includes('/collection') || path.includes('/vinyl') || path.includes('/cassette') || path.includes('/cd')) {
     return 'collection'
   }
   
-  if (path.includes('/explorer') || path.includes('/recherche')) return 'explorer'
-  if (path.includes('/profil') || path.includes('/profile')) return 'profile'
+  if (path.includes('/explorer')) return 'explorer'
+  if (path.includes('/profile')) return 'profile'
   
   return null
 }
@@ -32,13 +32,13 @@ const activeTab = getActiveTab(currentPath)
 const tabs: TabItem[] = [
   {
     id: 'collection',
-    label: 'Résonance',
+    label: 'Library',
     icon: Library,
-    href: '/bibliotheque',
+    href: '/library',
   },
   {
     id: 'explorer',
-    label: 'Explorer',
+    label: 'Explore',
     icon: Search,
     href: '/explorer',
   },
@@ -46,7 +46,7 @@ const tabs: TabItem[] = [
     id: 'profile',
     label: 'Profile',
     icon: User,
-    href: '/profil',
+    href: '/profile',
   },
 ]
 ---

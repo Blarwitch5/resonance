@@ -31,8 +31,8 @@ function getActiveSection(path: string): string {
   if (path.includes('/vinyl')) return 'vinyl'
   if (path.includes('/cassette')) return 'cassette'
   if (path.includes('/cd')) return 'cd'
-  if (path.includes('/explorer') || path.includes('/recherche')) return 'explorer'
-  if (path.includes('/profil') || path.includes('/profile')) return 'profil'
+  if (path.includes('/explorer')) return 'explorer'
+  if (path.includes('/profile')) return 'profile'
   return 'vinyl'
 }
 
@@ -65,12 +65,12 @@ const sections: Record<string, SectionConfig> = {
     color: 'format-cd',
   },
   explorer: {
-    title: 'Explorer',
+    title: 'Explore',
     description: 'Discover new albums',
     icon: '🔍',
     color: 'format-explorer',
   },
-  profil: {
+  profile: {
     title: 'Profile',
     description: 'Your favorites and statistics',
     icon: '👤',
@@ -80,27 +80,27 @@ const sections: Record<string, SectionConfig> = {
 
 const currentSection = sections[activeSection]
 
-// Générer un message de bienvenue personnalisé
+// Generate a personalized welcome message
 function getWelcomeMessage(userName: string | null | undefined, userEmail: string | null | undefined): string {
-  const name = userName || userEmail?.split('@')[0] || 'Utilisateur'
+  const name = userName || userEmail?.split('@')[0] || 'User'
   const hour = new Date().getHours()
   
-  let greeting = 'Bonjour'
+  let greeting = 'Hello'
   if (hour >= 5 && hour < 12) {
-    greeting = 'Bonjour'
+    greeting = 'Good morning'
   } else if (hour >= 12 && hour < 18) {
-    greeting = 'Bon après-midi'
+    greeting = 'Good afternoon'
   } else if (hour >= 18 && hour < 22) {
-    greeting = 'Bonsoir'
+    greeting = 'Good evening'
   } else {
-    greeting = 'Bonne nuit'
+    greeting = 'Good night'
   }
   
   const messages = [
-    `${greeting} ${name} ! Prêt à explorer votre collection ?`,
-    `${greeting} ${name} ! Que souhaitez-vous découvrir aujourd'hui ?`,
-    `${greeting} ${name} ! Votre musique vous attend.`,
-    `${greeting} ${name} ! Continuons à enrichir votre collection.`,
+    `${greeting} ${name}! Ready to explore your collection?`,
+    `${greeting} ${name}! What would you like to listen to today?`,
+    `${greeting} ${name}! Your music is waiting for you.`,
+    `${greeting} ${name}! Let us keep growing your collection.`,
   ]
   
   return messages[Math.floor(Math.random() * messages.length)]
@@ -134,7 +134,7 @@ function getWelcomeMessage(userName: string | null | undefined, userEmail: strin
             type="button"
             id="sidebar-toggle-btn"
             class="flex items-center justify-center gap-2 rounded-xl border border-border/30 bg-surface-elevated/95 px-4 py-2.5 text-sm font-medium text-neutral shadow-sm transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-            aria-label="Ouvrir le menu"
+            aria-label="Open menu"
             aria-expanded="false"
           >
             <Menu size={20} class="fill-none stroke-2 shrink-0" />
@@ -145,7 +145,7 @@ function getWelcomeMessage(userName: string | null | undefined, userEmail: strin
         <div class="hidden md:block mb-6">
           <!-- Logo animé -->
           <div class="flex flex-col items-center mb-4">
-            <a href="/bibliotheque" aria-label="Retour à ma résonance" class="logo-animated">
+            <a href="/library" aria-label="Back to my library" class="logo-animated">
               <Logo size="2xl" showText={false} animated={true} noHover={false} />
             </a>
           </div>
@@ -221,7 +221,7 @@ function getWelcomeMessage(userName: string | null | undefined, userEmail: strin
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
         `
-        const text = originalText || button.getAttribute('data-original-text') || 'Chargement...'
+        const text = originalText || button.getAttribute('data-original-text') || 'Loading...'
         button.innerHTML = spinner + text
       } else {
         // Restore original content

@@ -47,15 +47,15 @@ function getActiveItem(path: string): { parent: string | null; child: string | n
     return { parent: null, child: null }
   }
 
-  // Discothèque
-  if (path.startsWith('/bibliotheque')) {
+  // Library
+  if (path.startsWith('/library')) {
     if (path.includes('format=vinyl')) return { parent: 'library', child: 'vinyl' }
     if (path.includes('format=cassette')) return { parent: 'library', child: 'cassette' }
     if (path.includes('format=cd')) return { parent: 'library', child: 'cd' }
     return { parent: 'library', child: 'all' }
   }
 
-  // Redirection depuis l'ancienne route /collection
+  // Redirect from legacy /collection route
   if (path.startsWith('/collection') && !path.startsWith('/collections')) {
     if (path.includes('format=vinyl')) return { parent: 'library', child: 'vinyl' }
     if (path.includes('format=cassette')) return { parent: 'library', child: 'cassette' }
@@ -69,12 +69,12 @@ function getActiveItem(path: string): { parent: string | null; child: string | n
   }
 
   // Explorer
-  if (path.includes('/explorer') || path.includes('/recherche')) {
+  if (path.includes('/explorer')) {
     return { parent: 'explorer', child: null }
   }
 
   // Profile
-  if (path.includes('/profil') || path.includes('/profile')) {
+  if (path.includes('/profile')) {
     if (path.includes('tab=favorites')) return { parent: 'profile', child: 'favorites' }
     if (path.includes('tab=wishlist')) return { parent: 'profile', child: 'wishlist' }
     if (path.includes('tab=statistics')) return { parent: 'profile', child: 'statistics' }
@@ -91,14 +91,14 @@ const activeItem = getActiveItem(currentPath)
 const navItems: NavItem[] = [
   {
     id: 'library',
-    label: 'Résonance',
+    label: 'Library',
     icon: Library,
-    href: '/bibliotheque',
+    href: '/library',
     children: [
-      { id: 'all', label: 'Tous les formats', href: '/bibliotheque', icon: Layers },
-      { id: 'vinyl', label: 'Vinyl', href: '/bibliotheque?format=vinyl', icon: Disc3 },
-      { id: 'cd', label: 'CD', href: '/bibliotheque?format=cd', icon: Disc2 },
-      { id: 'cassette', label: 'Cassette', href: '/bibliotheque?format=cassette', icon: CassetteTape },
+      { id: 'all', label: 'All formats', href: '/library', icon: Layers },
+      { id: 'vinyl', label: 'Vinyl', href: '/library?format=vinyl', icon: Disc3 },
+      { id: 'cd', label: 'CD', href: '/library?format=cd', icon: Disc2 },
+      { id: 'cassette', label: 'Cassette', href: '/library?format=cassette', icon: CassetteTape },
     ],
   },
   {
@@ -109,26 +109,26 @@ const navItems: NavItem[] = [
   },
   {
     id: 'explorer',
-    label: 'Explorer',
+    label: 'Explore',
     icon: Search,
     href: '/explorer',
   },
   {
     id: 'profile',
-    label: 'Profil',
+    label: 'Profile',
     icon: User,
-    href: '/profil',
+    href: '/profile',
     children: [
-      { id: 'favorites', label: 'Favoris', href: '/profil?tab=favorites', icon: Heart },
-      { id: 'wishlist', label: 'Wishlist', href: '/profil?tab=wishlist', icon: Bookmark },
-      { id: 'statistics', label: 'Statistiques', href: '/profil?tab=statistics', icon: BarChart3 },
-      { id: 'all-formats', label: 'Tous les formats', href: '/profil?tab=all-formats', icon: Layers },
+      { id: 'favorites', label: 'Favorites', href: '/profile?tab=favorites', icon: Heart },
+      { id: 'wishlist', label: 'Wishlist', href: '/profile?tab=wishlist', icon: Bookmark },
+      { id: 'statistics', label: 'Statistics', href: '/profile?tab=statistics', icon: BarChart3 },
+      { id: 'all-formats', label: 'All formats', href: '/profile?tab=all-formats', icon: Layers },
     ],
   },
 ]
 ---
 
-<!-- Backdrop (tablette uniquement, quand sidebar ouverte) -->
+    <!-- Backdrop (tablet only, when sidebar is open) -->
 <div
   data-sidebar-backdrop
   class="sidebar-backdrop fixed inset-0 z-30 hidden bg-black/20 backdrop-blur-sm"
@@ -151,7 +151,7 @@ const navItems: NavItem[] = [
         type="button"
         id="sidebar-close-btn"
         class="sidebar-close-btn -mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-neutral transition-colors hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 lg:hidden"
-        aria-label="Fermer le menu"
+        aria-label="Close menu"
       >
         <X size={20} class="fill-none stroke-2" />
       </button>
@@ -240,23 +240,23 @@ const navItems: NavItem[] = [
       </ul>
     </nav>
 
-    <!-- Footer avec theme toggle et profil utilisateur -->
+    <!-- Footer with theme toggle and user profile -->
     <div class="p-4 space-y-3">
       <!-- Theme toggle -->
       <div class="flex items-center justify-between rounded-lg bg-surface p-3 border border-border/50">
         <div>
-          <p class="text-sm font-medium text-neutral mb-0.5">Thème</p>
-          <p class="text-xs text-muted">Clair / Sombre</p>
+          <p class="text-sm font-medium text-neutral mb-0.5">Theme</p>
+          <p class="text-xs text-muted">Light / Dark</p>
         </div>
         <ThemeSwitcher size="md" />
       </div>
 
-      <!-- User profile cliquable vers profil -->
+      <!-- User profile section links to profile -->
       {userName || userEmail ? (
         <div class="rounded-lg bg-surface overflow-hidden">
           <div class="px-3 py-2">
             <a
-              href="/profil"
+              href="/profile"
               class="group flex items-center gap-3 rounded-lg px-3 py-2 transition-colors duration-150 hover:bg-secondary/10 hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
             >
               <Avatar
@@ -268,7 +268,7 @@ const navItems: NavItem[] = [
               />
               <div class="min-w-0 flex-1">
                 <p class="truncate text-sm font-medium text-neutral group-hover:text-secondary">
-                  {userName || 'Utilisateur'}
+                  {userName || 'User'}
                 </p>
                 {userEmail && (
                   <p class="truncate text-xs text-muted">{userEmail}</p>
@@ -278,20 +278,20 @@ const navItems: NavItem[] = [
           </div>
           <div class="px-3 py-2 space-y-1">
             <a
-              href="/parametres"
+              href="/settings"
               class="group flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-neutral transition-colors duration-150 hover:bg-secondary/10 hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
             >
               <Settings size={14} class="fill-none stroke-2 transition-colors duration-150 text-neutral stroke-neutral group-hover:text-secondary group-hover:stroke-secondary" />
-              <span class="transition-colors duration-150">Paramètres</span>
+              <span class="transition-colors duration-150">Settings</span>
             </a>
             <button
               type="button"
               id="sidebar-signout-btn"
               class="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-red-500/80 transition-all duration-200 hover:bg-red-500/10 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 focus-visible:ring-offset-1"
-              aria-label="Se déconnecter"
+              aria-label="Sign out"
             >
               <LogOut size={14} class="fill-none stroke-2 transition-colors duration-200 text-red-500/80 stroke-red-500/80 group-hover:text-red-500 group-hover:stroke-red-500" />
-              <span class="transition-colors duration-200">Déconnexion</span>
+              <span class="transition-colors duration-200">Sign out</span>
             </button>
           </div>
         </div>

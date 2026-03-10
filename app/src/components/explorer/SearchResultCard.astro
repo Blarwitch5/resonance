@@ -87,7 +87,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
     <button
       type="button"
       class="rounded-full bg-white/90 p-2 shadow-lg backdrop-blur-sm hover:bg-white"
-      aria-label="Ajouter à la collection"
+      aria-label="Add to collection"
       data-discogs-id={result.id}
       data-action="collection"
       onclick="event.preventDefault(); event.stopPropagation();"
@@ -97,7 +97,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
     <button
       type="button"
       class="rounded-full bg-pink-500/90 p-2 shadow-lg backdrop-blur-sm hover:bg-pink-500"
-      aria-label="Ajouter à la wishlist"
+      aria-label="Add to wishlist"
       data-discogs-id={result.id}
       data-action="wishlist"
       onclick="event.preventDefault(); event.stopPropagation();"
@@ -130,14 +130,14 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
         modal.classList.remove('hidden')
       }
     } else if (action === 'wishlist') {
-      // Ajouter directement à la wishlist
+      // Add directly to wishlist
       addToWishlist(discogsId)
     }
   })
 
   async function addToWishlist(discogsId: string): Promise<void> {
     try {
-      // Récupérer les détails de la release
+      // Fetch release details
       const releaseResponse = await fetch(`/api/discogs/release/${discogsId}`)
       if (!releaseResponse.ok) {
         throw new Error('Failed to fetch release details')
@@ -162,7 +162,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
 
       const release = await releaseResponse.json() as DiscogsRelease
 
-      // Déterminer le format
+      // Determine format
       let format: 'VINYL' | 'CD' | 'CASSETTE' = 'VINYL'
       const formatNames = release.formats?.map((formatItem: DiscogsFormat) => formatItem.name.toUpperCase()) || []
       if (formatNames.some((formatName: string) => formatName.includes('CD'))) {
@@ -206,7 +206,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
       }
 
       if (window.toast) {
-        window.toast.success('Album ajouté à la wishlist avec succès !')
+        window.toast.success('Album successfully added to wishlist!')
       }
     } catch (error) {
       console.error('Error adding to wishlist:', error)

@@ -22,7 +22,7 @@ const { itemId, currentCollection, collections } = Astro.props as CollectionSele
       class="w-full appearance-none rounded-xl border border-border bg-surface px-4 py-3 pr-10 text-neutral transition-colors focus:border-primary focus:ring-2 focus:ring-primary/50 focus:outline-none"
     >
       <option value="" {currentCollection === null ? 'selected' : ''}>
-        Non classé
+        Uncategorized
       </option>
       {collections.map((collection) => (
         <option
@@ -53,7 +53,7 @@ const { itemId, currentCollection, collections } = Astro.props as CollectionSele
 
       if (!itemId) return
 
-      // Désactiver le select pendant le chargement
+      // Disable select while loading
       select.disabled = true
       const originalValue = select.value
 
@@ -73,12 +73,12 @@ const { itemId, currentCollection, collections } = Astro.props as CollectionSele
 
         const updatedItem = await response.json()
 
-        // Afficher un message de succès
+        // Show success message
         if (window.toast) {
           const collectionName = newCollectionId
             ? select.options[select.selectedIndex]?.text || 'Collection'
-            : 'Non classé'
-          window.toast.success(`Album déplacé vers "${collectionName}"`)
+            : 'Uncategorized'
+          window.toast.success(`Album moved to "${collectionName}"`)
         }
 
         // Recharger la page pour afficher la nouvelle collection
@@ -88,7 +88,7 @@ const { itemId, currentCollection, collections } = Astro.props as CollectionSele
       } catch (error) {
         console.error('Error changing collection:', error)
         
-        // Restaurer la valeur précédente
+        // Restore previous value
         select.value = originalValue
 
         // Afficher un message d'erreur

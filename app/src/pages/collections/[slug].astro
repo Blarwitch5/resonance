@@ -36,16 +36,16 @@ const paginatedResult = await itemRepository.findByCollectionIdPaginated(collect
     <CollectionHeader collection={collection} />
 
     <div class="flex items-center justify-between">
-      <h2 class="text-xl font-bold">Albums dans cette collection</h2>
+      <h2 class="text-xl font-bold">Albums in this collection</h2>
     </div>
 
     {paginatedResult.pagination.total === 0 ? (
       <EmptyState
-        title={`La collection "${collection.name}" vous attend`}
-        description="Ajoutez vos premiers albums à cette collection pour commencer à l'organiser et à explorer votre musique préférée."
+        title={`The collection "${collection.name}" is waiting for you`}
+        description="Add your first albums to this collection to start organizing and exploring your favorite music."
         icon={Plus}
         action={{
-          label: 'Ajouter des albums',
+          label: 'Add albums',
           href: '/explorer',
         }}
       />

@@ -72,7 +72,7 @@ import Loader from '@lucide/astro/icons/loader'
             container.classList.add('hidden')
           }
           if (window.toast) {
-            window.toast.error('Aucun résultat trouvé')
+            window.toast.error('No results found')
           }
         }
       } catch (error) {
@@ -124,8 +124,8 @@ import Loader from '@lucide/astro/icons/loader'
       const safeQuery = escapeHtml(query)
       const isBarcode = /^\d{8,14}$/.test(query)
       const message = isBarcode
-        ? `Aucun album trouvé pour le code-barres « ${safeQuery} ».`
-        : `Aucun résultat pour « ${safeQuery} ».`
+        ? `No album found for barcode “${safeQuery}”.`
+        : `No results for “${safeQuery}”.`
       container.innerHTML = `
         <div class="search-no-results glass-card rounded-2xl border border-border/50 p-8 text-center">
           <p class="text-lg font-medium text-neutral mb-2">${message}</p>
@@ -149,7 +149,7 @@ import Loader from '@lucide/astro/icons/loader'
       }
     } catch (error) {
       console.error('Error rendering search results:', error)
-      if (window.toast) window.toast.error('Erreur lors de l\'affichage des résultats')
+      if (window.toast) window.toast.error('Error while displaying results')
     }
   }
 
@@ -177,7 +177,7 @@ import Loader from '@lucide/astro/icons/loader'
           container.classList.remove('hidden')
           container.innerHTML = `
             <div class="search-no-results glass-card rounded-2xl border border-border/50 p-8 text-center">
-              <p class="text-lg font-medium text-neutral mb-2">Aucun résultat pour « ${escapeHtml(query)} ».</p>
+              <p class="text-lg font-medium text-neutral mb-2">No results for “${escapeHtml(query)}”.</p>
               <p class="text-sm text-muted">Essayez une autre recherche.</p>
             </div>
           `
@@ -201,7 +201,7 @@ import Loader from '@lucide/astro/icons/loader'
 
   async function addToWishlist(discogsId: string): Promise<void> {
     try {
-      // Récupérer les détails de la release
+      // Fetch release details
       const releaseResponse = await fetch(`/api/discogs/release/${discogsId}`)
       if (!releaseResponse.ok) {
         throw new Error('Failed to fetch release details')
@@ -226,7 +226,7 @@ import Loader from '@lucide/astro/icons/loader'
 
       const release = await releaseResponse.json() as DiscogsRelease
 
-      // Déterminer le format
+      // Determine format
       let format: 'VINYL' | 'CD' | 'CASSETTE' = 'VINYL'
       const formatNames = release.formats?.map((formatItem: DiscogsFormat) => formatItem.name.toUpperCase()) || []
       if (formatNames.some((formatName: string) => formatName.includes('CD'))) {
@@ -270,7 +270,7 @@ import Loader from '@lucide/astro/icons/loader'
       }
 
       if (window.toast) {
-        window.toast.success('Album ajouté à la wishlist avec succès !')
+        window.toast.success('Album successfully added to wishlist!')
       }
     } catch (error) {
       console.error('Error adding to wishlist:', error)

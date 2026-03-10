@@ -109,7 +109,7 @@ const { collection } = Astro.props as CollectionHeaderProps
   </div>
 </div>
 
-<!-- Modal d'édition -->
+<!-- Edit modal -->
 <div id="edit-collection-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-md">
   <div class="glass-card mx-4 w-full max-w-lg rounded-2xl p-6">
     <h2 class="mb-4 text-xl font-bold text-neutral">Modifier la collection</h2>
@@ -169,7 +169,7 @@ const { collection } = Astro.props as CollectionHeaderProps
     const editNameInput = document.getElementById('edit-name') as HTMLInputElement | null
     const editDescriptionInput = document.getElementById('edit-description') as HTMLTextAreaElement | null
 
-    // Charger les données de la collection dans le formulaire d'édition
+    // Load collection data into edit form
     function loadCollectionData(): void {
       const nameElement = document.querySelector('h1.text-3xl')
       const descElement = document.querySelector('p.text-muted')
@@ -182,7 +182,7 @@ const { collection } = Astro.props as CollectionHeaderProps
       }
     }
 
-    // Ouvrir le modal d'édition
+    // Open edit modal
     editBtn?.addEventListener('click', function() {
       loadCollectionData()
       if (editModal) {
@@ -191,7 +191,7 @@ const { collection } = Astro.props as CollectionHeaderProps
       }
     })
 
-    // Fermer le modal d'édition
+    // Close edit modal
     cancelEditBtn?.addEventListener('click', function() {
       if (editModal) {
         editModal.classList.add('hidden')
@@ -207,7 +207,7 @@ const { collection } = Astro.props as CollectionHeaderProps
       }
     })
 
-    // Soumettre le formulaire d'édition
+    // Submit edit form
     editForm?.addEventListener('submit', async function(event: SubmitEvent) {
       event.preventDefault()
       
@@ -239,7 +239,7 @@ const { collection } = Astro.props as CollectionHeaderProps
 
         if (response.ok) {
           if (window.toast) {
-            window.toast.success('Collection modifiée avec succès !')
+            window.toast.success('Collection updated successfully!')
           }
           setTimeout(function() {
             window.location.reload()
@@ -266,7 +266,7 @@ const { collection } = Astro.props as CollectionHeaderProps
     deleteBtn?.addEventListener('click', async function() {
       const confirmed = await window.confirmDialog?.(
         'Supprimer la collection',
-        'Êtes-vous sûr de vouloir supprimer la collection "' + collectionName + '" ? Cette action est irréversible.',
+        'Are you sure you want to delete the collection "' + collectionName + '"? This action is irreversible.',
         'Supprimer',
         'Annuler'
       )
@@ -287,7 +287,7 @@ const { collection } = Astro.props as CollectionHeaderProps
 
         if (response.ok || response.status === 204) {
           if (window.toast) {
-            window.toast.success('Collection supprimée avec succès !')
+            window.toast.success('Collection deleted successfully!')
           }
           setTimeout(function() {
             window.location.href = '/collections'

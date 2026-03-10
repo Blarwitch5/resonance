@@ -33,7 +33,7 @@ const getPriorityStars = (priority: number) => {
 {wishlistItems.length === 0 ? (
   <EmptyState
     title="Votre wishlist vous attend"
-    description="Enregistrez les albums que vous souhaitez acquérir. Explorez Discogs et ajoutez-les à votre wishlist pour ne jamais les oublier."
+    description="Save albums you want to buy later. Explore Discogs and add them to your wishlist so you never forget them."
     icon={Heart}
     action={{
       label: 'Explorer Discogs',
@@ -125,7 +125,7 @@ const getPriorityStars = (priority: number) => {
 
         const confirmed = await window.confirmDialog?.(
           'Supprimer de la wishlist',
-          'Êtes-vous sûr de vouloir supprimer cet album de votre wishlist ?',
+          'Are you sure you want to remove this album from your wishlist?',
           'Supprimer',
           'Annuler'
         )

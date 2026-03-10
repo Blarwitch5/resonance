@@ -48,9 +48,9 @@ if (topGenres.length > 0) {
       <div id="search-results-content"></div>
     </section>
 
-    <!-- Résultats code-barres (saisie manuelle / scan, indépendant du champ recherche) -->
+    <!-- Barcode results (manual input / scan, independent from search field) -->
     <section id="barcode-results-section" class="hidden">
-      <h2 id="barcode-results-title" class="mb-4 text-xl font-bold text-neutral">Résultats pour le code-barres</h2>
+      <h2 id="barcode-results-title" class="mb-4 text-xl font-bold text-neutral">Results for barcode</h2>
       <div id="barcode-results-container"></div>
     </section>
 
@@ -72,7 +72,7 @@ if (topGenres.length > 0) {
           <div class="glass-card rounded-xl p-8 text-center">
             <p class="mb-2 font-medium text-neutral">Aucune recommandation pour le moment</p>
             <p class="text-sm text-muted">
-              Continuez à ajouter des albums à votre collection pour recevoir des recommandations personnalisées.
+              Keep adding albums to your collection to receive personalized recommendations.
             </p>
           </div>
         )}
@@ -107,7 +107,7 @@ if (topGenres.length > 0) {
 
 <script>
   // Au chargement : ?barcode= → recherche par code-barres uniquement (sans toucher au champ recherche)
-  // ?q= → recherche générale dans le champ recherche
+  // ?q= → general search from the search field
   window.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search)
     const barcode = params.get('barcode')?.trim()
@@ -117,7 +117,7 @@ if (topGenres.length > 0) {
       const section = document.getElementById('barcode-results-section')
       const container = document.getElementById('barcode-results-container')
       const title = document.getElementById('barcode-results-title')
-      if (title) title.textContent = `Résultats pour le code-barres « ${barcode} »`
+      if (title) title.textContent = `Results for barcode “${barcode}”`
       if (!section || !container) return
       section.classList.remove('hidden')
       try {
@@ -132,13 +132,13 @@ if (topGenres.length > 0) {
           if (renderRes.ok) {
             container.innerHTML = await renderRes.text()
           } else {
-            container.innerHTML = '<p class="text-muted">Erreur d’affichage des résultats.</p>'
+            container.innerHTML = '<p class="text-muted">Error while displaying results.</p>'
           }
         } else {
           container.innerHTML = `
             <div class="glass-card rounded-2xl border border-border/50 p-8 text-center">
-              <p class="text-lg font-medium text-neutral mb-2">Aucun album trouvé pour ce code-barres.</p>
-              <p class="text-sm text-muted">Vérifiez le code ou essayez une recherche par artiste / titre dans le champ ci-dessus.</p>
+              <p class="text-lg font-medium text-neutral mb-2">No album found for this barcode.</p>
+              <p class="text-sm text-muted">Check the code or try a search by artist/title in the field above.</p>
             </div>
           `
         }

@@ -67,13 +67,18 @@ const decadesChartData = {
   <!-- Format Breakdown (Pie Chart) -->
   {formatData.data.some((count) => count > 0) && (
     <div class="glass-card min-w-0 rounded-xl p-4 sm:p-6">
-      <h3 class="mb-4 text-lg font-semibold text-neutral">Format Breakdown</h3>
+      <h3 class="mb-2 text-lg font-semibold text-neutral">Format Breakdown</h3>
+      <p class="mb-4 text-xs text-muted">
+        Your collection by format: Vinyl, CD, and Cassette.
+      </p>
       <div class="relative max-w-full overflow-hidden">
         <div class="flex min-h-[200px] items-center justify-center sm:min-h-[256px]">
           <canvas
             id="format-chart"
             class="max-h-64 w-full max-w-full"
             data-chart={JSON.stringify(formatData)}
+            role="img"
+            aria-label="Pie chart showing the share of your collection by format: Vinyl, CD, and Cassette."
           ></canvas>
         </div>
       </div>
@@ -83,13 +88,18 @@ const decadesChartData = {
   <!-- Genre Distribution (Bar Chart) -->
   {genreData.labels.length > 0 && (
     <div class="glass-card min-w-0 rounded-xl p-4 sm:p-6">
-      <h3 class="mb-4 text-lg font-semibold text-neutral">Top Genres</h3>
+      <h3 class="mb-2 text-lg font-semibold text-neutral">Top Genres</h3>
+      <p class="mb-4 text-xs text-muted">
+        Your most represented genres based on the last 100 items added.
+      </p>
       <div class="relative max-w-full overflow-hidden">
         <div class="flex min-h-[200px] items-center justify-center sm:min-h-[256px]">
           <canvas
             id="genre-chart"
             class="max-h-64 w-full max-w-full"
             data-chart={JSON.stringify(genreData)}
+            role="img"
+            aria-label="Bar chart showing the most represented genres in your recent collection."
           ></canvas>
         </div>
       </div>
@@ -99,13 +109,18 @@ const decadesChartData = {
   <!-- Decades Distribution (Bar Chart) -->
   {decadesChartData.labels.length > 0 && (
     <div class="glass-card min-w-0 rounded-xl p-4 sm:p-6">
-      <h3 class="mb-4 text-lg font-semibold text-neutral">Collection by Decade</h3>
+      <h3 class="mb-2 text-lg font-semibold text-neutral">Collection by Decade</h3>
+      <p class="mb-4 text-xs text-muted">
+        How your albums are distributed across decades.
+      </p>
       <div class="relative max-w-full overflow-hidden">
         <div class="flex min-h-[200px] items-center justify-center sm:min-h-[256px]">
           <canvas
             id="decades-chart"
             class="max-h-64 w-full max-w-full"
             data-chart={JSON.stringify(decadesChartData)}
+            role="img"
+            aria-label="Bar chart showing how many albums you have for each decade."
           ></canvas>
         </div>
       </div>

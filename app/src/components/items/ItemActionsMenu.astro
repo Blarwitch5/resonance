@@ -73,7 +73,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
             data-action="delete"
           >
             <Trash2 size={16} class="fill-none stroke-2 transition-colors group-hover:stroke-red-600" />
-            <span>Supprimer de la bibliothèque</span>
+            <span>Remove from library</span>
           </button>
         </div>
       </div>
@@ -132,7 +132,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
           const data = await response.json()
           const newIsFavorite = data.isFavorite
 
-          // Mettre à jour l'UI
+          // Update UI
           if (favoriteBtn) favoriteBtn.dataset.isFavorite = newIsFavorite.toString()
           const heartIcon = favoriteBtn.querySelector('svg')
           const text = favoriteBtn.querySelector('span:last-child')
@@ -154,7 +154,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
           }
 
           if (window.toast) {
-            window.toast.success(newIsFavorite ? 'Ajouté aux favoris' : 'Retiré des favoris')
+            window.toast.success(newIsFavorite ? 'Added to favorites' : 'Removed from favorites')
           }
         } catch (error) {
           console.error('Error toggling favorite:', error)
@@ -185,7 +185,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
           const data = await response.json()
 
           if (window.toast) {
-            window.toast.success('Album retiré de la collection')
+            window.toast.success('Album removed from collection')
           }
 
           // Recharger la page
@@ -216,7 +216,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
 </script>
 
 <style>
-  /* Amélioration du menu dropdown sur desktop */
+  /* Desktop dropdown menu improvements */
   @media (min-width: 768px) {
     .menu-dropdown {
       min-width: 280px;

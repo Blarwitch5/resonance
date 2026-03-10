@@ -17,7 +17,7 @@ const props = Astro.props as HeaderProps
     <div class="flex h-16 items-center justify-between">
       <!-- Logo et titre de section -->
       <div class="flex items-center gap-4">
-        <a href="/bibliotheque" class="md:hidden">
+        <a href="/library" class="md:hidden">
           <Logo size="sm" showText={true} noHover={false} />
         </a>
         <Logo size="md" showText={false} class="hidden md:block" />
@@ -35,11 +35,11 @@ const props = Astro.props as HeaderProps
 
       <!-- Actions du header -->
       <div class="flex items-center gap-4">
-        <!-- Recherche rapide (mobile) -->
+        <!-- Quick search (mobile) -->
         <div class="md:hidden">
           <button
             type="button"
-            aria-label="Rechercher"
+            aria-label="Search"
             class="rounded-lg bg-muted/10 p-2 text-muted transition-colors hover:bg-muted/20"
           >
             <svg
@@ -61,7 +61,7 @@ const props = Astro.props as HeaderProps
         <!-- Thème toggle -->
         <ThemeSwitcher size="md" variant="icon-only" />
 
-        <!-- Menu utilisateur (desktop) -->
+        <!-- User menu (desktop) -->
         <div class="hidden items-center gap-3 md:flex">
           <div
             class="bg-gradient-resonance flex h-8 w-8 items-center justify-center rounded-full"
@@ -69,7 +69,7 @@ const props = Astro.props as HeaderProps
           >
             <span class="text-sm font-medium text-white">U</span>
           </div>
-          <span class="text-sm font-medium text-neutral">Utilisateur</span>
+          <span class="text-sm font-medium text-neutral">User</span>
         </div>
       </div>
     </div>

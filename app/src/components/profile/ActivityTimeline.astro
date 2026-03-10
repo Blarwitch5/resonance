@@ -24,7 +24,7 @@ function formatRelativeTime(date: Date | string): string {
   const diffHours = Math.floor(diffMs / 3600000)
   const diffDays = Math.floor(diffMs / 86400000)
 
-  if (diffMinutes < 1) return "À l'instant"
+  if (diffMinutes < 1) return "Just now"
   if (diffMinutes < 60) return `Il y a ${diffMinutes} min`
   if (diffHours < 24) return `Il y a ${diffHours}h`
   if (diffDays < 7) return `Il y a ${diffDays} j`
@@ -49,15 +49,15 @@ function getActivityIcon(type: Activity['type']) {
 function getActivityLabel(type: Activity['type']): string {
   switch (type) {
     case 'item_added':
-      return 'Album ajouté'
+      return 'Album added'
     case 'collection_created':
-      return 'Collection créée'
+      return 'Collection created'
     case 'wishlist_added':
-      return 'Ajouté à la wishlist'
+      return 'Added to wishlist'
     case 'item_favorited':
       return 'Mis en favori'
     default:
-      return 'Activité'
+      return 'Activity'
   }
 }
 
@@ -79,11 +79,11 @@ function getActivityColor(type: Activity['type']): string {
 
 {activities.length === 0 ? (
   <div class="rounded-xl border border-dashed border-border bg-surface p-8 text-center">
-    <p class="text-muted">Aucune activité récente.</p>
-    <p class="mt-1 text-sm text-muted">Vos ajouts et créations apparaîtront ici.</p>
+    <p class="text-muted">No recent activity.</p>
+    <p class="mt-1 text-sm text-muted">Your additions and creations will appear here.</p>
   </div>
 ) : (
-  <ul class="space-y-0" role="list" aria-label="Activité récente">
+  <ul class="space-y-0" role="list" aria-label="Recent activity">
     {activities.map((activity, index) => {
       const Icon = getActivityIcon(activity.type)
       const label = getActivityLabel(activity.type)

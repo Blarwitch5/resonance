@@ -19,7 +19,7 @@ const { discogsId, collections, defaultCollectionId } = Astro.props as AddToColl
     data-action="open-modal"
   >
     <Plus size={20} />
-    <span>Ajouter à la collection</span>
+    <span>Add to collection</span>
   </button>
 
   <!-- Modal d'ajout -->
@@ -33,7 +33,7 @@ const { discogsId, collections, defaultCollectionId } = Astro.props as AddToColl
   >
     <div class="glass-card w-full max-w-md rounded-2xl p-6">
       <div class="mb-4 flex items-center justify-between">
-        <h3 id="add-modal-title" class="text-lg font-bold text-neutral">Ajouter à la collection</h3>
+        <h3 id="add-modal-title" class="text-lg font-bold text-neutral">Add to collection</h3>
         <button
           type="button"
           class="close-btn flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-elevated hover:text-neutral"
@@ -53,14 +53,17 @@ const { discogsId, collections, defaultCollectionId } = Astro.props as AddToColl
 
       <div class="space-y-4">
         <div>
-          <label class="mb-2 block text-sm font-medium text-neutral">
+          <label
+            for={`collection-select-${discogsId}`}
+            class="mb-2 block text-sm font-medium text-neutral"
+          >
             Collection
           </label>
           <select
             id={`collection-select-${discogsId}`}
             class="w-full rounded-xl border border-border bg-surface px-4 py-3 text-neutral transition-colors focus:border-primary focus:ring-2 focus:ring-primary/50 focus:outline-none"
           >
-            <option value="">Non classé</option>
+            <option value="">Uncategorized</option>
             {collections.map((collection) => (
               <option
                 value={collection.id}
@@ -185,8 +188,8 @@ const { discogsId, collections, defaultCollectionId } = Astro.props as AddToColl
           if (window.toast) {
             const collectionName = selectedCollectionId
               ? select?.options[select.selectedIndex]?.text || 'Collection'
-              : 'Non classé'
-            window.toast.success(`Album ajouté à "${collectionName}"`)
+              : 'Uncategorized'
+            window.toast.success(`Album added to "${collectionName}"`)
           }
 
           // Redirection vers la page complète

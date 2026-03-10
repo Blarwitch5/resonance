@@ -102,7 +102,7 @@ const coverUrl = release.cover_image || release.thumb || null
       class="inline-flex items-center gap-2 text-muted transition-colors hover:text-primary"
     >
       <ArrowLeft size={18} />
-      <span>Retour à l'explorateur</span>
+      <span>Back to explorer</span>
     </a>
 
     <!-- Header avec cover et infos principales -->
@@ -176,7 +176,7 @@ const coverUrl = release.cover_image || release.thumb || null
               data-redirect-on-success="true"
             >
               <Plus size={20} />
-              <span>Ajouter à la collection</span>
+              <span>Add to collection</span>
             </button>
           </div>
         </div>
@@ -215,10 +215,10 @@ const coverUrl = release.cover_image || release.thumb || null
           <Info size={20} class="text-primary shrink-0 mt-0.5" />
           <div class="flex-1">
             <p class="text-sm font-medium text-primary mb-1">
-              Écoutez les extraits
+              Listen to previews
             </p>
             <p class="text-xs text-muted">
-              Ajoutez cet album à votre collection pour écouter des extraits de 30 secondes de chaque titre via Spotify.
+              Add this album to your collection to listen to 30-second previews for each track via Spotify.
             </p>
           </div>
         </div>
@@ -287,7 +287,7 @@ const coverUrl = release.cover_image || release.thumb || null
 
         <!-- Format et communauté -->
         <div class="glass-card rounded-2xl p-4 md:p-6">
-          <h2 class="mb-4 text-xl font-bold text-neutral">Format & Communauté</h2>
+          <h2 class="mb-4 text-xl font-bold text-neutral">Format & Community</h2>
           <div class="space-y-3 text-sm">
             {discogsDetails.formats.length > 0 && (
               <div>
@@ -308,7 +308,7 @@ const coverUrl = release.cover_image || release.thumb || null
                   <span class="ml-2 text-neutral">
                     {discogsDetails.community.rating.average > 0
                       ? `${discogsDetails.community.rating.average.toFixed(1)} / 5`
-                      : 'Non noté'}
+                      : 'Not rated'}
                     {discogsDetails.community.rating.count > 0 &&
                       ` (${discogsDetails.community.rating.count} avis)`}
                   </span>
@@ -320,7 +320,7 @@ const coverUrl = release.cover_image || release.thumb || null
                   </span>
                 </div>
                 <div>
-                  <span class="font-medium text-muted">Souhaité par :</span>
+                  <span class="font-medium text-muted">Wanted by:</span>
                   <span class="ml-2 text-neutral">
                     {discogsDetails.community.want} personnes
                   </span>

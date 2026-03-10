@@ -80,7 +80,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
     <button
       type="button"
       class="btn-icon rounded-full p-2 shadow-lg"
-      aria-label="Ajouter à la collection"
+      aria-label="Add to collection"
       data-discogs-id={result.id}
       data-action="collection"
       onclick="event.preventDefault(); event.stopPropagation();"
@@ -90,7 +90,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
     <button
       type="button"
       class="btn-icon-colored rounded-full p-2 shadow-lg"
-      aria-label="Ajouter à la wishlist"
+      aria-label="Add to wishlist"
       data-discogs-id={result.id}
       data-action="wishlist"
       onclick="event.preventDefault(); event.stopPropagation();"
@@ -123,7 +123,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
         ;(modal as HTMLElement).style.display = 'flex'
       }
     } else if (action === 'wishlist') {
-      // Ajouter directement à la wishlist
+      // Add directly to wishlist
       addToWishlist(discogsId)
     }
   })
@@ -183,7 +183,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
 
       // @ts-ignore - toast is available globally
       if (window.toast) {
-        window.toast.success('Album ajouté à la wishlist avec succès !')
+        window.toast.success('Album successfully added to wishlist!')
       }
     } catch (error) {
       console.error('Error adding to wishlist:', error)

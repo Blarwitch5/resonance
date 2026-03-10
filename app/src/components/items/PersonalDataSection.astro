@@ -14,10 +14,10 @@ const { itemId, metadata } = Astro.props as PersonalDataSectionProps
 const CONDITION_LABELS: Record<string, string> = {
   MINT: 'Neuf',
   NEAR_MINT: 'Quasi neuf',
-  VERY_GOOD: 'Très bon état',
-  GOOD: 'Bon état',
-  FAIR: 'État moyen',
-  POOR: 'Mauvais état',
+  VERY_GOOD: 'Very good condition',
+  GOOD: 'Good condition',
+  FAIR: 'Fair condition',
+  POOR: 'Poor condition',
 }
 
 const tags: string[] = metadata?.customTags
@@ -44,7 +44,7 @@ const acquisitionDateStr =
   <div class="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
     <h2 class="flex items-center gap-2 text-lg md:text-xl font-bold text-neutral">
       <FileText size={20} class="fill-none stroke-2 text-primary stroke-primary" />
-      Données personnelles
+        Personal data
     </h2>
     <button
       type="button"
@@ -60,7 +60,7 @@ const acquisitionDateStr =
   <div class="view-mode space-y-4" data-mode="view">
     {!metadata ? (
       <p class="text-sm text-muted">
-        Aucune donnée personnelle. Cliquez sur « Modifier » pour en ajouter.
+        No personal data yet. Click “Edit” to add some.
       </p>
     ) : (
       <div class="grid gap-4 sm:grid-cols-2">
@@ -94,7 +94,7 @@ const acquisitionDateStr =
         )}
         {metadata.condition && (
           <div>
-            <span class="text-sm font-medium text-muted">État</span>
+            <span class="text-sm font-medium text-muted">Condition</span>
             <p class="mt-1 text-neutral">
               {CONDITION_LABELS[metadata.condition] ?? metadata.condition}
             </p>
@@ -188,7 +188,7 @@ const acquisitionDateStr =
     <div class="grid gap-4 sm:grid-cols-2">
       <div>
         <label for="condition" class="mb-2 block text-sm font-medium text-neutral">
-          État de conservation
+          Condition
         </label>
         <select
           id="condition"
@@ -212,7 +212,7 @@ const acquisitionDateStr =
           id="purchase-location"
           name="purchaseLocation"
           value={metadata?.purchaseLocation ?? ''}
-          placeholder="Fnac, marché aux puces..."
+          placeholder="Record store, flea market..."
           class="w-full rounded-xl border border-border bg-surface px-4 py-3 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
         />
       </div>
@@ -228,7 +228,7 @@ const acquisitionDateStr =
             type="button"
             class="star-btn star-outlined rounded p-1 transition-colors duration-150"
             data-value={ratingValue}
-            aria-label={`${ratingValue} étoile${ratingValue > 1 ? 's' : ''}`}
+            aria-label={`${ratingValue} star${ratingValue > 1 ? 's' : ''}`}
           >
             <Star size={28} class="pointer-events-none" />
           </button>
@@ -239,10 +239,10 @@ const acquisitionDateStr =
 
     <div>
       <label for="tags-input" class="mb-2 block text-sm font-medium text-neutral">
-        Tags personnalisés
+        Custom tags
       </label>
       <p class="mb-2 text-xs text-muted">
-        Saisissez un tag puis appuyez sur <kbd class="rounded border border-border bg-surface-elevated px-1.5 py-0.5 font-mono text-[10px]">Entrée</kbd> ou <kbd class="rounded border border-border bg-surface-elevated px-1.5 py-0.5 font-mono text-[10px]">,</kbd> pour l'ajouter. Vous pouvez en ajouter plusieurs d'un coup en les séparant par des virgules (max 10 tags, 50 caractères chacun).
+        Type a tag then press <kbd class="rounded border border-border bg-surface-elevated px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd> or <kbd class="rounded border border-border bg-surface-elevated px-1.5 py-0.5 font-mono text-[10px]">,</kbd> to add it. You can add several at once by separating them with commas (max 10 tags, 50 characters each).
       </p>
       <div class="tags-container flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface p-3 min-h-[44px]">
         <div class="tags-badges-container flex flex-wrap gap-2 empty:hidden" data-tags-badges-container></div>
@@ -250,7 +250,7 @@ const acquisitionDateStr =
           type="text"
           id="tags-input"
           class="min-w-[140px] flex-1 rounded-lg border-0 bg-transparent px-2 py-1.5 text-sm text-neutral placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary/50"
-          placeholder="Ex. vinyl, édition limitée, 2024"
+          placeholder="E.g. vinyl, limited edition, 2024"
           maxlength="50"
           data-tags-input
           autocomplete="off"
@@ -467,9 +467,9 @@ const acquisitionDateStr =
           }
 
           if (window.toast) {
-            window.toast.success('Données enregistrées')
+            window.toast.success('Data saved')
           } else {
-            console.log('Données enregistrées')
+            console.log('Data saved')
           }
           window.location.reload()
         } catch (error) {

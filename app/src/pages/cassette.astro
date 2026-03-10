@@ -1,9 +1,9 @@
 ---
-// Redirect to unified bibliotheque page with format filter
-return Astro.redirect('/bibliotheque?format=CASSETTE')
+// Redirect to unified library page with format filter
+return Astro.redirect('/library?format=CASSETTE')
 ---
 
-// Récupérer toutes les cassettes de l'utilisateur
+// Fetch all user cassettes
 const itemsByCollection = await itemService.getItemsByFormatWithCollections(session.user.id, 'CASSETTE')
 const collections = await collectionRepository.findByUserId(session.user.id)
 
@@ -25,7 +25,7 @@ const totalItems = Object.values(itemsByCollection).flat().length
       </div>
     </div>
 
-    <!-- Liste des items groupés par collection -->
+    <!-- List of items grouped by collection -->
     {totalItems === 0 ? (
       <!-- Collection vide -->
       <div class="glass-card rounded-2xl p-12 text-center">
@@ -40,7 +40,7 @@ const totalItems = Object.values(itemsByCollection).flat().length
         </h3>
 
         <p class="text-blue-gray dark:text-blue-gray mx-auto mb-8 max-w-md">
-          Ajoutez votre première cassette et commencez à construire votre collection personnalisée.
+          Add your first cassette and start building your personalized collection.
         </p>
 
         <div class="flex flex-col justify-center gap-4 sm:flex-row">

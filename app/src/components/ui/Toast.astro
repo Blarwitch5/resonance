@@ -1,9 +1,18 @@
 ---
 // Toast notification component
 // Usage: Add <ToastContainer /> to your layout, then use showToast() function
+//
+// Accessibilité:
+// - conteneur avec aria-live pour annoncer les messages
+// - chaque toast a un role adapté (status / alert) selon le type
 ---
 
-<div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-3 pointer-events-none">
+<div
+  id="toast-container"
+  class="fixed top-4 right-4 z-50 flex flex-col gap-3 pointer-events-none"
+  aria-live="polite"
+  aria-atomic="false"
+>
   <!-- Toasts will be dynamically added here -->
 </div>
 
@@ -15,6 +24,15 @@
     const toastElement = document.createElement('div')
     toastElement.id = `toast-${toast.id}`
     toastElement.className = `toast glass-card pointer-events-auto flex items-center gap-3 rounded-xl border px-4 py-3 shadow-lg transition-all duration-300 translate-x-full opacity-0`
+    
+    // Rôle ARIA en fonction du type
+    if (toast.type === 'error' || toast.type === 'warning') {
+      toastElement.setAttribute('role', 'alert')
+      toastElement.setAttribute('aria-live', 'assertive')
+    } else {
+      toastElement.setAttribute('role', 'status')
+      toastElement.setAttribute('aria-live', 'polite')
+    }
     
     // Type-specific styling
     const typeStyles = {

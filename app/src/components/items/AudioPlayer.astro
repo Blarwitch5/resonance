@@ -52,7 +52,8 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
               type="button"
               class="audio-play-btn flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white transition-all hover:bg-primary/90"
               data-action="play-pause"
-              aria-label="Play/Pause"
+              aria-label={`Play preview of ${trackName}`}
+              aria-pressed="false"
             >
               <Play size={20} class="audio-play-icon fill-none stroke-2" />
               <Pause size={20} class="audio-pause-icon hidden fill-none stroke-2" />
@@ -72,7 +73,8 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
               type="button"
               class="audio-volume-btn flex h-10 w-10 items-center justify-center rounded-full text-muted transition-colors hover:text-neutral"
               data-action="toggle-volume"
-              aria-label="Toggle volume"
+              aria-label="Mute"
+              aria-pressed="false"
             >
               <Volume2 size={18} class="audio-volume-icon" />
               <VolumeX size={18} class="audio-volume-muted-icon hidden" />
@@ -109,7 +111,8 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
           type="button"
           class="audio-play-btn flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white transition-all hover:bg-primary/90"
           data-action="play-pause"
-          aria-label="Play/Pause"
+          aria-label={`Play preview of ${trackName}`}
+          aria-pressed="false"
         >
           <Play size={14} class="audio-play-icon fill-none stroke-2" />
           <Pause size={14} class="audio-pause-icon hidden fill-none stroke-2" />
@@ -128,18 +131,21 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
 
 <script>
   (function() {
-    const playerElement = document.querySelector(`[data-player-id="${playerId}"]`)
+    const playerElement = document.querySelector('.audio-player[data-player-id]') as HTMLElement | null
     if (!playerElement) return
 
-    const audio = document.getElementById(playerId)
+    const playerIdAttr = playerElement.getAttribute('data-player-id')
+    if (!playerIdAttr) return
+
+    const audio = document.getElementById(playerIdAttr) as HTMLAudioElement | null
     if (!audio) return
 
-    const playBtn = playerElement.querySelector('[data-action="play-pause"]')
-    const playIcon = playerElement.querySelector('.audio-play-icon')
-    const pauseIcon = playerElement.querySelector('.audio-pause-icon')
-    const progressBar = playerElement.querySelector('.audio-progress-fill')
-    const currentTimeEl = playerElement.querySelector('.audio-current-time')
-    const volumeBtn = playerElement.querySelector('[data-action="toggle-volume"]')
+    const playBtn = playerElement.querySelector('[data-action="play-pause"]') as HTMLButtonElement | null
+    const playIcon = playerElement.querySelector('.audio-play-icon') as HTMLElement | null
+    const pauseIcon = playerElement.querySelector('.audio-pause-icon') as HTMLElement | null
+    const progressBar = playerElement.querySelector('.audio-progress-fill') as HTMLElement | null
+    const currentTimeEl = playerElement.querySelector('.audio-current-time') as HTMLElement | null
+    const volumeBtn = playerElement.querySelector('[data-action="toggle-volume"]') as HTMLButtonElement | null
     const volumeIcon = playerElement.querySelector('.audio-volume-icon')
     const volumeMutedIcon = playerElement.querySelector('.audio-volume-muted-icon')
 
@@ -151,9 +157,9 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
     let currentTrackId = null
 
     // Arrêter les autres players quand celui-ci démarre
-    function stopOtherPlayers() {
-      const allPlayers = document.querySelectorAll('audio')
-      allPlayers.forEach((otherAudio) => {
+    function stopOtherPlayers(): void {
+      const allPlayers = document.querySelectorAll('audio') as NodeListOf<HTMLAudioElement>
+      allPlayers.forEach((otherAudio: HTMLAudioElement) => {
         if (otherAudio !== audio && !otherAudio.paused) {
           otherAudio.pause()
           otherAudio.currentTime = 0
@@ -171,8 +177,8 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
     }
 
     // Mettre à jour la barre de progression
-    function updateProgress() {
-      if (!audio.duration) return
+    function updateProgress(): void {
+      if (!audio || !audio.duration) return
 
       const progress = (audio.currentTime / audio.duration) * 100
       if (progressBar) {
@@ -187,7 +193,7 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
     }
 
     // Formater la durée
-    function formatDuration(seconds) {
+    function formatDuration(seconds: number): string {
       const mins = Math.floor(seconds / 60)
       const secs = Math.floor(seconds % 60)
       return `${mins}:${secs.toString().padStart(2, '0')}`
@@ -199,7 +205,7 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
 
     // Événements audio
     audio.addEventListener('loadedmetadata', () => {
-      const durationEl = playerElement.querySelector('.audio-duration')
+      const durationEl = playerElement.querySelector('.audio-duration') as HTMLElement | null
       if (durationEl) {
         durationEl.textContent = formatDuration(audio.duration)
       }
@@ -226,16 +232,24 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
           isPlaying = false
           if (playIcon) playIcon.classList.remove('hidden')
           if (pauseIcon) pauseIcon.classList.add('hidden')
+          if (playBtn) {
+            playBtn.setAttribute('aria-pressed', 'false')
+            playBtn.setAttribute('aria-label', `Play preview of ${trackName}`)
+          }
         } else {
           audio.play().catch((error) => {
             console.error('Error playing audio:', error)
             if (window.toast) {
-              window.toast.error('Erreur lors de la lecture')
+              window.toast.error('Error while playing audio')
             }
           })
           isPlaying = true
           if (playIcon) playIcon.classList.add('hidden')
           if (pauseIcon) pauseIcon.classList.remove('hidden')
+          if (playBtn) {
+            playBtn.setAttribute('aria-pressed', 'true')
+            playBtn.setAttribute('aria-label', `Pause preview of ${trackName}`)
+          }
         }
       })
     }
@@ -248,9 +262,17 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
         if (isMuted) {
           if (volumeIcon) volumeIcon.classList.add('hidden')
           if (volumeMutedIcon) volumeMutedIcon.classList.remove('hidden')
+          if (volumeBtn) {
+            volumeBtn.setAttribute('aria-pressed', 'true')
+            volumeBtn.setAttribute('aria-label', 'Unmute')
+          }
         } else {
           if (volumeIcon) volumeIcon.classList.remove('hidden')
           if (volumeMutedIcon) volumeMutedIcon.classList.add('hidden')
+          if (volumeBtn) {
+            volumeBtn.setAttribute('aria-pressed', 'false')
+            volumeBtn.setAttribute('aria-label', 'Mute')
+          }
         }
       })
     }

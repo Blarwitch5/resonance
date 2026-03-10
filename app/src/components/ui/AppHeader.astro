@@ -23,7 +23,7 @@ const hasUser = !!userName || !!userEmail
     <div class="flex h-16 items-center justify-between">
       <!-- Logo à gauche -->
       <div class="flex items-center">
-        <a href="/bibliotheque" aria-label="Retour à ma résonance">
+        <a href="/library" aria-label="Back to my library">
           <Logo size="md" showText={true} noHover={false} />
         </a>
       </div>
@@ -37,10 +37,14 @@ const hasUser = !!userName || !!userEmail
 
             <!-- Profil avec menu dropdown (mobile seulement) -->
             <div class="relative group">
-              <a
-                href="/profil"
+              <button
+                type="button"
+                id="user-menu-trigger"
                 class="btn-icon flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden"
-                aria-label="Profil"
+                aria-label="Ouvrir le menu du profil"
+                aria-haspopup="menu"
+                aria-expanded="false"
+                aria-controls="user-menu-dropdown"
                 title={userName || userEmail || 'Profil'}
               >
                 <Avatar
@@ -50,10 +54,15 @@ const hasUser = !!userName || !!userEmail
                   size="md"
                   class="h-8 w-8"
                 />
-              </a>
+              </button>
 
               <!-- Menu dropdown (visible au clic sur mobile) -->
-              <div id="user-menu-dropdown" class="absolute right-0 top-full mt-2 hidden w-48 rounded-xl border border-border bg-surface-elevated shadow-lg backdrop-blur-sm">
+              <div
+                id="user-menu-dropdown"
+                class="absolute right-0 top-full mt-2 hidden w-48 rounded-xl border border-border bg-surface-elevated shadow-lg backdrop-blur-sm"
+                role="menu"
+                aria-label="Menu du profil"
+              >
                 <div class="p-2">
                   {userName && (
                     <div class="px-3 py-2 text-sm font-medium text-neutral">
@@ -67,27 +76,30 @@ const hasUser = !!userName || !!userEmail
                   )}
                   <div class="my-2 border-t border-border"></div>
                   <a
-                    href="/profil"
+                    href="/profile"
                     class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral transition-colors hover:bg-surface"
+                    role="menuitem"
                   >
                     <User size={16} />
-                    <span>Mon profil</span>
+                    <span>My profile</span>
                   </a>
-                  <a
-                    href="/parametres"
-                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral transition-colors hover:bg-surface"
-                  >
+          <a
+            href="/settings"
+            class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral transition-colors hover:bg-surface"
+            role="menuitem"
+          >
                     <Settings size={16} />
-                    <span>Paramètres</span>
+                    <span>Settings</span>
                   </a>
                   <div class="my-2 border-t border-border"></div>
                   <button
                     type="button"
                     id="header-signout-btn"
                     class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-500 transition-colors hover:bg-red-500/10"
+                    role="menuitem"
                   >
                     <LogOut size={16} />
-                    <span>Déconnexion</span>
+                    <span>Sign out</span>
                   </button>
                 </div>
               </div>
@@ -95,15 +107,15 @@ const hasUser = !!userName || !!userEmail
           </>
         ) : (
           <>
-            <!-- Theme toggle (mobile seulement) -->
+            <!-- Theme toggle (mobile only) -->
             <ThemeSwitcher size="md" variant="icon-only" />
             
-            <!-- Connexion -->
+            <!-- Sign in -->
             <a
               href="/login"
               class="btn-secondary-surface px-4 py-2 rounded-xl text-sm"
             >
-              Connexion
+              Sign in
             </a>
           </>
         )}
@@ -115,7 +127,7 @@ const hasUser = !!userName || !!userEmail
 <script>
   (function() {
     // Gérer l'ouverture/fermeture du menu dropdown
-    const userMenuTrigger = document.querySelector('.group a[href="/profil"]')
+    const userMenuTrigger = document.getElementById('user-menu-trigger')
     const userMenuDropdown = document.getElementById('user-menu-dropdown')
     
     if (userMenuTrigger && userMenuDropdown) {
@@ -134,16 +146,35 @@ const hasUser = !!userName || !!userEmail
           
           if (isHidden) {
             userMenuDropdown.classList.remove('hidden')
+            userMenuTrigger.setAttribute('aria-expanded', 'true')
+            const firstItem = userMenuDropdown.querySelector('[role="menuitem"]') as HTMLElement | null
+            if (firstItem && typeof firstItem.focus === 'function') {
+              firstItem.focus()
+            }
           } else {
             userMenuDropdown.classList.add('hidden')
+            userMenuTrigger.setAttribute('aria-expanded', 'false')
           }
         })
         
         // Fermer le menu en cliquant ailleurs
         document.addEventListener('click', function(event) {
-          const target = event.target
+          const target = event.target as Node | null
           if (target && !userMenuTrigger.contains(target) && !userMenuDropdown.contains(target)) {
             userMenuDropdown.classList.add('hidden')
+            userMenuTrigger.setAttribute('aria-expanded', 'false')
+          }
+        })
+
+        // Fermer avec Escape quand le focus est dans le menu
+        userMenuDropdown.addEventListener('keydown', function(event) {
+          if (event.key === 'Escape') {
+            event.preventDefault()
+            userMenuDropdown.classList.add('hidden')
+            userMenuTrigger.setAttribute('aria-expanded', 'false')
+            if (typeof userMenuTrigger.focus === 'function') {
+              userMenuTrigger.focus()
+            }
           }
         })
       }
@@ -162,7 +193,7 @@ const hasUser = !!userName || !!userEmail
           
           // Afficher un toast de confirmation
           if (window.toast) {
-            window.toast.info('Déconnexion en cours...', 2000)
+            window.toast.info('Signing out...', 2000)
           }
           
           await signOut()
@@ -177,7 +208,7 @@ const hasUser = !!userName || !!userEmail
         } catch (error) {
           console.error('Error signing out:', error)
           if (window.toast) {
-            window.toast.error('Erreur lors de la déconnexion')
+            window.toast.error('Error while signing out')
           }
           // Fallback: rediriger quand même après un délai
           setTimeout(() => {

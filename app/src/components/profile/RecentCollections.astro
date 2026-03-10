@@ -16,10 +16,10 @@ const collections = await collectionRepository.getRecentCollections(userId, 10)
   {collections.length === 0 ? (
     <EmptyState
       title="Aucune collection pour le moment"
-      description="Créez votre première collection pour organiser et classer vos albums par thème, genre ou période."
+      description="Create your first collection to organize and group your albums by theme, genre, or era."
       icon={Folder}
       action={{
-        label: 'Créer une collection',
+        label: 'Create a collection',
         href: '/collections/new',
       }}
       size="sm"
