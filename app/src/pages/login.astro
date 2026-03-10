@@ -35,7 +35,7 @@ export const prerender = false
         </a>
       </div>
 
-      <form method="POST" action="/api/auth/sign-in/email" class="glass-card space-y-6 rounded-2xl p-8">
+      <form method="POST" action="/api/auth/sign-in/email" class="glass-card space-y-6 rounded-2xl p-8" novalidate>
         <div>
           <label for="email" class="mb-2 block text-sm font-medium text-neutral">
             Email
@@ -51,14 +51,14 @@ export const prerender = false
               autocomplete="email"
               required
               class="w-full rounded-xl border border-border bg-surface py-3 pr-4 pl-10 text-neutral placeholder-muted transition-colors focus:border-primary focus:ring-2 focus:ring-primary/50 focus:outline-none"
-              placeholder="votre@email.com"
+              placeholder="you@example.com"
             />
           </div>
         </div>
 
         <div>
           <label for="password" class="mb-2 block text-sm font-medium text-neutral">
-            Mot de passe
+            Password
           </label>
           <div class="relative">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -85,6 +85,12 @@ export const prerender = false
           </div>
         </div>
 
+        <div
+          id="login-error"
+          class="hidden rounded-lg border border-red-500 bg-red-500/10 p-3 text-sm text-red-500"
+          role="alert"
+        ></div>
+
         <button
           type="submit"
           class="bg-gradient-resonance hover:bg-gradient-resonance-hover flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium text-white transition-all duration-300"
@@ -100,7 +106,7 @@ export const prerender = false
               href="/forgot-password"
               class="font-medium text-primary no-underline hover:text-primary-hover"
             >
-              Mot de passe oublié ?
+              Forgot your password?
             </a>
           </div>
           <div class="text-muted">
@@ -118,7 +124,8 @@ export const prerender = false
   </div>
 </Layout>
 
-<script lang="ts">
+<script is:inline>
+  (function() {
   // Toggle password visibility
   const togglePasswordButton = document.getElementById('toggle-password')
   const passwordInput = document.getElementById('password')
@@ -146,6 +153,19 @@ export const prerender = false
 
   // Form submission
   const form = document.querySelector('form[action="/api/auth/sign-in/email"]')
+  const emailInput = document.getElementById('email')
+  const errorBox = document.getElementById('login-error')
+
+  function setFieldError(input, hasError) {
+    if (!input) return
+    if (hasError) {
+      input.setAttribute('aria-invalid', 'true')
+      input.classList.add('border-red-500')
+    } else {
+      input.removeAttribute('aria-invalid')
+      input.classList.remove('border-red-500')
+    }
+  }
 
   if (form) {
     form.addEventListener('submit', async function(event) {
@@ -155,17 +175,43 @@ export const prerender = false
       const email = formData.get('email')
       const password = formData.get('password')
 
+      if (errorBox) {
+        errorBox.classList.add('hidden')
+        errorBox.textContent = ''
+      }
+      setFieldError(emailInput, false)
+      setFieldError(passwordInput, false)
+
       if (!email || !password) {
+        if (errorBox) {
+          errorBox.textContent = 'Please fill in all required fields.'
+          errorBox.classList.remove('hidden')
+        }
+        setFieldError(emailInput, !email)
+        setFieldError(passwordInput, !password)
+        if (!email && emailInput) {
+          emailInput.focus()
+        } else if (!password && passwordInput) {
+          passwordInput.focus()
+        }
         if (window.toast) {
-          window.toast.error('Veuillez remplir tous les champs')
+          window.toast.error('Please fill in all required fields')
         }
         return
       }
 
+      const submitButton = form.querySelector('button[type="submit"]')
+      const originalButtonText = submitButton ? (submitButton.textContent || '') : 'Sign In'
+      if (submitButton) {
+        submitButton.disabled = true
+        submitButton.textContent = 'Signing in...'
+      }
+
       try {
-        const body = new URLSearchParams()
-        body.append('email', String(email))
-        body.append('password', String(password))
+        const body = new URLSearchParams({
+          email: String(email),
+          password: String(password),
+        })
 
         const response = await fetch('/api/auth/sign-in/email', {
           method: 'POST',
@@ -176,31 +222,45 @@ export const prerender = false
 
         if (!response.ok) {
           const data = await response.json().catch(() => ({}))
-          const message = data.message || data.error || 'Erreur lors de la connexion'
+          const message = data.message || data.error || 'Error while signing in'
+
+          if (errorBox) {
+            errorBox.textContent = message
+            errorBox.classList.remove('hidden')
+          }
+          setFieldError(emailInput, true)
+          setFieldError(passwordInput, true)
+          if (emailInput) emailInput.focus()
+
           if (window.toast) {
             window.toast.error(message)
-          } else {
-            const errorDiv = document.createElement('div')
-            errorDiv.className = 'mt-4 rounded-lg border border-red-500 bg-red-500/10 p-4 text-red-500'
-            errorDiv.textContent = message
-            form.insertAdjacentElement('beforebegin', errorDiv)
           }
           return
         }
 
         sessionStorage.setItem('showWelcomeToast', 'true')
-        document.location.href = '/'
+
+        const currentUrl = new URL(window.location.href)
+        const redirectParam = currentUrl.searchParams.get('redirectTo')
+        const redirectTarget =
+          redirectParam && redirectParam.startsWith('/') ? redirectParam : '/'
+        document.location.href = redirectTarget
       } catch (error) {
         console.error('Error signing in:', error)
-        if (window.toast) {
-          const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue'
-          window.toast.error(errorMessage)
-        } else {
-          const errorDiv = document.createElement('div')
-          errorDiv.className = 'mt-4 rounded-lg border border-red-500 bg-red-500/10 p-4 text-red-500'
+        if (errorBox) {
           const errorMessage = error instanceof Error ? error.message : 'An error occurred'
-          errorDiv.textContent = 'Error: ' + errorMessage
-          form.insertAdjacentElement('beforebegin', errorDiv)
+          errorBox.textContent = errorMessage
+          errorBox.classList.remove('hidden')
+        }
+        if (window.toast) {
+          const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+          window.toast.error(errorMessage)
+        }
+      } finally {
+        const submitButton = form.querySelector('button[type="submit"]')
+        if (submitButton) {
+          submitButton.disabled = false
+          submitButton.textContent = originalButtonText || 'Sign In'
         }
       }
     })
@@ -210,7 +270,7 @@ export const prerender = false
   document.addEventListener('DOMContentLoaded', function() {
     const showLogoutToast = sessionStorage.getItem('showLogoutToast')
     if (showLogoutToast && window.toast) {
-      window.toast.info('Vous avez été déconnecté avec succès. À bientôt !', 4000)
+      window.toast.info('You have been signed out successfully. See you soon!', 4000)
       sessionStorage.removeItem('showLogoutToast')
     }
 
@@ -218,9 +278,10 @@ export const prerender = false
     const urlParams = new URLSearchParams(window.location.search)
     const oauthError = urlParams.get('error')
     if (oauthError === 'oauth_not_configured' && window.toast) {
-      window.toast.warning('La connexion OAuth n\'est pas encore configurée. Veuillez utiliser la connexion par email.', 5000)
+      window.toast.warning('OAuth sign-in is not configured yet. Please use email sign-in.', 5000)
       // Clean URL
       window.history.replaceState({}, document.title, window.location.pathname)
     }
   })
+  })()
 </script>
