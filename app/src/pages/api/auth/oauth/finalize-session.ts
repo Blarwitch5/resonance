@@ -37,7 +37,7 @@ export const GET: APIRoute = async ({ url, request }) => {
 
     if (!user || !user.accounts.length) {
       return new Response(
-        JSON.stringify({ error: 'Utilisateur ou compte non trouvé' }),
+        JSON.stringify({ error: 'User or account not found' }),
         {
           status: 404,
           headers: { 'Content-Type': 'application/json' },
@@ -83,8 +83,8 @@ export const GET: APIRoute = async ({ url, request }) => {
     console.error('Error finalizing session:', error)
     return new Response(
       JSON.stringify({
-        error: 'Erreur lors de la finalisation de la session',
-        message: error instanceof Error ? error.message : 'Erreur inconnue',
+        error: 'Error while finalizing session',
+        message: error instanceof Error ? error.message : 'Unknown error',
       }),
       {
         status: 500,

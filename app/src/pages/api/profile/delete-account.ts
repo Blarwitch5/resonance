@@ -68,8 +68,8 @@ export const DELETE: APIRoute = async ({ request }) => {
     console.error('Error deleting account:', error)
     return new Response(
       JSON.stringify({
-        error: 'Erreur interne du serveur',
-        message: error instanceof Error ? error.message : 'Erreur inconnue',
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
       }),
       {
         status: 500,

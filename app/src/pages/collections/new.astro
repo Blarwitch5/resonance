@@ -22,7 +22,7 @@ if (!canCreateNewCollection) {
 }
 ---
 
-<DashboardLayout title="Nouvelle Collection - Resonance">
+<DashboardLayout title="New Collection - Resonance">
   <div class="mx-auto max-w-2xl">
     <div class="mb-8">
       <h1 class="text-2xl font-bold">Create a collection</h1>
@@ -32,7 +32,7 @@ if (!canCreateNewCollection) {
     <form class="glass-card space-y-6 rounded-2xl p-8" id="create-collection-form">
       <div>
         <label for="name" class="mb-2 block text-sm font-medium text-neutral">
-          Nom de la collection *
+          Collection name *
         </label>
         <input
           type="text"
@@ -46,7 +46,7 @@ if (!canCreateNewCollection) {
 
       <div>
         <label for="description" class="mb-2 block text-sm font-medium text-neutral">
-          Description (optionnel)
+          Description (optional)
         </label>
         <textarea
           id="description"
@@ -65,9 +65,16 @@ if (!canCreateNewCollection) {
           class="h-5 w-5 rounded border-border text-primary focus:ring-2 focus:ring-primary"
         />
         <label for="isPublic" class="text-sm text-neutral">
-          Rendre cette collection publique
+          Make this collection public
         </label>
       </div>
+
+      <div
+        id="create-collection-error"
+        class="error-message hidden rounded-lg border border-red-500 bg-red-500/10 p-4 text-sm text-red-500"
+        role="alert"
+        aria-live="polite"
+      ></div>
 
       <div class="flex gap-3">
         <button
@@ -81,31 +88,74 @@ if (!canCreateNewCollection) {
           href="/collections"
           class="flex items-center justify-center rounded-xl border border-border bg-surface px-6 py-3 font-medium text-neutral transition-colors hover:bg-surface-elevated"
         >
-          Annuler
+          Cancel
         </a>
       </div>
     </form>
   </div>
 </DashboardLayout>
 
-<script>
-  // TypeScript fonctionne nativement dans les scripts Astro !
+<script is:inline>
   (function() {
-    const form = document.getElementById('create-collection-form') as HTMLFormElement | null
-    if (!form) return
-    
-    form.addEventListener('submit', async function(event: SubmitEvent) {
-      event.preventDefault()
-      
-      const formData = new FormData(form)
-      const collectionData = {
-        name: formData.get('name'),
-        description: formData.get('description'),
-        isPublic: formData.get('isPublic') === 'on',
-      }
+  const form = document.getElementById('create-collection-form')
+  if (!form) return
 
-      try {
-        const response = await fetch('/api/collections/create', {
+  const errorBox = document.getElementById('create-collection-error')
+  const nameInput = document.getElementById('name')
+
+  function setFieldError(input, hasError) {
+    if (!input) return
+    if (hasError) {
+      input.setAttribute('aria-invalid', 'true')
+      input.classList.add('border-red-500')
+    } else {
+      input.removeAttribute('aria-invalid')
+      input.classList.remove('border-red-500')
+    }
+  }
+
+  form.addEventListener('submit', async function(event) {
+    event.preventDefault()
+
+    if (errorBox) {
+      errorBox.classList.add('hidden')
+      errorBox.textContent = ''
+    }
+    setFieldError(nameInput, false)
+
+    const formData = new FormData(form)
+    const name = formData.get('name')
+
+    if (!name || String(name).trim().length === 0) {
+      if (errorBox) {
+        errorBox.textContent = 'Please provide a name for your collection.'
+        errorBox.classList.remove('hidden')
+      }
+      setFieldError(nameInput, true)
+      if (nameInput) {
+        nameInput.focus()
+      }
+      if (window.toast) {
+        window.toast.error('Please provide a name for your collection')
+      }
+      return
+    }
+
+    const collectionData = {
+      name,
+      description: formData.get('description'),
+      isPublic: formData.get('isPublic') === 'on',
+    }
+
+    const submitButton = form.querySelector('button[type="submit"]')
+    const originalButtonText = submitButton ? (submitButton.textContent || '') : 'Create collection'
+    if (submitButton) {
+      submitButton.disabled = true
+      submitButton.textContent = 'Creating...'
+    }
+
+    try {
+      const response = await fetch('/api/collections/create', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -121,22 +171,20 @@ if (!canCreateNewCollection) {
           }
           document.location.href = '/collections/' + responseData.slug
         } else {
-          // Afficher l'erreur
+          const message = responseData.error || 'Error while creating collection'
+
+          if (errorBox) {
+            errorBox.textContent = message
+            errorBox.classList.remove('hidden')
+          }
+          setFieldError(nameInput, true)
+          if (nameInput) {
+            nameInput.focus()
+          }
           if (window.toast) {
-            window.toast.error(responseData.error || 'Error while creating collection')
+            window.toast.error(message)
           }
-          
-          // Afficher aussi une alerte dans le formulaire
-          const existingError = form.previousElementSibling
-          if (existingError && existingError.classList && existingError.classList.contains('error-message')) {
-            existingError.remove()
-          }
-          
-          const errorDiv = document.createElement('div')
-          errorDiv.className = 'error-message mb-4 rounded-lg border border-error bg-error/10 p-4 text-error'
-          errorDiv.textContent = 'Erreur: ' + (responseData.error || 'Une erreur est survenue')
-          form.insertAdjacentElement('beforebegin', errorDiv)
-          
+
           // If the limit is reached, redirect after 3 seconds
           if (responseData.maxCollections && responseData.currentCount >= responseData.maxCollections) {
             setTimeout(function() {
@@ -147,14 +195,22 @@ if (!canCreateNewCollection) {
       } catch (error) {
         console.error('Error creating collection:', error)
         if (window.toast) {
-          window.toast.error('Une erreur est survenue')
+          window.toast.error('An error occurred while creating the collection')
         }
-        const errorDiv = document.createElement('div')
-        errorDiv.className = 'error-message mt-4 rounded-lg border border-red-500 bg-red-500/10 p-4 text-red-500'
-        errorDiv.textContent = 'Une erreur est survenue'
-        form.insertAdjacentElement('beforebegin', errorDiv)
+        if (errorBox) {
+          errorBox.textContent = 'An error occurred while creating the collection'
+          errorBox.classList.remove('hidden')
+        }
+        setFieldError(nameInput, true)
       }
-    })
+    } finally {
+      const submitButton = form.querySelector('button[type="submit"]')
+      if (submitButton) {
+        submitButton.disabled = false
+        submitButton.textContent = originalButtonText || 'Create collection'
+      }
+    }
+  })
   })()
 </script>
 

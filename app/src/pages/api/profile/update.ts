@@ -37,7 +37,7 @@ export const POST: APIRoute = async ({ request }) => {
       })
 
       if (existingUser && existingUser.id !== session.user.id) {
-        return new Response(JSON.stringify({ error: 'Cet email est déjà utilisé' }), {
+        return new Response(JSON.stringify({ error: 'This email is already in use' }), {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
         })
@@ -77,8 +77,8 @@ export const POST: APIRoute = async ({ request }) => {
     console.error('Error updating profile:', error)
     return new Response(
       JSON.stringify({
-        error: 'Erreur interne du serveur',
-        message: error instanceof Error ? error.message : 'Erreur inconnue',
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
       }),
       {
         status: 500,

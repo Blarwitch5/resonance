@@ -90,8 +90,8 @@ async function handleCallback(provider: string | undefined, url: URL) {
     console.error(`Error in OAuth callback for ${provider}:`, error)
     return new Response(
       JSON.stringify({
-        error: 'Erreur lors de l\'authentification OAuth',
-        message: error instanceof Error ? error.message : 'Erreur inconnue',
+        error: 'Error during OAuth authentication',
+        message: error instanceof Error ? error.message : 'Unknown error',
       }),
       {
         status: 500,
@@ -148,7 +148,7 @@ async function exchangeCodeForToken(provider: string, code: string): Promise<{ a
 
   if (!response.ok) {
     const errorText = await response.text()
-    throw new Error(`Erreur lors de l'échange du code: ${errorText}`)
+    throw new Error(`Error exchanging code: ${errorText}`)
   }
 
   return await response.json()
@@ -181,7 +181,7 @@ async function getUserInfo(provider: string, accessToken: string): Promise<{
   const response = await fetch(userInfoURL, { headers })
 
   if (!response.ok) {
-    throw new Error(`Erreur lors de la récupération des informations utilisateur`)
+    throw new Error('Error while fetching user information')
   }
 
   const data = await response.json()

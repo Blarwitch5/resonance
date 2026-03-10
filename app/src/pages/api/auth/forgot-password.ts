@@ -17,7 +17,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (!email) {
       return new Response(
         JSON.stringify({
-          error: 'Email requis',
+          error: 'Email is required',
         }),
         {
           status: 400,
@@ -101,8 +101,8 @@ export const POST: APIRoute = async ({ request }) => {
     console.error('Error in forgot-password:', error)
     return new Response(
       JSON.stringify({
-        error: 'Erreur lors de la demande de réinitialisation',
-        message: error instanceof Error ? error.message : 'Erreur inconnue',
+        error: 'Error while requesting password reset',
+        message: error instanceof Error ? error.message : 'Unknown error',
       }),
       {
         status: 500,

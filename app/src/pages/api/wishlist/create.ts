@@ -36,7 +36,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (existing) {
       return new Response(
-        JSON.stringify({ error: 'Cet album est déjà dans votre wishlist' }),
+        JSON.stringify({ error: 'This album is already in your wishlist' }),
         {
           status: 409,
           headers: { 'Content-Type': 'application/json' },

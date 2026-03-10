@@ -98,7 +98,7 @@ if (isLoggedIn && user?.id) {
       <a
         href={isLoggedIn ? '/explorer' : '/login?redirectTo=/explorer'}
         class="group glass-card hover-resonance flex items-center gap-4 rounded-2xl p-6 transition-all duration-300"
-        aria-label={isLoggedIn ? 'Explorer la collection' : 'Se connecter pour explorer les albums'}
+        aria-label={isLoggedIn ? 'Explore the collection' : 'Sign in to explore albums'}
       >
         <div
           class="from-accent to-accent/80 group-hover:animate-resonance-vibrato flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br"
@@ -136,7 +136,7 @@ if (isLoggedIn && user?.id) {
     </div>
 
     {isLoggedIn && (
-      <!-- Message de bienvenue pour utilisateur connecté -->
+      <!-- Welcome message for signed-in user -->
       <div class="glass-card rounded-2xl p-6 bg-gradient-resonance-subtle border border-primary/20">
         <div class="flex items-center justify-between mb-4">
           <div>
@@ -158,7 +158,7 @@ if (isLoggedIn && user?.id) {
     )}
 
     {isLoggedIn && (
-      <!-- Quick Stats -->
+      <!-- Quick stats -->
       <div class="glass-card rounded-2xl p-6">
         <h3 class="font-display text-neutral mb-4 text-lg font-semibold">
           Your Collection
@@ -195,7 +195,7 @@ if (isLoggedIn && user?.id) {
         <div class="space-y-3">
           {recentItems.map((item) => (
             <a
-              href={`/collection?format=${item.format.toLowerCase()}`}
+              href={`/library?format=${item.format}`}
               class="flex items-center gap-4 p-3 rounded-xl hover:bg-surface/50 transition-colors"
             >
               <div
@@ -220,7 +220,7 @@ if (isLoggedIn && user?.id) {
       </div>
     )}
 
-    <!-- Actions rapides -->
+    <!-- Quick actions -->
     <div class="flex flex-col gap-4 sm:flex-row">
       <a
         href={isLoggedIn ? '/explorer' : '/login?redirectTo=/explorer'}

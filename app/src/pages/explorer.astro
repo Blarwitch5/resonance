@@ -70,7 +70,7 @@ if (topGenres.length > 0) {
           <RecommendationGrid recommendations={recommendations} />
         ) : (
           <div class="glass-card rounded-xl p-8 text-center">
-            <p class="mb-2 font-medium text-neutral">Aucune recommandation pour le moment</p>
+            <p class="mb-2 font-medium text-neutral">No recommendations yet</p>
             <p class="text-sm text-muted">
               Keep adding albums to your collection to receive personalized recommendations.
             </p>
@@ -146,7 +146,7 @@ if (topGenres.length > 0) {
         console.error('Barcode search error:', error)
         container.innerHTML = `
           <div class="glass-card rounded-2xl border border-border/50 p-8 text-center">
-            <p class="text-muted">Erreur lors de la recherche par code-barres.</p>
+            <p class="text-muted">Error while searching by barcode.</p>
           </div>
         `
       }

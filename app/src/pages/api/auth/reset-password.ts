@@ -9,25 +9,25 @@ export const prerender = false
  */
 function validatePassword(password: string): { valid: boolean; error?: string } {
   if (password.length < 8) {
-    return { valid: false, error: 'Le mot de passe doit contenir au moins 8 caractères' }
+    return { valid: false, error: 'Password must be at least 8 characters' }
   }
 
   if (!/[a-z]/.test(password)) {
-    return { valid: false, error: 'Le mot de passe doit contenir au moins une minuscule' }
+    return { valid: false, error: 'Password must contain at least one lowercase letter' }
   }
 
   if (!/[A-Z]/.test(password)) {
-    return { valid: false, error: 'Le mot de passe doit contenir au moins une majuscule' }
+    return { valid: false, error: 'Password must contain at least one uppercase letter' }
   }
 
   if (!/[0-9]/.test(password)) {
-    return { valid: false, error: 'Le mot de passe doit contenir au moins un chiffre' }
+    return { valid: false, error: 'Password must contain at least one number' }
   }
 
   if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
     return {
       valid: false,
-      error: 'Le mot de passe doit contenir au moins un caractère spécial',
+      error: 'Password must contain at least one special character',
     }
   }
 
@@ -47,7 +47,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (!token || !password) {
       return new Response(
         JSON.stringify({
-          error: 'Token et mot de passe requis',
+          error: 'Token and password are required',
         }),
         {
           status: 400,
@@ -83,7 +83,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (!verification) {
       return new Response(
         JSON.stringify({
-          error: 'Token invalide ou expiré',
+          error: 'Invalid or expired token',
         }),
         {
           status: 400,
@@ -105,7 +105,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (!user) {
       return new Response(
         JSON.stringify({
-          error: 'Utilisateur non trouvé',
+          error: 'User not found',
         }),
         {
           status: 404,
@@ -158,8 +158,8 @@ export const POST: APIRoute = async ({ request }) => {
     console.error('Error in reset-password:', error)
     return new Response(
       JSON.stringify({
-        error: 'Erreur lors de la réinitialisation du mot de passe',
-        message: error instanceof Error ? error.message : 'Erreur inconnue',
+        error: 'Error while resetting password',
+        message: error instanceof Error ? error.message : 'Unknown error',
       }),
       {
         status: 500,

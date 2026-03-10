@@ -6,23 +6,23 @@ import { hash } from 'bcryptjs'
 // Fonction de validation du mot de passe
 function validatePassword(password: string): { valid: boolean; error?: string } {
   if (password.length < 8) {
-    return { valid: false, error: 'Le mot de passe doit contenir au moins 8 caractères' }
+    return { valid: false, error: 'Password must be at least 8 characters' }
   }
 
   if (!/[a-z]/.test(password)) {
-    return { valid: false, error: 'Le mot de passe doit contenir au moins une minuscule' }
+    return { valid: false, error: 'Password must contain at least one lowercase letter' }
   }
 
   if (!/[A-Z]/.test(password)) {
-    return { valid: false, error: 'Le mot de passe doit contenir au moins une majuscule' }
+    return { valid: false, error: 'Password must contain at least one uppercase letter' }
   }
 
   if (!/[0-9]/.test(password)) {
-    return { valid: false, error: 'Le mot de passe doit contenir au moins un chiffre' }
+    return { valid: false, error: 'Password must contain at least one number' }
   }
 
   if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-    return { valid: false, error: 'Le mot de passe doit contenir au moins un caractère spécial (!@#$%^&*()_+-=[]{}|;:,.<>?)' }
+    return { valid: false, error: 'Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)' }
   }
 
   return { valid: true }
@@ -42,7 +42,7 @@ export const POST: APIRoute = async ({ request }) => {
     const { currentPassword, newPassword } = data
 
     if (!currentPassword || !newPassword) {
-      return new Response(JSON.stringify({ error: 'Le mot de passe actuel et le nouveau mot de passe sont requis' }), {
+      return new Response(JSON.stringify({ error: 'Current password and new password are required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       })
@@ -54,7 +54,7 @@ export const POST: APIRoute = async ({ request }) => {
     })
 
     if (!account || !account.password) {
-      return new Response(JSON.stringify({ error: 'Aucun mot de passe trouvé pour ce compte' }), {
+      return new Response(JSON.stringify({ error: 'No password found for this account' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       })
@@ -65,7 +65,7 @@ export const POST: APIRoute = async ({ request }) => {
     const isCurrentPasswordValid = await bcrypt.compare(currentPassword, account.password)
 
     if (!isCurrentPasswordValid) {
-      return new Response(JSON.stringify({ error: 'Le mot de passe actuel est incorrect' }), {
+      return new Response(JSON.stringify({ error: 'Current password is incorrect' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       })
@@ -83,7 +83,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Vérifier que le nouveau mot de passe est différent de l'ancien
     const isSamePassword = await bcrypt.compare(newPassword, account.password)
     if (isSamePassword) {
-      return new Response(JSON.stringify({ error: 'Le nouveau mot de passe doit être différent de l\'ancien' }), {
+      return new Response(JSON.stringify({ error: 'New password must be different from the current one' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       })
@@ -112,8 +112,8 @@ export const POST: APIRoute = async ({ request }) => {
     console.error('Error changing password:', error)
     return new Response(
       JSON.stringify({
-        error: 'Erreur interne du serveur',
-        message: error instanceof Error ? error.message : 'Erreur inconnue',
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
       }),
       {
         status: 500,

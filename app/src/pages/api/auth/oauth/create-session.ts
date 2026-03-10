@@ -38,7 +38,7 @@ export const GET: APIRoute = async ({ url }) => {
 
     if (!verification) {
       return new Response(
-        JSON.stringify({ error: 'Token invalide ou expiré' }),
+        JSON.stringify({ error: 'Invalid or expired token' }),
         {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
@@ -53,7 +53,7 @@ export const GET: APIRoute = async ({ url }) => {
 
     if (!user) {
       return new Response(
-        JSON.stringify({ error: 'Utilisateur non trouvé' }),
+        JSON.stringify({ error: 'User not found' }),
         {
           status: 404,
           headers: { 'Content-Type': 'application/json' },
@@ -104,8 +104,8 @@ export const GET: APIRoute = async ({ url }) => {
     console.error('Error creating session:', error)
     return new Response(
       JSON.stringify({
-        error: 'Erreur lors de la création de la session',
-        message: error instanceof Error ? error.message : 'Erreur inconnue',
+        error: 'Error while creating session',
+        message: error instanceof Error ? error.message : 'Unknown error',
       }),
       {
         status: 500,
