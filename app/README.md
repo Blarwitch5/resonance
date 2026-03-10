@@ -621,6 +621,8 @@ The application will be accessible at `http://localhost:4322`
 
 ### Environment Variables
 
+Toutes les variables sont lues depuis **`app/.env`** uniquement. Aucun fichier `.env` à la racine du monorepo pour l’app. Copier `app/env.example` vers `app/.env` puis renseigner les valeurs. En dev, lancer depuis `app/` (`pnpm dev`) pour que Vite charge ce fichier.
+
 | Variable                  | Description                            | Required           |
 | ------------------------- | -------------------------------------- | ------------------ |
 | `DISCOGS_CONSUMER_KEY`    | Discogs API key                        | ✅                 |
