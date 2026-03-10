@@ -18,7 +18,7 @@ import { statsService } from '../services/stats-service'
 
 export const prerender = false
 
-// Utiliser la session depuis le middleware (Astro.locals)
+// Use session from middleware (Astro.locals)
 const session = Astro.locals.session
 const user = Astro.locals.user
 
@@ -32,9 +32,9 @@ const [stats, favorites, wishlistItems, recentActivities] = await Promise.all([
 ])
 ---
 
-<DashboardLayout title="Profil - Resonance">
+<DashboardLayout title="Profile - Resonance">
   {!session ? (
-    <!-- Formulaire de connexion si non connecté -->
+    <!-- Sign-in form when not authenticated -->
     <div class="flex min-h-[60vh] items-center justify-center">
       <div class="w-full max-w-md">
         <div class="text-center mb-8">
@@ -57,13 +57,13 @@ const [stats, favorites, wishlistItems, recentActivities] = await Promise.all([
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
           </div>
-          <h1 class="text-gradient-resonance text-3xl font-bold mb-2">Connexion requise</h1>
-          <p class="text-muted">Connectez-vous pour accéder à votre profil</p>
+          <h1 class="text-gradient-resonance text-3xl font-bold mb-2">Sign in required</h1>
+          <p class="text-muted">Sign in to access your profile</p>
         </div>
 
         <form method="POST" action="/api/auth/sign-in/email" class="glass-card rounded-2xl p-8 space-y-6">
           <div>
-            <label for="email-profil" class="block text-sm font-medium text-neutral mb-2">
+            <label for="email-profile" class="block text-sm font-medium text-neutral mb-2">
               Email
             </label>
             <div class="relative">
@@ -72,18 +72,18 @@ const [stats, favorites, wishlistItems, recentActivities] = await Promise.all([
               </div>
               <input
                 type="email"
-                id="email-profil"
+                id="email-profile"
                 name="email"
                 required
                 class="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-surface text-neutral placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-                placeholder="votre@email.com"
+                placeholder="you@example.com"
               />
             </div>
           </div>
 
           <div>
-            <label for="password-profil" class="block text-sm font-medium text-neutral mb-2">
-              Mot de passe
+            <label for="password-profile" class="block text-sm font-medium text-neutral mb-2">
+              Password
             </label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -91,7 +91,7 @@ const [stats, favorites, wishlistItems, recentActivities] = await Promise.all([
               </div>
               <input
                 type="password"
-                id="password-profil"
+                id="password-profile"
                 name="password"
                 required
                 class="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-surface text-neutral placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
@@ -104,31 +104,31 @@ const [stats, favorites, wishlistItems, recentActivities] = await Promise.all([
             type="submit"
             class="btn-primary-gradient w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2"
           >
-            Se connecter
+            Sign in
           </button>
 
           <div class="text-center text-sm text-muted">
-            Pas encore de compte ?{' '}
+            No account yet?{' '}
             <a
               href="/signup"
               class="text-primary hover:text-primary-hover font-medium"
             >
-              Créer un compte
+              Create an account
             </a>
           </div>
         </form>
       </div>
     </div>
   ) : (
-    <!-- Contenu du profil si connecté -->
+    <!-- Profile content when authenticated -->
     <div class="min-w-0 space-y-8">
-      <!-- En-tête avec avatar, pseudo, gradient bg -->
+      <!-- Header with avatar, display name, gradient background -->
       <ProfileHeader user={user} stats={stats} />
 
-      <!-- Statistiques rapides -->
+      <!-- Quick stats -->
       <StatsGrid stats={stats} />
 
-      <!-- Tabs : Favorites | Wishlist | Statistics | All Formats -->
+      <!-- Tabs: Favorites | Wishlist | Statistics | All Formats -->
       <ProfileTabs>
         <div slot="favorites" data-tab-content="favorites">
           <FavoritesByGenre favorites={favorites} />
@@ -140,9 +140,9 @@ const [stats, favorites, wishlistItems, recentActivities] = await Promise.all([
 
         <div slot="statistics" data-tab-content="statistics">
           <div class="min-w-0 space-y-8">
-            <!-- Activité récente -->
+            <!-- Recent activity -->
             <div>
-              <h2 class="mb-4 text-xl font-bold text-neutral">Activité récente</h2>
+              <h2 class="mb-4 text-xl font-bold text-neutral">Recent activity</h2>
               <ActivityTimeline activities={recentActivities} />
             </div>
 
@@ -151,13 +151,13 @@ const [stats, favorites, wishlistItems, recentActivities] = await Promise.all([
 
             <!-- Quick stats -->
             <div>
-              <h2 class="mb-4 text-xl font-bold text-neutral">Quick Statistics</h2>
+              <h2 class="mb-4 text-xl font-bold text-neutral">Quick statistics</h2>
               <StatsGrid stats={stats} />
             </div>
             
             <!-- Charts -->
             <div>
-              <h2 class="mb-4 text-xl font-bold text-neutral">Visual Statistics</h2>
+              <h2 class="mb-4 text-xl font-bold text-neutral">Visual statistics</h2>
               <StatsCharts userId={user.id} />
             </div>
           </div>
@@ -180,3 +180,4 @@ const [stats, favorites, wishlistItems, recentActivities] = await Promise.all([
     transform: translateY(-2px);
   }
 </style>
+

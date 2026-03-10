@@ -15,7 +15,7 @@ import { itemRepository } from '../repositories/item-repository'
 
 export const prerender = false
 
-// Utiliser la session depuis le middleware (Astro.locals)
+// Use session from middleware (Astro.locals)
 const session = Astro.locals.session
 const user = Astro.locals.user
 
@@ -39,7 +39,7 @@ const sort = Astro.url.searchParams.get('sort') || 'addedAt-desc'
 const genre = Astro.url.searchParams.get('genre') || undefined
 const year = Astro.url.searchParams.get('year') || undefined
 const collectionParam = Astro.url.searchParams.get('collection') || undefined
-// Support pour "none" pour filtrer les items sans collection
+// Support "none" to filter items without collection
 const collectionId = collectionParam === 'none' ? 'none' : collectionParam
 const favoritesOnly = Astro.url.searchParams.get('favorites') === 'true'
 const showUncategorizedOnly = collectionParam === 'none'
@@ -88,12 +88,11 @@ const filterOptions = {
 }
 
 if (selectedFormat === 'ALL') {
-  // Pour "ALL", utiliser la pagination avec filtres
   paginatedResult = await itemRepository.findByUserIdPaginated(
     user.id,
     page,
     perPage,
-    undefined, // No format filter
+    undefined,
     filterOptions,
   )
 } else {
@@ -106,7 +105,7 @@ if (selectedFormat === 'ALL') {
   )
 }
 
-// Grouper les items par collection pour l'affichage
+// Group items by collection
 const itemsByCollection = paginatedResult.items.reduce((acc, item) => {
   const key = item.collectionId || 'no-collection'
   if (!acc[key]) {
@@ -116,7 +115,7 @@ const itemsByCollection = paginatedResult.items.reduce((acc, item) => {
   return acc
 }, {} as Record<string, ItemWithMetadata[]>)
 
-// Ajouter les collections vides pour les afficher aussi
+// Add empty collections
 userCollections.forEach((collection) => {
   if (!itemsByCollection[collection.id]) {
     itemsByCollection[collection.id] = []
@@ -133,13 +132,13 @@ const formatInfo = {
 }
 ---
 
-<DashboardLayout title="Ma Résonance - Resonance">
+<DashboardLayout title="My Library - Resonance">
   <div class="space-y-8">
     <!-- Header with stats and actions -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 class="text-3xl font-bold text-neutral mb-2">
-          Ma Résonance
+          My Library
         </h1>
         <p class="text-muted text-sm sm:text-base">
           {totalItems} {totalItems === 1 ? 'album' : 'albums'}
@@ -157,18 +156,18 @@ const formatInfo = {
     <!-- Format Selector (Chips/Pills) -->
     <div class="flex flex-wrap gap-3">
       <a
-        href="/bibliotheque?format=ALL"
+        href="/library?format=ALL"
         class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
           selectedFormat === 'ALL'
             ? 'bg-gradient-resonance text-white shadow-lg shadow-primary/20'
             : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
         }`}
       >
-        <span>Tous</span>
+        <span>All</span>
       </a>
       {totalItems > 0 && (
         <a
-          href="/bibliotheque?format=ALL&collection=none"
+          href="/library?format=ALL&collection=none"
           class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
             showUncategorizedOnly
               ? 'bg-gradient-resonance text-white shadow-lg shadow-primary/20'
@@ -176,7 +175,7 @@ const formatInfo = {
           }`}
         >
           <Package size={18} class="fill-none stroke-2" />
-          <span>Non classés</span>
+          <span>Uncategorized</span>
         </a>
       )}
       {enabledFormats.map((format) => {
@@ -184,7 +183,7 @@ const formatInfo = {
         const Icon = info.icon
         return (
           <a
-            href={`/bibliotheque?format=${format}`}
+            href={`/library?format=${format}`}
             class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
               selectedFormat === format
                 ? `bg-gradient-resonance text-white shadow-lg shadow-primary/20`
@@ -219,13 +218,13 @@ const formatInfo = {
       <EmptyState
         title={
           selectedFormat === 'ALL'
-            ? 'Commencez votre collection musicale'
-            : `Créez votre collection ${formatInfo[selectedFormat as keyof typeof formatInfo]?.label || selectedFormat}`
+            ? 'Start your music collection'
+            : `Start your ${formatInfo[selectedFormat as keyof typeof formatInfo]?.label} collection`
         }
         description={
           selectedFormat === 'ALL'
-            ? "Explorez plus de 25 millions d'albums sur Discogs et commencez à construire votre collection personnalisée. Chaque vinyle, CD ou cassette a une histoire à raconter."
-            : `Découvrez de magnifiques ${formatInfo[selectedFormat as keyof typeof formatInfo]?.label.toLowerCase()}s et commencez votre collection. Explorez Discogs pour trouver vos albums préférés.`
+            ? 'Explore millions of albums on Discogs and start building your personalized collection. Every vinyl, CD, or cassette tells a story.'
+            : `Discover beautiful ${formatInfo[selectedFormat as keyof typeof formatInfo]?.label.toLowerCase()}s and start your collection. Explore Discogs to find your favorite albums.`
         }
         icon={
           selectedFormat === 'ALL'
@@ -233,12 +232,12 @@ const formatInfo = {
             : formatInfo[selectedFormat as keyof typeof formatInfo]?.icon || Turntable
         }
         action={{
-          label: `Ajouter ${selectedFormat === 'ALL' ? 'un album' : formatInfo[selectedFormat as keyof typeof formatInfo]?.label.toLowerCase() || 'un album'}`,
+          label: `Add ${selectedFormat === 'ALL' ? 'an album' : formatInfo[selectedFormat as keyof typeof formatInfo]?.label.toLowerCase() || 'an album'}`,
           href: '/explorer',
         }}
         secondaryAction={{
-          label: 'Scanner un code-barres',
-          onClick: 'alert("Fonctionnalité à venir")',
+          label: 'Scan a barcode',
+          onClick: 'alert("Barcode scanning coming soon")',
         }}
       />
     ) : (
@@ -255,7 +254,7 @@ const formatInfo = {
                   <div class="flex items-center gap-3">
                     <h2 class="text-xl font-bold text-neutral">
                       {collectionId === 'no-collection'
-                        ? 'Non classés'
+                        ? 'Uncategorized'
                         : collection?.name}
                     </h2>
                     {items.length > 0 && (
@@ -269,7 +268,7 @@ const formatInfo = {
                       href={`/collections/${collection.slug}`}
                       class="inline-flex items-center gap-1 text-sm font-medium text-primary transition-colors hover:text-primary/80"
                     >
-                      <span>Voir la collection</span>
+                      <span>View collection</span>
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                       </svg>
@@ -285,13 +284,13 @@ const formatInfo = {
                     </div>
                     <p class="mb-2 text-base font-medium text-neutral">
                       {collectionId === 'no-collection'
-                        ? 'Aucun album non classé'
-                        : 'Cette collection est vide'}
+                        ? 'No uncategorized albums'
+                        : 'This collection is empty'}
                     </p>
                     <p class="mb-6 text-sm text-muted">
                       {collectionId === 'no-collection'
-                        ? 'Les albums que vous ajoutez sans sélectionner de collection apparaîtront ici.'
-                        : 'Commencez à ajouter des albums à cette collection pour la remplir.'}
+                        ? 'Albums you add without selecting a collection will appear here.'
+                        : 'Start adding albums to this collection to fill it.'}
                     </p>
                     {collectionId !== 'no-collection' && (
                       <a
@@ -301,7 +300,7 @@ const formatInfo = {
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
-                        Ajouter un album
+                        Add an album
                       </a>
                     )}
                   </div>
@@ -319,7 +318,7 @@ const formatInfo = {
             <Pagination
               currentPage={paginatedResult.pagination.page}
               totalPages={paginatedResult.pagination.totalPages}
-              baseUrl="/bibliotheque"
+              baseUrl="/library"
               queryParams={{
                 format: selectedFormat,
                 sort,
@@ -337,7 +336,6 @@ const formatInfo = {
 </DashboardLayout>
 
 <style>
-  /* Amélioration des transitions */
   .glass-card {
     transition: all var(--transition-base);
   }
@@ -347,7 +345,6 @@ const formatInfo = {
     box-shadow: var(--shadow-lg);
   }
 
-  /* Animation pour les sections de collections */
   [data-item-section] {
     animation: fadeInUp 0.4s ease-out;
   }
@@ -362,13 +359,5 @@ const formatInfo = {
       transform: translateY(0);
     }
   }
-
-  /* Amélioration des badges de format */
-  a[href*="/bibliotheque?format="] {
-    transition: all var(--transition-base);
-  }
-
-  a[href*="/bibliotheque?format="]:hover {
-    transform: translateY(-1px);
-  }
 </style>
+

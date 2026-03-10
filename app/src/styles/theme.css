@@ -438,7 +438,7 @@ a picture,
 a[href*='/collections/'],
 a[href*='/collection'],
 a[href*='/explorer'],
-a[href*='/profil'],
+a[href*='/profile'],
 .group.glass-card a,
 a.group {
   text-decoration: none !important;
