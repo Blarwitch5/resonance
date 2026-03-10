@@ -1,6 +1,8 @@
 import { betterAuth } from 'better-auth'
+import { createAuthMiddleware } from 'better-auth/api'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { db } from './db'
+import { notifyNewUser } from './notify-new-user'
 
 // Configuration better-auth pour Astro avec PostgreSQL (Neon)
 // Documentation: https://www.better-auth.com/docs/installation
@@ -40,6 +42,23 @@ export const auth = betterAuth({
     'http://localhost:4321',
     'http://localhost:4322',
   ].filter(Boolean) as string[],
+  hooks: {
+    after: createAuthMiddleware(async (context) => {
+      if (context.path.startsWith('sign-up')) {
+        const newSession = context.context.newSession
+        if (newSession?.user) {
+          const user = newSession.user
+          context.context.runInBackground(
+            notifyNewUser({
+              email: user.email ?? '',
+              name: user.name ?? null,
+              createdAt: new Date().toISOString(),
+            })
+          )
+        }
+      }
+    }),
+  },
 })
 
 export type Session = typeof auth.$Infer.Session
