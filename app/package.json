@@ -18,12 +18,12 @@
     "clean:cache": "pkill -f 'astro dev' || true && rm -rf .astro node_modules/.astro node_modules/.vite .vite dist"
   },
   "dependencies": {
-    "@astrojs/node": "^9.5.4",
-    "@astrojs/vercel": "^9.0.4",
-    "bcryptjs": "^2.4.3",
+    "@astrojs/node": "^10.0.0",
+    "@astrojs/vercel": "^10.0.0",
     "@lucide/astro": "^0.562.0",
     "@prisma/client": "^6.19.2",
-    "astro": "^5.17.3",
+    "astro": "^6.0.0",
+    "bcryptjs": "^2.4.3",
     "better-auth": "^1.4.19",
     "chart.js": "^4.5.1",
     "chartjs-adapter-date-fns": "^3.0.0",
@@ -33,9 +33,9 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
     "@tailwindcss/postcss": "^4.2.1",
     "@tailwindcss/vite": "^4.2.1",
+    "@types/bcryptjs": "^2.4.6",
     "prettier": "latest",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "prisma": "^6.19.2",
