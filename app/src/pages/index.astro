@@ -82,9 +82,9 @@ if (isLoggedIn && user?.id) {
           >
             <Disc3 size={32} class="text-white" />
           </div>
-          <h3 class="font-display text-neutral mb-2 text-xl font-semibold">
+          <h2 class="font-display text-neutral mb-2 text-xl font-semibold">
             My Library
-          </h3>
+          </h2>
           <p class="text-muted text-sm">
             {isLoggedIn ? 'Albums that resonate with you' : 'Sign in to see your collection'}
           </p>
@@ -106,7 +106,7 @@ if (isLoggedIn && user?.id) {
           <Search size={24} class="text-white" />
         </div>
         <div>
-          <h3 class="font-display text-neutral font-semibold">Explore</h3>
+          <h2 class="font-display text-neutral font-semibold">Explore</h2>
           <p class="text-muted text-sm">
             {isLoggedIn ? 'Discover new albums' : 'Sign in to discover albums'}
           </p>
@@ -125,7 +125,7 @@ if (isLoggedIn && user?.id) {
           <User size={24} class="text-white" />
         </div>
         <div>
-          <h3 class="font-display text-neutral font-semibold">Profile</h3>
+          <h2 class="font-display text-neutral font-semibold">Profile</h2>
           <p class="text-muted text-sm">
             {isLoggedIn
               ? 'Favorites, wishlist, and statistics'
@@ -140,9 +140,9 @@ if (isLoggedIn && user?.id) {
       <div class="glass-card rounded-2xl p-6 bg-gradient-resonance-subtle border border-primary/20">
         <div class="flex items-center justify-between mb-4">
           <div>
-            <h3 class="font-display text-neutral text-xl font-semibold mb-1">
+        <h2 class="font-display text-neutral text-xl font-semibold mb-1">
               Welcome, {user?.name || user?.email}!
-            </h3>
+        </h2>
             <p class="text-muted text-sm">Your collection awaits</p>
           </div>
           <button
@@ -160,9 +160,9 @@ if (isLoggedIn && user?.id) {
     {isLoggedIn && (
       <!-- Quick stats -->
       <div class="glass-card rounded-2xl p-6">
-        <h3 class="font-display text-neutral mb-4 text-lg font-semibold">
+        <h2 class="font-display text-neutral mb-4 text-lg font-semibold">
           Your Collection
-        </h3>
+        </h2>
         <div class="grid grid-cols-3 gap-4 text-center">
           <div>
             <div class="text-format-vinyl text-2xl font-bold">
@@ -189,9 +189,9 @@ if (isLoggedIn && user?.id) {
     {isLoggedIn && recentItems.length > 0 && (
       <!-- Recent Albums -->
       <div class="glass-card rounded-2xl p-6">
-        <h3 class="font-display text-neutral mb-4 text-lg font-semibold">
+        <h2 class="font-display text-neutral mb-4 text-lg font-semibold">
           Recent Albums
-        </h3>
+        </h2>
         <div class="space-y-3">
           {recentItems.map((item) => (
             <a

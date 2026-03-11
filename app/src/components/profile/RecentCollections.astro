@@ -15,7 +15,7 @@ const collections = await collectionRepository.getRecentCollections(userId, 10)
 <div class="min-w-0 space-y-6">
   {collections.length === 0 ? (
     <EmptyState
-      title="Aucune collection pour le moment"
+      title="No collections yet"
       description="Create your first collection to organize and group your albums by theme, genre, or era."
       icon={Folder}
       action={{

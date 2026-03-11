@@ -282,14 +282,14 @@
     /* Les valeurs sont définies dans theme.css, ici on peut les surcharger si nécessaire */
   }
 
-  /* Assurer un contraste minimum de 4.5:1 pour le texte */
+  /* Muted text uses theme --color-muted (tuned for WCAG AA); no extra opacity */
   [data-theme='dark'] .text-muted {
     color: var(--color-muted);
-    opacity: 0.9;
+    opacity: 1;
   }
 
   [data-theme='light'] .text-muted {
     color: var(--color-muted);
-    opacity: 0.85;
+    opacity: 1;
   }
 }

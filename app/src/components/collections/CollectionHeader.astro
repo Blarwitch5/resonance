@@ -89,10 +89,10 @@ const { collection } = Astro.props as CollectionHeaderProps
           id="edit-collection-btn"
           data-collection-id={collection.id}
           class="btn-secondary-surface flex items-center gap-2 rounded-lg px-4 py-2"
-          aria-label="Modifier la collection"
+          aria-label="Edit collection"
         >
           <Pencil size={18} class="fill-none stroke-2" />
-          <span class="hidden sm:inline">Modifier</span>
+          <span class="hidden sm:inline">Edit</span>
         </button>
         <button
           type="button"
@@ -100,7 +100,7 @@ const { collection } = Astro.props as CollectionHeaderProps
           data-collection-id={collection.id}
           data-collection-name={collection.name}
           class="btn-danger flex items-center gap-2 rounded-lg px-4 py-2"
-          aria-label="Supprimer la collection"
+          aria-label="Delete collection"
         >
           <Trash2 size={18} class="fill-none stroke-2" />
         </button>
@@ -112,11 +112,11 @@ const { collection } = Astro.props as CollectionHeaderProps
 <!-- Edit modal -->
 <div id="edit-collection-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-md">
   <div class="glass-card mx-4 w-full max-w-lg rounded-2xl p-6">
-    <h2 class="mb-4 text-xl font-bold text-neutral">Modifier la collection</h2>
+    <h2 class="mb-4 text-xl font-bold text-neutral">Edit collection</h2>
     <form id="edit-collection-form" class="space-y-4">
       <div>
         <label for="edit-name" class="mb-2 block text-sm font-medium text-neutral">
-          Nom de la collection *
+          Collection name *
         </label>
         <input
           type="text"
@@ -128,7 +128,7 @@ const { collection } = Astro.props as CollectionHeaderProps
       </div>
       <div>
         <label for="edit-description" class="mb-2 block text-sm font-medium text-neutral">
-          Description (optionnel)
+          Description (optional)
         </label>
         <textarea
           id="edit-description"
@@ -142,14 +142,14 @@ const { collection } = Astro.props as CollectionHeaderProps
           type="submit"
           class="btn-primary-gradient flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3"
         >
-          Enregistrer
+          Save
         </button>
         <button
           type="button"
           id="cancel-edit-btn"
           class="btn-secondary-surface flex items-center justify-center rounded-xl px-6 py-3"
         >
-          Annuler
+          Cancel
         </button>
       </div>
     </form>
@@ -246,13 +246,13 @@ const { collection } = Astro.props as CollectionHeaderProps
           }, 500)
         } else {
           if (window.toast) {
-            window.toast.error(responseData.error || 'Erreur lors de la modification')
+            window.toast.error(responseData.error || 'Error while updating')
           }
         }
       } catch (error) {
         console.error('Error updating collection:', error)
         if (window.toast) {
-          window.toast.error('Une erreur est survenue')
+          window.toast.error('An error occurred')
         }
       } finally {
         if (submitBtn) {
@@ -265,10 +265,10 @@ const { collection } = Astro.props as CollectionHeaderProps
     // Supprimer la collection
     deleteBtn?.addEventListener('click', async function() {
       const confirmed = await window.confirmDialog?.(
-        'Supprimer la collection',
+        'Delete collection',
         'Are you sure you want to delete the collection "' + collectionName + '"? This action is irreversible.',
-        'Supprimer',
-        'Annuler'
+        'Delete',
+        'Cancel'
       )
       
       if (!confirmed) {
@@ -295,13 +295,13 @@ const { collection } = Astro.props as CollectionHeaderProps
         } else {
           const responseData = await response.json()
           if (window.toast) {
-            window.toast.error(responseData.error || 'Erreur lors de la suppression')
+            window.toast.error(responseData.error || 'Error while deleting')
           }
         }
       } catch (error) {
         console.error('Error deleting collection:', error)
         if (window.toast) {
-          window.toast.error('Une erreur est survenue')
+          window.toast.error('An error occurred')
         }
       } finally {
         button.disabled = false

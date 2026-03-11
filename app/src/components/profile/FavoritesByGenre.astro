@@ -12,7 +12,7 @@ const { favorites } = Astro.props as FavoritesByGenreProps
 
 // Grouper par genre
 const byGenre = favorites.reduce((acc, item) => {
-  const genre = item.genre || 'Sans genre'
+  const genre = item.genre || 'No genre'
   if (!acc[genre]) {
     acc[genre] = []
   }
@@ -26,7 +26,7 @@ const genreEntries = Object.entries(byGenre).sort((a, b) => b[1].length - a[1].l
 <div class="min-w-0 space-y-8">
   {favorites.length === 0 ? (
     <EmptyState
-      title="Aucun favori pour le moment"
+      title="No favorites yet"
       description="Mark your favorite albums with a heart to build your personal selection and find them easily."
       icon={Heart}
       action={{

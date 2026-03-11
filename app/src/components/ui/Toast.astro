@@ -20,12 +20,24 @@
   const toastContainer = document.getElementById('toast-container')
   let toastIdCounter = 0
 
-  function createToastElement(toast) {
+  const iconSvgByType: Record<'success' | 'error' | 'info' | 'warning', string> = {
+    success:
+      '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+    error:
+      '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
+    info:
+      '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
+    warning:
+      '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+  }
+
+  const closeButtonSvgMarkup =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
+
+  function createToastElement(toast: { id: string; type: string; message: string }) {
     const toastElement = document.createElement('div')
     toastElement.id = `toast-${toast.id}`
     toastElement.className = `toast glass-card pointer-events-auto flex items-center gap-3 rounded-xl border px-4 py-3 shadow-lg transition-all duration-300 translate-x-full opacity-0`
-    
-    // Rôle ARIA en fonction du type
     if (toast.type === 'error' || toast.type === 'warning') {
       toastElement.setAttribute('role', 'alert')
       toastElement.setAttribute('aria-live', 'assertive')
@@ -33,84 +45,37 @@
       toastElement.setAttribute('role', 'status')
       toastElement.setAttribute('aria-live', 'polite')
     }
-    
-    // Type-specific styling
     const typeStyles = {
       success: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
       error: 'border-red-500/30 bg-red-500/10 text-red-400',
       info: 'border-blue-500/30 bg-blue-500/10 text-blue-400',
       warning: 'border-orange-500/30 bg-orange-500/10 text-orange-400',
     }
-    
-    toastElement.className += ` ${typeStyles[toast.type]}`
+    toastElement.className += ` ${typeStyles[toast.type as keyof typeof typeStyles]}`
 
-    // Icon
-    const iconSvg = getIconSvg(toast.type)
-    toastElement.innerHTML = `
-      <div class="shrink-0">
-        ${iconSvg}
-      </div>
-      <p class="flex-1 text-sm font-medium">${escapeHtml(toast.message)}</p>
-      <button 
-        type="button" 
-        class="toast-close shrink-0 rounded p-1 transition-colors hover:bg-black/10"
-        aria-label="Fermer"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
-    `
+    const iconWrap = document.createElement('div')
+    iconWrap.className = 'shrink-0'
+    const iconType = toast.type as 'success' | 'error' | 'info' | 'warning'
+    iconWrap.innerHTML = iconSvgByType[iconType] ?? iconSvgByType.info
+    toastElement.appendChild(iconWrap)
 
-    // Close button handler
-    const closeBtn = toastElement.querySelector('.toast-close')
-    closeBtn?.addEventListener('click', () => {
-      removeToast(toast.id)
-    })
+    const messageP = document.createElement('p')
+    messageP.className = 'flex-1 text-sm font-medium'
+    messageP.textContent = toast.message
+    toastElement.appendChild(messageP)
+
+    const closeBtn = document.createElement('button')
+    closeBtn.type = 'button'
+    closeBtn.className = 'toast-close shrink-0 rounded p-1 transition-colors hover:bg-black/10'
+    closeBtn.setAttribute('aria-label', 'Close')
+    closeBtn.innerHTML = closeButtonSvgMarkup
+    closeBtn.addEventListener('click', () => removeToast(toast.id))
+    toastElement.appendChild(closeBtn)
 
     return toastElement
   }
 
-  function getIconSvg(type) {
-    const icons = {
-      success: `
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-      `,
-      error: `
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-      `,
-      info: `
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="16" x2="12" y2="12"></line>
-          <line x1="12" y1="8" x2="12.01" y2="8"></line>
-        </svg>
-      `,
-      warning: `
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
-          <line x1="12" y1="9" x2="12" y2="13"></line>
-          <line x1="12" y1="17" x2="12.01" y2="17"></line>
-        </svg>
-      `,
-    }
-    return icons[type]
-  }
-
-  function escapeHtml(text) {
-    const div = document.createElement('div')
-    div.textContent = text
-    return div.innerHTML
-  }
-
-  function showToast(options) {
+  function showToast(options: { type?: string; message: string; duration?: number }) {
     if (!toastContainer) {
       console.warn('Toast container not found')
       return
@@ -140,7 +105,7 @@
     }
   }
 
-  function removeToast(id) {
+  function removeToast(id: string) {
     const toastElement = document.getElementById(`toast-${id}`)
     if (!toastElement) return
 

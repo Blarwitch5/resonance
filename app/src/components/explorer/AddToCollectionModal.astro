@@ -68,7 +68,7 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
             type="button"
             class="collection-add-btn btn-secondary-surface w-full rounded-xl p-4 text-left disabled:opacity-50 disabled:cursor-not-allowed"
             data-collection-id={collection.id}
-            data-original-text="Ajouter"
+            data-original-text="Add"
           >
             <h3 class="font-medium">{collection.name}</h3>
             {collection.description && (
@@ -214,7 +214,7 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
             window.setButtonLoading(wishlistButton, true, originalText)
           } else {
             wishlistButton.disabled = true
-            wishlistButton.textContent = 'Ajout en cours...'
+            wishlistButton.textContent = 'Adding...'
           }
 
           try {
@@ -324,7 +324,7 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
             window.setButtonLoading(button as HTMLElement, true, originalText)
           } else {
             (button as HTMLButtonElement).disabled = true
-            button.textContent = 'Ajout en cours...'
+            button.textContent = 'Adding...'
           }
 
           try {
@@ -419,7 +419,7 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
           } catch (error) {
             console.error('Error adding to collection:', error)
             if (window.toast) {
-              window.toast.error('Erreur : ' + (error instanceof Error ? error.message : 'Une erreur est survenue'))
+              window.toast.error('Error: ' + (error instanceof Error ? error.message : 'An error occurred'))
             }
             // Reset loading state
             if (window.setButtonLoading) {

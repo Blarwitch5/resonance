@@ -17,6 +17,7 @@ const hasUser = !!userName || !!userEmail
 ---
 
 <header
+  role="banner"
   class="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl transition-colors duration-200"
 >
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -41,11 +42,11 @@ const hasUser = !!userName || !!userEmail
                 type="button"
                 id="user-menu-trigger"
                 class="btn-icon flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden"
-                aria-label="Ouvrir le menu du profil"
+                aria-label="Open profile menu"
                 aria-haspopup="menu"
                 aria-expanded="false"
                 aria-controls="user-menu-dropdown"
-                title={userName || userEmail || 'Profil'}
+                title={userName || userEmail || 'Profile'}
               >
                 <Avatar
                   userName={userName}
@@ -61,7 +62,7 @@ const hasUser = !!userName || !!userEmail
                 id="user-menu-dropdown"
                 class="absolute right-0 top-full mt-2 hidden w-48 rounded-xl border border-border bg-surface-elevated shadow-lg backdrop-blur-sm"
                 role="menu"
-                aria-label="Menu du profil"
+                aria-label="Profile menu"
               >
                 <div class="p-2">
                   {userName && (

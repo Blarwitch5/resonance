@@ -5,7 +5,7 @@ import X from '@lucide/astro/icons/x'
 
 <div class="relative">
   <label for="collection-search" class="sr-only">
-    Rechercher dans votre collection (titre, artiste, genre)
+    Search your collection (title, artist, genre)
   </label>
   <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
     <Search size={20} class="fill-none stroke-2 text-muted stroke-muted" />
@@ -13,7 +13,7 @@ import X from '@lucide/astro/icons/x'
   <input
     type="text"
     id="collection-search"
-    placeholder="Rechercher par titre, artiste, genre..."
+    placeholder="Search by title, artist, genre..."
     class="w-full rounded-xl border border-border bg-surface pl-12 pr-12 py-3 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
     autocomplete="off"
   />
@@ -21,13 +21,13 @@ import X from '@lucide/astro/icons/x'
     type="button"
     id="clear-search"
     class="absolute inset-y-0 right-0 hidden items-center pr-4 text-muted hover:text-neutral transition-colors"
-    aria-label="Effacer la recherche"
+    aria-label="Clear search"
   >
     <X size={20} />
   </button>
 </div>
 
-<script>
+<script type="text/javascript">
   document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('collection-search')
     const clearButton = document.getElementById('clear-search')
@@ -96,16 +96,21 @@ import X from '@lucide/astro/icons/x'
           message.id = 'search-results-message'
           message.className =
             'glass-card rounded-2xl p-12 text-center col-span-full'
-          message.innerHTML = `
-            <div class="bg-gradient-resonance-subtle mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
-                <circle cx="11" cy="11" r="8"></circle>
-                <path d="m21 21-4.35-4.35"></path>
-              </svg>
-            </div>
-            <h3 class="font-display mb-2 text-xl font-semibold text-neutral">No results</h3>
-            <p class="text-muted">No album matches “${query}”</p>
-          `
+          // Build no-results message with DOM (no innerHTML)
+          const iconWrap = document.createElement('div')
+          iconWrap.className =
+            'bg-gradient-resonance-subtle mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full'
+          iconWrap.innerHTML =
+            '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>'
+          message.appendChild(iconWrap)
+          const heading = document.createElement('h3')
+          heading.className = 'font-display mb-2 text-xl font-semibold text-neutral'
+          heading.textContent = 'No results'
+          message.appendChild(heading)
+          const para = document.createElement('p')
+          para.className = 'text-muted'
+          para.textContent = 'No album matches "' + query + '"'
+          message.appendChild(para)
           const container = document.querySelector('[data-items-container]')
           if (container) {
             container.appendChild(message)

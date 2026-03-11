@@ -46,7 +46,7 @@
         if (isEditableTarget(event.target)) return
         const modal = document.querySelector('[role="dialog"][data-open="true"], [role="dialog"]:not(.hidden), .modal:not(.hidden), .popup:not(.hidden)')
         if (modal && !modal.classList.contains('hidden')) {
-          const closeButton = modal.querySelector('[aria-label*="Close"], [aria-label*="Fermer"], button[data-close]')
+          const closeButton = modal.querySelector('[aria-label*="Close"], button[data-close]')
           if (closeButton) {
             closeButton.click()
           } else {
@@ -119,7 +119,7 @@
           // Afficher une modal avec les raccourcis disponibles
           if (window.toast) {
             window.toast.info(
-              'Raccourcis: ⌘K (Recherche), ⌘N (Nouveau), Esc (Fermer), →/← (Navigation)',
+              'Shortcuts: ⌘K (Search), ⌘N (New), Esc (Close), →/← (Navigate)',
               5000
             )
           }

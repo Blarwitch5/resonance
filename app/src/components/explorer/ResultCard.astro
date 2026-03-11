@@ -189,7 +189,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
       console.error('Error adding to wishlist:', error)
       // @ts-ignore - toast is available globally
       if (window.toast) {
-        window.toast.error(`Erreur : ${error instanceof Error ? error.message : 'Une erreur est survenue'}`)
+        window.toast.error(`Error: ${error instanceof Error ? error.message : 'An error occurred'}`)
       }
     }
   }

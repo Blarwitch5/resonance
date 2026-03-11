@@ -57,7 +57,7 @@ import Loader from '@lucide/astro/icons/loader'
           const error = await response.json().catch(() => ({ error: 'Unknown error' }))
           console.error('Search error:', error)
           if (window.toast) {
-            window.toast.error(error.error || 'Erreur lors de la recherche')
+            window.toast.error(error.error || 'Error while searching')
           }
           return
         }
@@ -96,12 +96,6 @@ import Loader from '@lucide/astro/icons/loader'
     results: SearchResult[]
   }
 
-  function escapeHtml(text: string): string {
-    const div = document.createElement('div')
-    div.textContent = text
-    return div.innerHTML
-  }
-
   async function displaySearchResults(results: SearchResponse, searchQuery?: string): Promise<void> {
     const container = document.getElementById('search-results-container')
     if (!container) return
@@ -121,17 +115,21 @@ import Loader from '@lucide/astro/icons/loader'
     container.classList.remove('hidden')
 
     if (filteredResults.length === 0) {
-      const safeQuery = escapeHtml(query)
       const isBarcode = /^\d{8,14}$/.test(query)
-      const message = isBarcode
-        ? `No album found for barcode “${safeQuery}”.`
-        : `No results for “${safeQuery}”.`
-      container.innerHTML = `
-        <div class="search-no-results glass-card rounded-2xl border border-border/50 p-8 text-center">
-          <p class="text-lg font-medium text-neutral mb-2">${message}</p>
-          <p class="text-sm text-muted">Essayez un autre code ou une recherche par artiste / titre.</p>
-        </div>
-      `
+      const messageText = isBarcode
+        ? `No album found for barcode "${query}".`
+        : `No results for "${query}".`
+      const wrapper = document.createElement('div')
+      wrapper.className = 'search-no-results glass-card rounded-2xl border border-border/50 p-8 text-center'
+      const p1 = document.createElement('p')
+      p1.className = 'text-lg font-medium text-neutral mb-2'
+      p1.textContent = messageText
+      const p2 = document.createElement('p')
+      p2.className = 'text-sm text-muted'
+      p2.textContent = 'Try another code or search by artist / title.'
+      wrapper.appendChild(p1)
+      wrapper.appendChild(p2)
+      container.replaceChildren(wrapper)
       return
     }
 
@@ -165,7 +163,7 @@ import Loader from '@lucide/astro/icons/loader'
       const response = await fetch(`/api/discogs/search?${urlParams.toString()}`)
       if (!response.ok) {
         const err = await response.json().catch(() => ({ error: 'Unknown error' }))
-        if (window.toast) window.toast.error(err.error || 'Erreur lors de la recherche')
+        if (window.toast) window.toast.error(err.error || 'Error while searching')
         return
       }
       const data = await response.json()
@@ -175,17 +173,22 @@ import Loader from '@lucide/astro/icons/loader'
         const container = document.getElementById('search-results-container')
         if (container) {
           container.classList.remove('hidden')
-          container.innerHTML = `
-            <div class="search-no-results glass-card rounded-2xl border border-border/50 p-8 text-center">
-              <p class="text-lg font-medium text-neutral mb-2">No results for “${escapeHtml(query)}”.</p>
-              <p class="text-sm text-muted">Essayez une autre recherche.</p>
-            </div>
-          `
+          const wrapper = document.createElement('div')
+          wrapper.className = 'search-no-results glass-card rounded-2xl border border-border/50 p-8 text-center'
+          const p1 = document.createElement('p')
+          p1.className = 'text-lg font-medium text-neutral mb-2'
+          p1.textContent = `No results for "${query}".`
+          const p2 = document.createElement('p')
+          p2.className = 'text-sm text-muted'
+          p2.textContent = 'Try another search.'
+          wrapper.appendChild(p1)
+          wrapper.appendChild(p2)
+          container.replaceChildren(wrapper)
         }
       }
     } catch (error) {
       console.error('Error searching:', error)
-      if (window.toast) window.toast.error('Erreur lors de la recherche')
+      if (window.toast) window.toast.error('Error while searching')
     } finally {
       if (loader) loader.classList.add('hidden')
     }
@@ -275,7 +278,7 @@ import Loader from '@lucide/astro/icons/loader'
     } catch (error) {
       console.error('Error adding to wishlist:', error)
       if (window.toast) {
-        window.toast.error(`Erreur : ${error instanceof Error ? error.message : 'Une erreur est survenue'}`)
+        window.toast.error(`Error: ${error instanceof Error ? error.message : 'An error occurred'}`)
       }
     }
   }

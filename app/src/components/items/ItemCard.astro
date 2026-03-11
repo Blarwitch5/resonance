@@ -42,9 +42,9 @@ const { item } = Astro.props as ItemCardProps
     </div>
   </a>
 
-  <!-- Actions (visible au hover) -->
+  <!-- Actions (visible on hover or focus-within for keyboard/touch) -->
   <div
-    class="absolute top-2 right-2 z-10 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100"
+    class="absolute top-2 right-2 z-10 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100"
   >
     <button
       type="button"

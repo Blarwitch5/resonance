@@ -27,17 +27,31 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
       data-item-id={itemId}
       data-is-favorite={isFavorite}
     >
-      {isFavorite ? (
-        <>
-          <Heart size={18} class="fill-red-500 stroke-2 text-primary stroke-primary" />
-          <span class="text-primary">Favori</span>
-        </>
-      ) : (
-        <>
-          <HeartOff size={18} class="fill-none stroke-2 text-muted stroke-muted" />
-          <span class="text-muted">Ajouter aux favoris</span>
-        </>
-      )}
+      <Heart
+        size={18}
+        class:list={[
+          'favorite-icon',
+          'fill-red-500',
+          'stroke-2',
+          'stroke-primary',
+          isFavorite ? 'text-primary' : 'hidden',
+        ]}
+        aria-hidden="true"
+      />
+      <HeartOff
+        size={18}
+        class:list={[
+          'favorite-icon',
+          'fill-none',
+          'stroke-2',
+          'stroke-muted',
+          isFavorite ? 'hidden text-primary' : 'text-muted',
+        ]}
+        aria-hidden="true"
+      />
+      <span class:list={[isFavorite ? 'text-primary' : 'text-muted']} data-favorite-label>
+        {isFavorite ? 'Favorite' : 'Add to favorites'}
+      </span>
     </button>
 
     <!-- Menu contextuel -->
@@ -46,7 +60,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
         type="button"
         class="menu-trigger flex items-center justify-center rounded-xl border border-border bg-surface p-2 text-muted transition-all hover:bg-surface-elevated hover:text-neutral md:p-2.5"
         data-menu-trigger
-        aria-label="Plus d'actions"
+        aria-label="More actions"
       >
         <EllipsisVertical size={18} class="fill-none stroke-2" />
       </button>
@@ -64,7 +78,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
               data-action="remove-from-collection"
             >
               <Package size={16} class="fill-none stroke-2 text-muted stroke-muted transition-colors group-hover:text-primary group-hover:stroke-primary" />
-              <span>Retirer de la collection</span>
+              <span>Remove from collection</span>
             </button>
           )}
           <button
@@ -83,12 +97,12 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
 
 <script>
   (function() {
-    const menuWrapper = document.querySelector('.item-actions-menu')
+    const menuWrapper = document.querySelector('.item-actions-menu') as HTMLElement | null
     if (!menuWrapper) return
 
     const menuTrigger = menuWrapper.querySelector('[data-menu-trigger]')
     const menuDropdown = menuWrapper.querySelector('[data-menu-dropdown]')
-    const favoriteBtn = menuWrapper.querySelector('.favorite-btn')
+    const favoriteBtn = menuWrapper.querySelector('.favorite-btn') as HTMLButtonElement | null
     const removeFromCollectionBtn = menuWrapper.querySelector(
       '[data-action="remove-from-collection"]'
     )
@@ -106,7 +120,8 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
 
       // Fermer le menu en cliquant ailleurs
       document.addEventListener('click', (event) => {
-        if (!menuWrapper.contains(event.target)) {
+        const target = event.target instanceof Node ? event.target : null
+        if (target && !menuWrapper.contains(target)) {
           menuDropdown.classList.add('hidden')
         }
       })
@@ -132,25 +147,19 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
           const data = await response.json()
           const newIsFavorite = data.isFavorite
 
-          // Update UI
+          // Update UI (toggle pre-rendered icons; no SVG creation in JS)
           if (favoriteBtn) favoriteBtn.dataset.isFavorite = newIsFavorite.toString()
-          const heartIcon = favoriteBtn.querySelector('svg')
-          const text = favoriteBtn.querySelector('span:last-child')
-
-          if (newIsFavorite) {
-            favoriteBtn.innerHTML = `
-              <svg class="h-[18px] w-[18px] fill-red-500 stroke-2 text-primary stroke-primary" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-              <span class="text-primary">Favori</span>
-            `
-          } else {
-            favoriteBtn.innerHTML = `
-              <svg class="h-[18px] w-[18px] fill-none stroke-2 text-muted stroke-muted" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-              <span class="text-muted">Ajouter aux favoris</span>
-            `
+          const allIcons = favoriteBtn.querySelectorAll('svg.favorite-icon')
+          allIcons.forEach((icon) => {
+            const isFilled = icon.classList.contains('fill-red-500')
+            const shouldShow = newIsFavorite ? isFilled : !isFilled
+            icon.classList.toggle('hidden', !shouldShow)
+          })
+          const label = favoriteBtn.querySelector('[data-favorite-label]')
+          if (label) {
+            label.textContent = newIsFavorite ? 'Favorite' : 'Add to favorites'
+            label.classList.toggle('text-primary', newIsFavorite)
+            label.classList.toggle('text-muted', !newIsFavorite)
           }
 
           if (window.toast) {
@@ -159,7 +168,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
         } catch (error) {
           console.error('Error toggling favorite:', error)
           if (window.toast) {
-            window.toast.error('Erreur lors de la modification')
+            window.toast.error('Error while updating')
           }
         }
       })
@@ -168,7 +177,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
     // Retirer de la collection
     if (removeFromCollectionBtn) {
       removeFromCollectionBtn.addEventListener('click', async () => {
-        if (!confirm('Retirer cet album de la collection ?')) return
+        if (!confirm('Remove this album from the collection?')) return
 
         try {
           const response = await fetch(`/api/items/${itemId}/remove-from-collection`, {
@@ -195,7 +204,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
         } catch (error) {
           console.error('Error removing from collection:', error)
           if (window.toast) {
-            window.toast.error('Erreur lors du retrait')
+            window.toast.error('Error while removing')
           }
         }
       })

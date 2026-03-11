@@ -209,3 +209,33 @@ html.transitioning * {
 body.has-global-audio #barcode-scanner-container {
   bottom: 10rem;
 }
+
+/* Respect prefers-reduced-motion (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .animate-resonance-pulse,
+  .animate-resonance-wave,
+  .animate-resonance-vibrato,
+  .animate-float {
+    animation: none;
+  }
+
+  .glass-card:hover,
+  [class*='glass-card']:hover,
+  .hover-resonance:hover,
+  .card-transition:hover {
+    transform: none;
+  }
+
+  button:not(:disabled):hover,
+  a[role='button']:not(:disabled):hover {
+    transform: none;
+  }
+}

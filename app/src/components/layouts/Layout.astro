@@ -87,6 +87,12 @@ const showFooter = props.showFooter ?? true
   <body
     class="bg-background font-sans text-neutral antialiased transition-colors duration-200"
   >
+    <a
+      href="#main-content"
+      class="skip-link fixed left-4 top-4 z-[100] -translate-y-[9999px] rounded-lg bg-primary px-4 py-2 text-white shadow-lg transition-transform duration-200 focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+    >
+      Skip to main content
+    </a>
     <div id="app" class="flex min-h-screen flex-col">
       {
         showDashboardHeader && props.sectionTitle && props.sectionDescription && (
@@ -96,8 +102,10 @@ const showFooter = props.showFooter ?? true
 
       <!-- Main content -->
       <main
+        id="main-content"
         class={`flex-1 transition-colors duration-200 ${showBottomBar ? 'pb-20 md:pb-8' : ''} global-audio-main`}
         transition:animate="fade"
+        tabindex="-1"
       >
         <slot />
       </main>
@@ -107,7 +115,7 @@ const showFooter = props.showFooter ?? true
         id="global-audio-bar"
         class="global-audio-bar hidden fixed inset-x-0 bottom-20 z-40 flex justify-center pointer-events-none border-t border-border bg-surface-elevated shadow-lg backdrop-blur-sm md:bottom-6 md:border-none md:bg-transparent md:shadow-none"
         aria-live="polite"
-        aria-label="Extrait en cours"
+        aria-label="Now playing"
       >
         <div
           class="pointer-events-auto mx-auto max-w-3xl px-4"
@@ -121,6 +129,9 @@ const showFooter = props.showFooter ?? true
     </div>
   </body>
 </html>
+<script>
+  import '../../scripts/loading-utils'
+</script>
 <script>
   function applyTheme() {
     const html = document.documentElement
@@ -161,7 +172,7 @@ const showFooter = props.showFooter ?? true
       const button = document.getElementById('sidebar-toggle-btn')
       if (button) {
         button.setAttribute('aria-expanded', String(open))
-        button.setAttribute('aria-label', open ? 'Fermer le menu' : 'Ouvrir le menu')
+        button.setAttribute('aria-label', open ? 'Close menu' : 'Open menu')
       }
       return
     }

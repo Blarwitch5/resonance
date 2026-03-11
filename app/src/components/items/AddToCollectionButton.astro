@@ -38,7 +38,7 @@ const { discogsId, collections, defaultCollectionId } = Astro.props as AddToColl
           type="button"
           class="close-btn flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-elevated hover:text-neutral"
           data-action="close"
-          aria-label="Fermer"
+          aria-label="Close"
         >
           <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -81,7 +81,7 @@ const { discogsId, collections, defaultCollectionId } = Astro.props as AddToColl
             class="cancel-btn flex-1 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-medium text-neutral transition-colors hover:bg-surface-elevated"
             data-action="cancel"
           >
-            Annuler
+            Cancel
           </button>
           <button
             type="button"
@@ -89,7 +89,7 @@ const { discogsId, collections, defaultCollectionId } = Astro.props as AddToColl
             data-action="confirm"
             data-discogs-id={discogsId}
           >
-            Ajouter
+            Add
           </button>
         </div>
       </div>
@@ -180,7 +180,7 @@ const { discogsId, collections, defaultCollectionId } = Astro.props as AddToColl
 
           if (!response.ok) {
             const error = await response.json()
-            throw new Error(error.error || 'Erreur lors de l\'ajout')
+            throw new Error(error.error || 'Error while adding')
           }
 
           const data = await response.json()
@@ -199,13 +199,13 @@ const { discogsId, collections, defaultCollectionId } = Astro.props as AddToColl
         } catch (error) {
           console.error('Error adding item:', error)
           confirmBtn.disabled = false
-          confirmBtn.textContent = originalText || 'Ajouter'
+          confirmBtn.textContent = originalText || 'Add'
 
-          const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'ajout'
+          const errorMessage = error instanceof Error ? error.message : 'Error while adding'
           if (window.toast) {
             window.toast.error(errorMessage)
           } else {
-            console.error('Erreur:', errorMessage)
+            console.error('Error:', errorMessage)
           }
         }
       })

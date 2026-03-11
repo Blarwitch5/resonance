@@ -12,12 +12,12 @@ type PersonalDataSectionProps = {
 const { itemId, metadata } = Astro.props as PersonalDataSectionProps
 
 const CONDITION_LABELS: Record<string, string> = {
-  MINT: 'Neuf',
-  NEAR_MINT: 'Quasi neuf',
-  VERY_GOOD: 'Very good condition',
-  GOOD: 'Good condition',
-  FAIR: 'Fair condition',
-  POOR: 'Poor condition',
+  MINT: 'Mint',
+  NEAR_MINT: 'Near mint',
+  VERY_GOOD: 'Very good',
+  GOOD: 'Good',
+  FAIR: 'Fair',
+  POOR: 'Poor',
 }
 
 const tags: string[] = metadata?.customTags
@@ -50,10 +50,10 @@ const acquisitionDateStr =
       type="button"
       class="edit-toggle inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-elevated hover:text-primary"
       data-action="toggle-edit"
-      aria-label="Modifier"
+      aria-label="Edit"
     >
       <Pencil size={16} />
-      <span class="hidden sm:inline">Modifier</span>
+      <span class="hidden sm:inline">Edit</span>
     </button>
   </div>
 
@@ -74,7 +74,7 @@ const acquisitionDateStr =
         )}
         {metadata.acquisitionDate && (
           <div>
-            <span class="text-sm font-medium text-muted">Date d'achat</span>
+            <span class="text-sm font-medium text-muted">Purchase date</span>
             <p class="mt-1 text-neutral">
               {new Date(metadata.acquisitionDate).toLocaleDateString('fr-FR', {
                 day: 'numeric',
@@ -86,7 +86,7 @@ const acquisitionDateStr =
         )}
         {metadata.purchasePrice != null && (
           <div>
-            <span class="text-sm font-medium text-muted">Prix d'achat</span>
+            <span class="text-sm font-medium text-muted">Purchase price</span>
             <p class="mt-1 text-neutral">
               {Number(metadata.purchasePrice).toFixed(2)} €
             </p>
@@ -102,13 +102,13 @@ const acquisitionDateStr =
         )}
         {metadata.purchaseLocation && (
           <div>
-            <span class="text-sm font-medium text-muted">Lieu d'achat</span>
+            <span class="text-sm font-medium text-muted">Purchase location</span>
             <p class="mt-1 text-neutral">{metadata.purchaseLocation}</p>
           </div>
         )}
         {metadata.personalRating != null && (
           <div>
-            <span class="text-sm font-medium text-muted">Ma note</span>
+            <span class="text-sm font-medium text-muted">My rating</span>
             <p class="mt-1 flex items-center gap-1 text-neutral">
               {[1, 2, 3, 4, 5].map((ratingValue) => (
                 <Star
@@ -143,14 +143,14 @@ const acquisitionDateStr =
   <form class="edit-mode hidden space-y-4" data-mode="edit">
     <div>
       <label for="personal-notes" class="mb-2 block text-sm font-medium text-neutral">
-        Notes personnelles
+        Personal notes
       </label>
       <textarea
         id="personal-notes"
         name="personalNotes"
         rows="3"
         class="w-full rounded-xl border border-border bg-surface px-4 py-3 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
-        placeholder="Anecdotes, souvenirs..."
+        placeholder="Anecdotes, memories..."
       >
         {metadata?.personalNotes ?? ''}
       </textarea>
@@ -159,7 +159,7 @@ const acquisitionDateStr =
     <div class="grid gap-4 sm:grid-cols-2">
       <div>
         <label for="acquisition-date" class="mb-2 block text-sm font-medium text-neutral">
-          Date d'achat
+          Purchase date
         </label>
         <input
           type="date"
@@ -171,7 +171,7 @@ const acquisitionDateStr =
       </div>
       <div>
         <label for="purchase-price" class="mb-2 block text-sm font-medium text-neutral">
-          Prix d'achat (€)
+          Purchase price (€)
         </label>
         <input
           type="number"
@@ -205,7 +205,7 @@ const acquisitionDateStr =
       </div>
       <div>
         <label for="purchase-location" class="mb-2 block text-sm font-medium text-neutral">
-          Lieu d'achat
+          Purchase location
         </label>
         <input
           type="text"
@@ -220,7 +220,7 @@ const acquisitionDateStr =
 
     <div>
       <label class="mb-2 block text-sm font-medium text-neutral">
-        Ma note (1–5)
+        My rating (1–5)
       </label>
       <div class="star-rating-container flex items-center gap-1" data-star-rating>
         {[1, 2, 3, 4, 5].map((ratingValue) => (
@@ -264,20 +264,20 @@ const acquisitionDateStr =
         type="submit"
         class="bg-gradient-resonance hover:bg-gradient-resonance-hover rounded-xl px-4 py-2.5 text-sm font-medium text-white transition-all"
       >
-        Enregistrer
+        Save
       </button>
       <button
         type="button"
         class="cancel-edit rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-medium text-neutral transition-colors hover:bg-surface-elevated"
         data-action="cancel-edit"
       >
-        Annuler
+        Cancel
       </button>
     </div>
   </form>
 </section>
 
-<script>
+<script type="text/javascript">
   function initPersonalDataSection() {
     const section = document.querySelector('.personal-data-section')
     if (!section) return
@@ -391,7 +391,7 @@ const acquisitionDateStr =
       }
 
       function renderTags() {
-        badgesContainer.innerHTML = ''
+        badgesContainer.replaceChildren()
         currentTags.forEach(function(tag) {
           var pill = document.createElement('span')
           pill.className = 'tag-pill inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/15 px-3 py-1 text-sm text-primary'
@@ -402,8 +402,9 @@ const acquisitionDateStr =
           var removeBtn = document.createElement('button')
           removeBtn.type = 'button'
           removeBtn.className = 'tag-remove -mr-0.5 flex h-5 w-5 items-center justify-center rounded-full text-muted transition-colors hover:bg-primary/25 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/50'
-          removeBtn.setAttribute('aria-label', 'Supprimer le tag « ' + tag + ' »')
-          removeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
+          removeBtn.setAttribute('aria-label', 'Remove tag "' + tag + '"')
+          removeBtn.innerHTML =
+            '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
           removeBtn.addEventListener('click', function() {
             currentTags = currentTags.filter(function(t) { return t !== tag })
             customTagsValue.value = JSON.stringify(currentTags)
@@ -463,7 +464,7 @@ const acquisitionDateStr =
 
           if (!response.ok) {
             var err = await response.json()
-            throw new Error(err.error || 'Erreur lors de l\'enregistrement')
+            throw new Error(err.error || 'Error while saving')
           }
 
           if (window.toast) {
@@ -473,16 +474,16 @@ const acquisitionDateStr =
           }
           window.location.reload()
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Erreur'
+          const errorMessage = error instanceof Error ? error.message : 'Error'
           if (window.toast) {
             window.toast.error(errorMessage)
           } else {
-            console.error('Erreur:', errorMessage)
+            console.error('Error:', errorMessage)
           }
         } finally {
           if (submitBtn) {
             submitBtn.disabled = false
-            submitBtn.textContent = 'Enregistrer'
+            submitBtn.textContent = 'Save'
           }
         }
       })

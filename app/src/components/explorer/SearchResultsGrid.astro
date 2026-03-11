@@ -38,7 +38,7 @@ const filteredResults = results.filter((item) => {
 
 {filteredResults.length > 0 && (
   <div id="search-results-content">
-    <h3 class="mb-4 text-lg font-semibold">{filteredResults.length} résultats</h3>
+    <h3 class="mb-4 text-lg font-semibold">{filteredResults.length} results</h3>
     <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
       {filteredResults.map((result) => (
         <SearchResultCard result={result} />

@@ -28,7 +28,7 @@ const { itemId, itemTitle } = Astro.props as DeleteItemModalProps
         </div>
         <div>
           <h3 id="delete-item-modal-title" class="text-lg font-bold text-neutral">
-            Supprimer cet album ?
+            Delete this album?
           </h3>
         </div>
       </div>
@@ -36,7 +36,7 @@ const { itemId, itemTitle } = Astro.props as DeleteItemModalProps
         type="button"
         class="close-btn flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-elevated hover:text-neutral"
         data-action="close"
-        aria-label="Fermer"
+        aria-label="Close"
       >
         <X size={18} />
       </button>
@@ -53,7 +53,7 @@ const { itemId, itemTitle } = Astro.props as DeleteItemModalProps
         class="cancel-btn flex-1 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-medium text-neutral transition-colors hover:bg-surface-elevated"
         data-action="cancel"
       >
-        Annuler
+        Cancel
       </button>
       <button
         type="button"
@@ -61,7 +61,7 @@ const { itemId, itemTitle } = Astro.props as DeleteItemModalProps
         data-action="confirm"
         data-item-id={itemId}
       >
-        Supprimer
+        Delete
       </button>
     </div>
   </div>
@@ -186,7 +186,7 @@ const { itemId, itemTitle } = Astro.props as DeleteItemModalProps
     if (deleteBtn) {
       deleteBtn.addEventListener('click', async () => {
         deleteBtn.disabled = true
-        deleteBtn.textContent = 'Suppression...'
+        deleteBtn.textContent = 'Deleting...'
 
         try {
           const response = await fetch(`/api/items/${itemId}`, {
@@ -213,10 +213,10 @@ const { itemId, itemTitle } = Astro.props as DeleteItemModalProps
         } catch (error) {
           console.error('Error deleting item:', error)
           deleteBtn.disabled = false
-          deleteBtn.textContent = 'Supprimer'
+          deleteBtn.textContent = 'Delete'
 
           if (window.toast) {
-            window.toast.error('Erreur lors de la suppression')
+            window.toast.error('Error while deleting')
           }
         }
       })

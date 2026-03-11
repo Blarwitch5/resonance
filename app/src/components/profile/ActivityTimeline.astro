@@ -25,10 +25,10 @@ function formatRelativeTime(date: Date | string): string {
   const diffDays = Math.floor(diffMs / 86400000)
 
   if (diffMinutes < 1) return "Just now"
-  if (diffMinutes < 60) return `Il y a ${diffMinutes} min`
-  if (diffHours < 24) return `Il y a ${diffHours}h`
-  if (diffDays < 7) return `Il y a ${diffDays} j`
-  return new Date(date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+  if (diffMinutes < 60) return `${diffMinutes} min ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays < 7) return `${diffDays}d ago`
+  return new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
 function getActivityIcon(type: Activity['type']) {
@@ -55,7 +55,7 @@ function getActivityLabel(type: Activity['type']): string {
     case 'wishlist_added':
       return 'Added to wishlist'
     case 'item_favorited':
-      return 'Mis en favori'
+      return 'Added to favorites'
     default:
       return 'Activity'
   }
@@ -118,7 +118,7 @@ function getActivityColor(type: Activity['type']): string {
                   <div class="h-10 w-10 shrink-0 overflow-hidden rounded bg-surface">
                     <OptimizedImage
                       src={(activity.data as { coverUrl: string }).coverUrl}
-                      alt=""
+                      alt={`Cover: ${(activity.data as { title: string }).title} by ${(activity.data as { artist: string }).artist}`}
                       width={40}
                       height={40}
                       loading="lazy"

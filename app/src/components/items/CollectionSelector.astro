@@ -68,7 +68,7 @@ const { itemId, currentCollection, collections } = Astro.props as CollectionSele
 
         if (!response.ok) {
           const error = await response.json()
-          throw new Error(error.error || 'Erreur lors du changement de collection')
+          throw new Error(error.error || 'Error while changing collection')
         }
 
         const updatedItem = await response.json()
@@ -92,11 +92,11 @@ const { itemId, currentCollection, collections } = Astro.props as CollectionSele
         select.value = originalValue
 
         // Afficher un message d'erreur
-        const errorMessage = error instanceof Error ? error.message : 'Erreur lors du changement de collection'
+        const errorMessage = error instanceof Error ? error.message : 'Error while changing collection'
         if (window.toast) {
           window.toast.error(errorMessage)
         } else {
-          console.error('Erreur:', errorMessage)
+          console.error('Error:', errorMessage)
         }
       } finally {
         select.disabled = false

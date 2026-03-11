@@ -101,7 +101,7 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Mot de passe modifié avec succès',
+        message: 'Password updated successfully',
       }),
       {
         status: 200,

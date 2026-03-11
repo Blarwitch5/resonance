@@ -132,23 +132,33 @@ if (topGenres.length > 0) {
           if (renderRes.ok) {
             container.innerHTML = await renderRes.text()
           } else {
-            container.innerHTML = '<p class="text-muted">Error while displaying results.</p>'
+            const p = document.createElement('p')
+            p.className = 'text-muted'
+            p.textContent = 'Error while displaying results.'
+            container.replaceChildren(p)
           }
         } else {
-          container.innerHTML = `
-            <div class="glass-card rounded-2xl border border-border/50 p-8 text-center">
-              <p class="text-lg font-medium text-neutral mb-2">No album found for this barcode.</p>
-              <p class="text-sm text-muted">Check the code or try a search by artist/title in the field above.</p>
-            </div>
-          `
+          const wrapper = document.createElement('div')
+          wrapper.className = 'glass-card rounded-2xl border border-border/50 p-8 text-center'
+          const p1 = document.createElement('p')
+          p1.className = 'text-lg font-medium text-neutral mb-2'
+          p1.textContent = 'No album found for this barcode.'
+          const p2 = document.createElement('p')
+          p2.className = 'text-sm text-muted'
+          p2.textContent = 'Check the code or try a search by artist/title in the field above.'
+          wrapper.appendChild(p1)
+          wrapper.appendChild(p2)
+          container.replaceChildren(wrapper)
         }
       } catch (error) {
         console.error('Barcode search error:', error)
-        container.innerHTML = `
-          <div class="glass-card rounded-2xl border border-border/50 p-8 text-center">
-            <p class="text-muted">Error while searching by barcode.</p>
-          </div>
-        `
+        const wrapper = document.createElement('div')
+        wrapper.className = 'glass-card rounded-2xl border border-border/50 p-8 text-center'
+        const p = document.createElement('p')
+        p.className = 'text-muted'
+        p.textContent = 'Error while searching by barcode.'
+        wrapper.appendChild(p)
+        container.replaceChildren(wrapper)
       }
       return
     }

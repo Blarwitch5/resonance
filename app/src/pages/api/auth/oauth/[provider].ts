@@ -41,7 +41,7 @@ export const GET: APIRoute = async ({ params, url, request }) => {
     if (isAjaxRequest) {
       return new Response(
         JSON.stringify({ 
-          error: `Provider ${provider} non configuré. Veuillez ajouter les credentials dans .env`,
+          error: `Provider ${provider} is not configured. Add credentials in .env`,
           redirect: `${baseURL}/login?error=oauth_not_configured`
         }),
         {

@@ -151,14 +151,15 @@ const spotifyEnabled = true // Sera vérifié côté client
         if (tracklistHeader) {
           const infoMsg = document.createElement('div')
           infoMsg.className = 'mt-4 rounded-lg border border-border bg-surface-elevated p-3 text-sm text-muted'
-          infoMsg.innerHTML = `
-            <p class="flex items-center gap-2">
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Les extraits audio sont temporairement indisponibles.
-            </p>
-          `
+          const infoPara = document.createElement('p')
+          infoPara.className = 'flex items-center gap-2'
+          const infoIconWrap = document.createElement('span')
+          infoIconWrap.className = 'inline-flex'
+          infoIconWrap.innerHTML =
+            '<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
+          infoPara.appendChild(infoIconWrap)
+          infoPara.append(document.createTextNode('Audio previews are temporarily unavailable.'))
+          infoMsg.appendChild(infoPara)
           tracklist.appendChild(infoMsg)
         }
       }
@@ -270,7 +271,7 @@ const spotifyEnabled = true // Sera vérifié côté client
             if (!searchData.track || !searchData.track.preview_url) {
               // Pas de preview disponible
               if (window.toast) {
-                window.toast.info('Aucun extrait disponible pour ce titre')
+                window.toast.info('No preview available for this track')
               }
               if (playIcon) playIcon.classList.remove('hidden')
               if (loadingIcon) loadingIcon.classList.add('hidden')
@@ -286,7 +287,6 @@ const spotifyEnabled = true // Sera vérifié côté client
           const globalBar = document.getElementById('global-audio-bar')
           const globalSlot = globalBar?.querySelector('[data-global-audio-slot]')
           const useGlobalBar = Boolean(globalSlot)
-          const closeBtnHtml = useGlobalBar ? '<button type="button" class="global-audio-close flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface hover:text-neutral" aria-label="Fermer"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>' : ''
 
           const playerWrapper = document.createElement('div')
           playerWrapper.className = useGlobalBar ? '' : 'mt-2'
@@ -309,9 +309,21 @@ const spotifyEnabled = true // Sera vérifié côté client
                 </button>
                 <audio id="track-${trackIndex}" class="hidden" preload="none" data-preview-url="${previewUrl}" data-auto-play="true"></audio>
               </div>
-              ${closeBtnHtml}
             </div>
           `
+
+          if (useGlobalBar) {
+            const audioPlayerDiv = playerWrapper.querySelector('.audio-player')
+            if (audioPlayerDiv) {
+              const closeBtn = document.createElement('button')
+              closeBtn.type = 'button'
+              closeBtn.className = 'global-audio-close flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface hover:text-neutral'
+              closeBtn.setAttribute('aria-label', 'Close')
+              closeBtn.innerHTML =
+                '<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>'
+              audioPlayerDiv.appendChild(closeBtn)
+            }
+          }
 
           if (globalSlot) {
             globalSlot.innerHTML = ''
@@ -321,7 +333,8 @@ const spotifyEnabled = true // Sera vérifié côté client
             const closeBtn = playerWrapper.querySelector('.global-audio-close')
             if (closeBtn) {
               closeBtn.addEventListener('click', () => {
-                if (audio && !audio.paused) audio.pause()
+                const audioEl = playerWrapper.querySelector('audio')
+                if (audioEl && !audioEl.paused) audioEl.pause()
                 globalSlot.innerHTML = ''
                 globalBar.classList.add('hidden')
                 document.body.classList.remove('has-global-audio')
@@ -383,7 +396,7 @@ const spotifyEnabled = true // Sera vérifié côté client
         } catch (error) {
           console.error('Error loading preview:', error)
           if (window.toast) {
-            window.toast.error('Erreur lors du chargement de l\'extrait')
+            window.toast.error('Error while loading preview')
           }
           if (playIcon) playIcon.classList.remove('hidden')
           if (loadingIcon) loadingIcon.classList.add('hidden')

@@ -78,27 +78,20 @@ const { mode = 'signin' } = Astro.props as OAuthButtonsProps
       if (!button) return
 
       button.addEventListener('click', function() {
-        // Désactiver le bouton pendant le chargement
-        const originalContent = button.innerHTML
-        button.disabled = true
-        button.innerHTML = '<span class="animate-spin">⏳</span>'
-
+        if (window.setButtonLoading) window.setButtonLoading(button, true, '')
         try {
-          // Rediriger vers notre endpoint OAuth personnalisé
           const baseURL = window.location.origin
           const callbackURL = window.location.origin + '/'
           const oauthURL = baseURL + '/api/auth/oauth/' + provider + '?callbackURL=' + encodeURIComponent(callbackURL)
-          
           window.location.href = oauthURL
         } catch (error) {
           console.error('Error signing in with ' + provider + ':', error)
           if (window.toast) {
-            window.toast.error('Erreur lors de la connexion avec ' + provider)
+            window.toast.error('Error signing in with ' + provider)
           } else {
-            alert('Erreur lors de la connexion avec ' + provider)
+            alert('Error signing in with ' + provider)
           }
-          button.disabled = false
-          button.innerHTML = originalContent
+          if (window.setButtonLoading) window.setButtonLoading(button, false)
         }
       })
     })

@@ -15,7 +15,7 @@ const { itemId, isFavorite = false } = Astro.props as ItemActionsProps
   <button
     type="button"
     class="btn-icon rounded-full p-2 shadow-lg"
-    aria-label="Ajouter aux favoris"
+    aria-label="Add to favorites"
     data-action="favorite"
     data-item-id={itemId}
   >
@@ -25,7 +25,7 @@ const { itemId, isFavorite = false } = Astro.props as ItemActionsProps
   <button
     type="button"
     class="btn-icon rounded-full p-2 shadow-lg"
-    aria-label="Modifier"
+    aria-label="Edit"
     data-action="edit"
     data-item-id={itemId}
   >
@@ -35,7 +35,7 @@ const { itemId, isFavorite = false } = Astro.props as ItemActionsProps
   <button
     type="button"
     class="btn-icon rounded-full p-2 shadow-lg"
-    aria-label="Supprimer"
+    aria-label="Delete"
     data-action="delete"
     data-item-id={itemId}
   >
@@ -75,10 +75,10 @@ const { itemId, isFavorite = false } = Astro.props as ItemActionsProps
         }
       } else if (action === 'delete') {
         const confirmed = await window.confirmDialog?.(
-          'Supprimer l\'album',
+          'Delete this album',
           'Are you sure you want to delete this album? This action is irreversible.',
-          'Supprimer',
-          'Annuler'
+          'Delete',
+          'Cancel'
         )
         
         if (!confirmed) {

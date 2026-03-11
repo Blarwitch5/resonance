@@ -25,7 +25,7 @@ const { message, dismissible = false, class: className = '' } = Astro.props as E
     <button
       type="button"
       class="shrink-0 rounded p-1 transition-colors hover:bg-error/20"
-      aria-label="Fermer"
+      aria-label="Close"
       onclick="this.closest('[role=alert]')?.remove()"
     >
       <X size={16} />

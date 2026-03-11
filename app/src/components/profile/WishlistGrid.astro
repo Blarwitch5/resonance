@@ -32,11 +32,11 @@ const getPriorityStars = (priority: number) => {
 
 {wishlistItems.length === 0 ? (
   <EmptyState
-    title="Votre wishlist vous attend"
+    title="Your wishlist is waiting"
     description="Save albums you want to buy later. Explore Discogs and add them to your wishlist so you never forget them."
     icon={Heart}
     action={{
-      label: 'Explorer Discogs',
+      label: 'Explore Discogs',
       href: '/explorer',
     }}
   />
@@ -102,7 +102,7 @@ const getPriorityStars = (priority: number) => {
                 type="button"
                 class="wishlist-delete-btn btn-icon rounded-lg p-2 hover:bg-red-500/20 hover:text-red-400"
                 data-id={item.id}
-                aria-label={`Supprimer ${item.title} de la wishlist`}
+                aria-label={`Remove ${item.title} from wishlist`}
               >
                 <Trash2 size={18} class="fill-none stroke-2" />
               </button>
@@ -124,10 +124,10 @@ const getPriorityStars = (priority: number) => {
         if (!id) return
 
         const confirmed = await window.confirmDialog?.(
-          'Supprimer de la wishlist',
+          'Remove from wishlist',
           'Are you sure you want to remove this album from your wishlist?',
-          'Supprimer',
-          'Annuler'
+          'Remove',
+          'Cancel'
         )
         
         if (!confirmed) {
@@ -159,14 +159,14 @@ const getPriorityStars = (priority: number) => {
             const error = await response.json()
             // @ts-ignore - toast is available globally
             if (window.toast) {
-              window.toast.error(`Erreur: ${error.error || 'Impossible de supprimer l\'album'}`)
+              window.toast.error(`Error: ${error.error || 'Could not remove album'}`)
             }
           }
         } catch (error) {
           console.error('Error deleting wishlist item:', error)
           // @ts-ignore - toast is available globally
           if (window.toast) {
-            window.toast.error('Une erreur est survenue lors de la suppression')
+            window.toast.error('An error occurred while removing')
           }
         }
       })
