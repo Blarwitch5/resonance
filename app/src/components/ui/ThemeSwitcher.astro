@@ -130,6 +130,12 @@ const iconSizes = {
               detail: { theme: localStorage.theme },
             })
           )
+
+          // Notification dans la page des paramètres
+          if (window.location.pathname === '/settings' && window.toast) {
+            const themeLabel = localStorage.theme === 'dark' ? 'Dark mode' : 'Light mode'
+            window.toast.success(`${themeLabel} enabled`)
+          }
         })
       })
       

@@ -23,66 +23,6 @@ import Loader from '@lucide/astro/icons/loader'
 </div>
 
 <script>
-  // TypeScript fonctionne nativement dans les scripts Astro !
-  const searchInput = document.getElementById('discogs-search') as HTMLInputElement | null
-  const loader = document.getElementById('search-loader')
-  let searchTimeout: ReturnType<typeof setTimeout> | undefined
-
-  searchInput?.addEventListener('input', (event: Event) => {
-    const target = event.target as HTMLInputElement | null
-    if (!target) return
-    const query = target.value.trim()
-
-    clearTimeout(searchTimeout)
-
-    if (query.length < 3) {
-      return
-    }
-
-    searchTimeout = setTimeout(async () => {
-      if (loader) loader.classList.remove('hidden')
-
-      try {
-        const formatElement = document.querySelector('[data-format]:checked') as HTMLInputElement | null
-        const format = formatElement?.value || null
-        const urlParams = new URLSearchParams({ q: query })
-        if (format) {
-          urlParams.set('format', format)
-        }
-        const url = urlParams.toString()
-
-        const response = await fetch(`/api/discogs/search?${url}`)
-
-        if (!response.ok) {
-          const error = await response.json().catch(() => ({ error: 'Unknown error' }))
-          console.error('Search error:', error)
-          if (window.toast) {
-            window.toast.error(error.error || 'Error while searching')
-          }
-          return
-        }
-
-        const data = await response.json()
-        if (data && data.results && Array.isArray(data.results)) {
-          displaySearchResults(data, query)
-        } else {
-          console.error('Invalid search results format:', data)
-          const container = document.getElementById('search-results-container')
-          if (container) {
-            container.classList.add('hidden')
-          }
-          if (window.toast) {
-            window.toast.error('No results found')
-          }
-        }
-      } catch (error) {
-        console.error('Error searching:', error)
-      } finally {
-        if (loader) loader.classList.add('hidden')
-      }
-    }, 500)
-  })
-
   type SearchResult = {
     id: string
     slug?: string
@@ -153,8 +93,8 @@ import Loader from '@lucide/astro/icons/loader'
 
   async function runSearch(query: string): Promise<void> {
     if (!query || query.length < 2) return
-    const loader = document.getElementById('search-loader')
-    if (loader) loader.classList.remove('hidden')
+    const loaderElement = document.getElementById('search-loader')
+    if (loaderElement) loaderElement.classList.remove('hidden')
     try {
       const formatElement = document.querySelector('[data-format]:checked') as HTMLInputElement | null
       const format = formatElement?.value || null
@@ -190,17 +130,98 @@ import Loader from '@lucide/astro/icons/loader'
       console.error('Error searching:', error)
       if (window.toast) window.toast.error('Error while searching')
     } finally {
-      if (loader) loader.classList.add('hidden')
+      if (loaderElement) loaderElement.classList.add('hidden')
     }
   }
 
-  window.addEventListener('explorer-search-from-url', ((event: CustomEvent<{ query: string }>) => {
-    const query = event.detail?.query?.trim()
-    if (query && searchInput) {
-      searchInput.value = query
-      runSearch(query)
+  function initSearchBar(): void {
+    const searchInput = document.getElementById('discogs-search') as HTMLInputElement | null
+    const loaderElement = document.getElementById('search-loader')
+
+    if (!searchInput || searchInput.dataset.initialized === 'true') {
+      return
     }
-  }) as EventListener)
+
+    searchInput.dataset.initialized = 'true'
+
+    let searchTimeout: ReturnType<typeof setTimeout> | undefined
+
+    searchInput.addEventListener('input', (event: Event) => {
+      const target = event.target as HTMLInputElement | null
+      if (!target) return
+      const query = target.value.trim()
+
+      clearTimeout(searchTimeout)
+
+      if (query.length < 3) {
+        return
+      }
+
+      searchTimeout = setTimeout(async () => {
+        if (loaderElement) loaderElement.classList.remove('hidden')
+
+        try {
+          const formatElement = document.querySelector('[data-format]:checked') as HTMLInputElement | null
+          const format = formatElement?.value || null
+          const urlParams = new URLSearchParams({ q: query })
+          if (format) {
+            urlParams.set('format', format)
+          }
+          const url = urlParams.toString()
+
+          const response = await fetch(`/api/discogs/search?${url}`)
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+            console.error('Search error:', error)
+            if (window.toast) {
+              window.toast.error(error.error || 'Error while searching')
+            }
+            return
+          }
+
+          const data = await response.json()
+          if (data && data.results && Array.isArray(data.results)) {
+            displaySearchResults(data, query)
+          } else {
+            console.error('Invalid search results format:', data)
+            const container = document.getElementById('search-results-container')
+            if (container) {
+              container.classList.add('hidden')
+            }
+            if (window.toast) {
+              window.toast.error('No results found')
+            }
+          }
+        } catch (error) {
+          console.error('Error searching:', error)
+        } finally {
+          if (loaderElement) loaderElement.classList.add('hidden')
+        }
+      }, 500)
+    })
+
+    window.addEventListener(
+      'explorer-search-from-url',
+      ((event: CustomEvent<{ query: string }>) => {
+        const query = event.detail?.query?.trim()
+        if (query && searchInput) {
+          searchInput.value = query
+          runSearch(query)
+        }
+      }) as EventListener
+    )
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSearchBar, { once: true })
+  } else {
+    initSearchBar()
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    initSearchBar()
+  })
 
   async function addToWishlist(discogsId: string): Promise<void> {
     try {

@@ -104,111 +104,130 @@ const { discogsId, collections, defaultCollectionId } = Astro.props as AddToColl
 </style>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const wrapper = document.querySelector('.add-to-collection-wrapper')
-    if (!wrapper) return
+  function initAddToCollectionButtons() {
+    const wrappers = document.querySelectorAll('.add-to-collection-wrapper')
+    if (!wrappers.length) return
 
-    const discogsId = wrapper.getAttribute('data-discogs-id')
-    const openBtn = wrapper.querySelector('[data-action="open-modal"]')
-    const modal = wrapper.querySelector('[data-modal]')
-    const closeBtn = wrapper.querySelector('[data-action="close"]')
-    const cancelBtn = wrapper.querySelector('[data-action="cancel"]')
-    const confirmBtn = wrapper.querySelector('[data-action="confirm"]')
-    const select = discogsId ? wrapper.querySelector('#collection-select-' + discogsId) : null
+    wrappers.forEach((wrapper) => {
+      const initialized = wrapper.getAttribute('data-initialized')
+      if (initialized === 'true') return
+      wrapper.setAttribute('data-initialized', 'true')
 
-    function openModal() {
-      if (modal) {
-        modal.classList.remove('hidden')
-        modal.style.display = 'flex'
+      const discogsId = wrapper.getAttribute('data-discogs-id')
+      const openBtn = wrapper.querySelector('[data-action="open-modal"]') as HTMLButtonElement | null
+      const modal = wrapper.querySelector('[data-modal]') as HTMLElement | null
+      const closeBtn = wrapper.querySelector('[data-action="close"]') as HTMLButtonElement | null
+      const cancelBtn = wrapper.querySelector('[data-action="cancel"]') as HTMLButtonElement | null
+      const confirmBtn = wrapper.querySelector('[data-action="confirm"]') as HTMLButtonElement | null
+      const select = discogsId
+        ? (wrapper.querySelector('#collection-select-' + discogsId) as HTMLSelectElement | null)
+        : null
+
+      function openModal() {
+        if (modal) {
+          modal.classList.remove('hidden')
+          modal.style.display = 'flex'
+        }
       }
-    }
 
-    function closeModal() {
-      if (modal) {
-        modal.classList.add('hidden')
-        modal.style.display = ''
+      function closeModal() {
+        if (modal) {
+          modal.classList.add('hidden')
+          modal.style.display = ''
+        }
       }
-    }
 
-    if (openBtn) {
-      openBtn.addEventListener('click', openModal)
-    }
+      if (openBtn) {
+        openBtn.addEventListener('click', openModal)
+      }
 
-    if (closeBtn) {
-      closeBtn.addEventListener('click', closeModal)
-    }
+      if (closeBtn) {
+        closeBtn.addEventListener('click', closeModal)
+      }
 
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', closeModal)
-    }
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeModal)
+      }
 
-    // Fermer en cliquant sur le fond
-    if (modal) {
-      modal.addEventListener('click', (event) => {
-        if (event.target === modal) {
-          closeModal()
-        }
-      })
-    }
+      // Fermer en cliquant sur le fond
+      if (modal) {
+        modal.addEventListener('click', (event) => {
+          if (event.target === modal) {
+            closeModal()
+          }
+        })
+      }
 
-    // Confirmer l'ajout
-    if (confirmBtn) {
-      confirmBtn.addEventListener('click', async () => {
-        const selectedCollectionId = select?.value || null
-        const btnDiscogsId = confirmBtn.getAttribute('data-discogs-id')
-        
-        if (!btnDiscogsId) {
-          console.error('Missing discogsId on confirm button')
-          return
-        }
+      // Confirmer l'ajout
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', async () => {
+          const selectedCollectionId = select?.value || null
+          const btnDiscogsId = confirmBtn.getAttribute('data-discogs-id')
 
-        confirmBtn.disabled = true
-        const originalText = confirmBtn.textContent
-        confirmBtn.textContent = 'Ajout en cours...'
-
-        try {
-          const collectionId = selectedCollectionId && selectedCollectionId.trim() !== '' ? selectedCollectionId : null
-          const response = await fetch(`/api/explorer/${btnDiscogsId}/add-to-collection`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              collectionId,
-            }),
-          })
-
-          if (!response.ok) {
-            const error = await response.json()
-            throw new Error(error.error || 'Error while adding')
+          if (!btnDiscogsId) {
+            console.error('Missing discogsId on confirm button')
+            return
           }
 
-          const data = await response.json()
+          confirmBtn.disabled = true
+          const originalText = confirmBtn.textContent
+          confirmBtn.textContent = 'Ajout en cours...'
 
-          if (window.toast) {
-            const collectionName = selectedCollectionId
-              ? select?.options[select.selectedIndex]?.text || 'Collection'
-              : 'Uncategorized'
-            window.toast.success(`Album added to "${collectionName}"`)
+          try {
+            const collectionId =
+              selectedCollectionId && selectedCollectionId.trim() !== '' ? selectedCollectionId : null
+            const response = await fetch(`/api/explorer/${btnDiscogsId}/add-to-collection`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                collectionId,
+              }),
+            })
+
+            if (!response.ok) {
+              const error = await response.json()
+              throw new Error(error.error || 'Error while adding')
+            }
+
+            const data = await response.json()
+
+            if (window.toast) {
+              const collectionName = selectedCollectionId
+                ? select?.options[select.selectedIndex]?.text || 'Collection'
+                : 'Uncategorized'
+              window.toast.success(`Album added to "${collectionName}"`)
+            }
+
+            // Redirection vers la page complète
+            setTimeout(() => {
+              window.location.href = data.redirectTo
+            }, 500)
+          } catch (error) {
+            console.error('Error adding item:', error)
+            confirmBtn.disabled = false
+            confirmBtn.textContent = originalText || 'Add'
+
+            const errorMessage = error instanceof Error ? error.message : 'Error while adding'
+            if (window.toast) {
+              window.toast.error(errorMessage)
+            } else {
+              console.error('Error:', errorMessage)
+            }
           }
+        })
+      }
+    })
+  }
 
-          // Redirection vers la page complète
-          setTimeout(() => {
-            window.location.href = data.redirectTo
-          }, 500)
-        } catch (error) {
-          console.error('Error adding item:', error)
-          confirmBtn.disabled = false
-          confirmBtn.textContent = originalText || 'Add'
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAddToCollectionButtons)
+  } else {
+    initAddToCollectionButtons()
+  }
 
-          const errorMessage = error instanceof Error ? error.message : 'Error while adding'
-          if (window.toast) {
-            window.toast.error(errorMessage)
-          } else {
-            console.error('Error:', errorMessage)
-          }
-        }
-      })
-    }
+  document.addEventListener('astro:page-load', () => {
+    initAddToCollectionButtons()
   })
 </script>
