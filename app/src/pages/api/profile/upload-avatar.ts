@@ -2,8 +2,12 @@ import type { APIRoute } from 'astro'
 import { auth } from '../../../lib/auth'
 import { db } from '../../../lib/db'
 import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
 import { existsSync } from 'fs'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const PUBLIC_AVATARS_DIR = join(__dirname, '..', '..', '..', '..', 'public', 'uploads', 'avatars')
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -49,16 +53,13 @@ export const POST: APIRoute = async ({ request }) => {
       )
     }
 
-    // Créer le dossier avatars s'il n'existe pas
-    const avatarsDir = join(process.cwd(), 'app', 'public', 'uploads', 'avatars')
-    if (!existsSync(avatarsDir)) {
-      await mkdir(avatarsDir, { recursive: true })
+    if (!existsSync(PUBLIC_AVATARS_DIR)) {
+      await mkdir(PUBLIC_AVATARS_DIR, { recursive: true })
     }
 
-    // Générer un nom de fichier unique
     const fileExtension = file.name.split('.').pop() || 'jpg'
     const fileName = `${session.user.id}-${Date.now()}.${fileExtension}`
-    const filePath = join(avatarsDir, fileName)
+    const filePath = join(PUBLIC_AVATARS_DIR, fileName)
 
     // Convertir le File en Buffer et sauvegarder
     const arrayBuffer = await file.arrayBuffer()
