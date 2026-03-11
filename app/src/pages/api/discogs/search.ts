@@ -34,7 +34,11 @@ export const GET: APIRoute = async ({ request }) => {
 
     const results = await discogsService.search(query, format, page, perPage)
 
-    const resultsWithSlug = (results.results || []).map((item) => {
+    // Ne garder que les vraies releases pour que l'id corresponde bien
+    // à /releases/{id} sur la page /explorer/[slug].
+    const onlyReleases = (results.results || []).filter((item) => item.type === 'release')
+
+    const resultsWithSlug = onlyReleases.map((item) => {
       const title = item.title || 'Unknown'
       const [artist, ...titleParts] = title.split(' - ')
       const albumTitle = titleParts.join(' - ') || title
