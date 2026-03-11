@@ -7,6 +7,8 @@ import Pencil from '@lucide/astro/icons/pencil'
 import Check from '@lucide/astro/icons/check'
 import X from '@lucide/astro/icons/x'
 import ArrowLeft from '@lucide/astro/icons/arrow-left'
+import Eye from '@lucide/astro/icons/eye'
+import EyeOff from '@lucide/astro/icons/eye-off'
 
 const session = Astro.locals.session
 const user = Astro.locals.user
@@ -209,29 +211,51 @@ if (!session || !user) {
               <label for="current-password" class="block text-sm font-medium text-neutral mb-2">
                 Current password
               </label>
-              <input
-                type="password"
-                id="current-password"
-                name="currentPassword"
-                placeholder="Enter your current password"
-                class="w-full rounded-lg border border-border bg-surface px-4 py-2 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                required
-                autocomplete="current-password"
-              />
+              <div class="relative">
+                <input
+                  type="password"
+                  id="current-password"
+                  name="currentPassword"
+                  placeholder="Enter your current password"
+                  class="w-full rounded-lg border border-border bg-surface px-4 py-2 pr-11 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  required
+                  autocomplete="current-password"
+                />
+                <button
+                  type="button"
+                  id="toggle-current-password"
+                  class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted transition-colors hover:text-neutral"
+                  aria-label="Show current password"
+                >
+                  <Eye id="eye-current" size={18} class="hidden" />
+                  <EyeOff id="eye-off-current" size={18} />
+                </button>
+              </div>
             </div>
             <div>
               <label for="new-password" class="block text-sm font-medium text-neutral mb-2">
                 New password
               </label>
-              <input
-                type="password"
-                id="new-password"
-                name="newPassword"
-                placeholder="Enter your new password"
-                class="w-full rounded-lg border border-border bg-surface px-4 py-2 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                required
-                autocomplete="new-password"
-              />
+              <div class="relative">
+                <input
+                  type="password"
+                  id="new-password"
+                  name="newPassword"
+                  placeholder="Enter your new password"
+                  class="w-full rounded-lg border border-border bg-surface px-4 py-2 pr-11 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  required
+                  autocomplete="new-password"
+                />
+                <button
+                  type="button"
+                  id="toggle-new-password"
+                  class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted transition-colors hover:text-neutral"
+                  aria-label="Show new password"
+                >
+                  <Eye id="eye-new" size={18} class="hidden" />
+                  <EyeOff id="eye-off-new" size={18} />
+                </button>
+              </div>
               <p class="mt-2 text-xs text-muted">
                 At least 8 characters, with uppercase, lowercase, number and special character.
               </p>
@@ -247,15 +271,26 @@ if (!session || !user) {
               <label for="confirm-password" class="block text-sm font-medium text-neutral mb-2">
                 Confirm new password
               </label>
-              <input
-                type="password"
-                id="confirm-password"
-                name="confirmPassword"
-                placeholder="Confirm your new password"
-                class="w-full rounded-lg border border-border bg-surface px-4 py-2 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                required
-                autocomplete="new-password"
-              />
+              <div class="relative">
+                <input
+                  type="password"
+                  id="confirm-password"
+                  name="confirmPassword"
+                  placeholder="Confirm your new password"
+                  class="w-full rounded-lg border border-border bg-surface px-4 py-2 pr-11 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  required
+                  autocomplete="new-password"
+                />
+                <button
+                  type="button"
+                  id="toggle-confirm-password"
+                  class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted transition-colors hover:text-neutral"
+                  aria-label="Show confirm password"
+                >
+                  <Eye id="eye-confirm" size={18} class="hidden" />
+                  <EyeOff id="eye-off-confirm" size={18} />
+                </button>
+              </div>
               <div id="password-match" class="mt-2 text-xs text-muted"></div>
             </div>
             <div
@@ -720,6 +755,39 @@ if (!session || !user) {
         }
       })
     }
+
+    function bindPasswordToggle(
+      inputId: string,
+      toggleBtnId: string,
+      eyeId: string,
+      eyeOffId: string,
+      ariaLabelShow: string,
+      ariaLabelHide: string,
+    ) {
+      const input = document.getElementById(inputId) as HTMLInputElement | null
+      const btn = document.getElementById(toggleBtnId) as HTMLButtonElement | null
+      const eye = document.getElementById(eyeId)
+      const eyeOff = document.getElementById(eyeOffId)
+      if (!input || !btn) return
+      btn.addEventListener('click', function() {
+        const isPassword = input.type === 'password'
+        input.type = isPassword ? 'text' : 'password'
+        if (eye && eyeOff) {
+          if (isPassword) {
+            eye.classList.remove('hidden')
+            eyeOff.classList.add('hidden')
+            btn.setAttribute('aria-label', ariaLabelHide)
+          } else {
+            eye.classList.add('hidden')
+            eyeOff.classList.remove('hidden')
+            btn.setAttribute('aria-label', ariaLabelShow)
+          }
+        }
+      })
+    }
+    bindPasswordToggle('current-password', 'toggle-current-password', 'eye-current', 'eye-off-current', 'Show current password', 'Hide current password')
+    bindPasswordToggle('new-password', 'toggle-new-password', 'eye-new', 'eye-off-new', 'Show new password', 'Hide new password')
+    bindPasswordToggle('confirm-password', 'toggle-confirm-password', 'eye-confirm', 'eye-off-confirm', 'Show confirm password', 'Hide confirm password')
 
     const savePasswordBtn = document.getElementById('save-password-btn') as HTMLButtonElement | null
     const passwordMatch = document.getElementById('password-match') as HTMLDivElement | null
