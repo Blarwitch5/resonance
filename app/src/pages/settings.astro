@@ -216,6 +216,7 @@ if (!session || !user) {
                 placeholder="Enter your current password"
                 class="w-full rounded-lg border border-border bg-surface px-4 py-2 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 required
+                autocomplete="current-password"
               />
             </div>
             <div>
@@ -229,6 +230,7 @@ if (!session || !user) {
                 placeholder="Enter your new password"
                 class="w-full rounded-lg border border-border bg-surface px-4 py-2 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 required
+                autocomplete="new-password"
               />
               <p class="mt-2 text-xs text-muted">
                 At least 8 characters, with uppercase, lowercase, number and special character.
@@ -252,6 +254,7 @@ if (!session || !user) {
                 placeholder="Confirm your new password"
                 class="w-full rounded-lg border border-border bg-surface px-4 py-2 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 required
+                autocomplete="new-password"
               />
               <div id="password-match" class="mt-2 text-xs text-muted"></div>
             </div>
@@ -423,7 +426,7 @@ if (!session || !user) {
               container.insertBefore(img, container.firstChild)
               if (initialsDiv) { initialsDiv.classList.add('hidden'); initialsDiv.style.display = 'none' }
             }
-            document.querySelectorAll('img[src*="/uploads/avatars/"]').forEach((el) => setImgSrc(el as HTMLImageElement, newSrc))
+            document.querySelectorAll('img[src*="/uploads/avatars/"], img[src*="blob.vercel-storage.com"]').forEach((el) => setImgSrc(el as HTMLImageElement, newSrc))
           } else {
             if (window.toast) {
               window.toast.error(data.error || 'Error while uploading avatar')

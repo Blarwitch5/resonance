@@ -23,6 +23,7 @@
     "@astrojs/vercel": "^10.0.0",
     "@lucide/astro": "^0.562.0",
     "@prisma/client": "^6.19.2",
+    "@vercel/blob": "^0.26.0",
     "astro": "^6.0.0",
     "better-auth": "^1.4.19",
     "chart.js": "^4.5.1",

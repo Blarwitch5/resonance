@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import { put } from '@vercel/blob'
 import { auth } from '../../../lib/auth'
 import { db } from '../../../lib/db'
 import { writeFile, mkdir } from 'fs/promises'
@@ -8,6 +9,9 @@ import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PUBLIC_AVATARS_DIR = join(__dirname, '..', '..', '..', '..', 'public', 'uploads', 'avatars')
+
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+const MAX_SIZE = 5 * 1024 * 1024 // 5MB
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -29,61 +33,55 @@ export const POST: APIRoute = async ({ request }) => {
       })
     }
 
-    // Vérifier le type de fichier
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
-    if (!allowedTypes.includes(file.type)) {
+    if (!ALLOWED_TYPES.includes(file.type)) {
       return new Response(
         JSON.stringify({ error: 'Invalid file type. Only JPEG, PNG, WebP and GIF are allowed.' }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        },
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
       )
     }
 
-    // Vérifier la taille (max 5MB)
-    const maxSize = 5 * 1024 * 1024 // 5MB
-    if (file.size > maxSize) {
+    if (file.size > MAX_SIZE) {
       return new Response(
         JSON.stringify({ error: 'File too large. Maximum size is 5MB.' }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        },
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
       )
-    }
-
-    if (!existsSync(PUBLIC_AVATARS_DIR)) {
-      await mkdir(PUBLIC_AVATARS_DIR, { recursive: true })
     }
 
     const fileExtension = file.name.split('.').pop() || 'jpg'
-    const fileName = `${session.user.id}-${Date.now()}.${fileExtension}`
-    const filePath = join(PUBLIC_AVATARS_DIR, fileName)
+    const fileName = `avatars/${session.user.id}-${Date.now()}.${fileExtension}`
 
-    // Convertir le File en Buffer et sauvegarder
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    await writeFile(filePath, buffer)
+    let imageUrl: string
 
-    // URL relative pour l'avatar
-    const imageUrl = `/uploads/avatars/${fileName}`
+    if (import.meta.env.PROD) {
+      const token = import.meta.env.BLOB_READ_WRITE_TOKEN
+      if (!token) {
+        return new Response(
+          JSON.stringify({
+            error: 'Avatar upload is not configured. Set BLOB_READ_WRITE_TOKEN in Vercel.',
+          }),
+          { status: 503, headers: { 'Content-Type': 'application/json' } },
+        )
+      }
+      const blob = await put(fileName, file, { access: 'public' })
+      imageUrl = blob.url
+    } else {
+      if (!existsSync(PUBLIC_AVATARS_DIR)) {
+        await mkdir(PUBLIC_AVATARS_DIR, { recursive: true })
+      }
+      const filePath = join(PUBLIC_AVATARS_DIR, fileName.replace('avatars/', ''))
+      const arrayBuffer = await file.arrayBuffer()
+      await writeFile(filePath, Buffer.from(arrayBuffer))
+      imageUrl = `/uploads/avatars/${fileName.replace('avatars/', '')}`
+    }
 
-    // Mettre à jour l'utilisateur dans la base de données
     await db.user.update({
       where: { id: session.user.id },
       data: { imageUrl },
     })
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        imageUrl,
-      }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      },
+      JSON.stringify({ success: true, imageUrl }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
     )
   } catch (error) {
     console.error('Error uploading avatar:', error)
@@ -92,10 +90,7 @@ export const POST: APIRoute = async ({ request }) => {
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error',
       }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      },
+      { status: 500, headers: { 'Content-Type': 'application/json' } },
     )
   }
 }
