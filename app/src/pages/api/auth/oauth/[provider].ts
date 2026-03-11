@@ -1,7 +1,6 @@
 import type { APIRoute } from 'astro'
 import { db } from '../../../../lib/db'
-import { hash } from 'bcryptjs'
-import crypto from 'crypto'
+import crypto from 'node:crypto'
 
 export const prerender = false
 

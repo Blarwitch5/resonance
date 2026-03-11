@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro'
+import { hashPassword } from 'better-auth/crypto'
 import { db } from '../../../lib/db'
-import { hash } from 'bcryptjs'
 
 export const prerender = false
 
@@ -124,7 +124,7 @@ export const POST: APIRoute = async ({ request }) => {
           userId: user.id,
           accountId: user.email,
           providerId: 'credential',
-          password: await hash(password, 10),
+          password: await hashPassword(password),
         },
       })
     } else {
@@ -132,7 +132,7 @@ export const POST: APIRoute = async ({ request }) => {
       account = await db.account.update({
         where: { id: account.id },
         data: {
-          password: await hash(password, 10),
+          password: await hashPassword(password),
         },
       })
     }

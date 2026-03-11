@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro'
+import { hashPassword } from 'better-auth/crypto'
 import { db } from '../../../../lib/db'
-import crypto from 'crypto'
-import { hash } from 'bcryptjs'
+import crypto from 'node:crypto'
 
 export const prerender = false
 
@@ -78,7 +78,7 @@ export const GET: APIRoute = async ({ url }) => {
       // Créer un compte credential avec un mot de passe aléatoire
       // L'utilisateur pourra toujours utiliser OAuth pour se connecter
       const tempPassword = crypto.randomBytes(16).toString('hex')
-      const hashedPassword = await hash(tempPassword, 10)
+      const hashedPassword = await hashPassword(tempPassword)
       
       account = await db.account.create({
         data: {

@@ -62,7 +62,7 @@ if (!session || !user) {
               <Avatar
                 userName={user.name}
                 userEmail={user.email}
-                imageUrl={user.image ? `${user.image}?t=${Date.now()}` : undefined}
+                imageUrl={(user.image ?? user.imageUrl) ? `${(user.image ?? user.imageUrl)}?t=${Date.now()}` : undefined}
                 size="xl"
                 id="user-avatar"
               />
@@ -196,6 +196,15 @@ if (!session || !user) {
           </div>
           
           <form id="password-form" class="space-y-4 hidden" novalidate>
+            <input
+              type="text"
+              name="username"
+              value={user?.email ?? ''}
+              autocomplete="username"
+              class="sr-only"
+              tabindex={-1}
+              aria-hidden="true"
+            />
             <div>
               <label for="current-password" class="block text-sm font-medium text-neutral mb-2">
                 Current password
@@ -376,6 +385,7 @@ if (!session || !user) {
           const response = await fetch('/api/profile/upload-avatar', {
             method: 'POST',
             body: formData,
+            credentials: 'include',
           })
 
           const data = await response.json()
@@ -386,13 +396,21 @@ if (!session || !user) {
             }
 
             const newSrc = `${data.imageUrl}?t=${Date.now()}`
-            const avatarImg = document.getElementById('user-avatar-img') as HTMLImageElement | null
             const container = document.getElementById('user-avatar-container')
-
+            if (!container) return
+            function setImgSrc(img: HTMLImageElement, src: string) {
+              img.removeAttribute('src')
+              img.src = src
+              img.style.display = ''
+              img.removeAttribute('hidden')
+            }
+            const avatarImg = container.querySelector('img') as HTMLImageElement | null
             if (avatarImg) {
-              avatarImg.src = newSrc
-              avatarImg.style.display = ''
-            } else if (container) {
+              setImgSrc(avatarImg, newSrc)
+              const initialsDiv = container.querySelector('.bg-gradient-resonance') as HTMLElement | null
+              if (initialsDiv) { initialsDiv.classList.add('hidden'); initialsDiv.style.display = 'none' }
+            } else {
+              container.querySelectorAll('img').forEach((el) => el.remove())
               const initialsDiv = container.querySelector('.bg-gradient-resonance') as HTMLElement | null
               const img = document.createElement('img')
               img.id = 'user-avatar-img'
@@ -401,24 +419,11 @@ if (!session || !user) {
               img.className = 'h-16 w-16 rounded-full object-cover'
               img.width = 64
               img.height = 64
-              img.onerror = function () {
-                img.style.display = 'none'
-                if (initialsDiv) initialsDiv.style.display = 'flex'
-              }
+              img.onerror = function () { img.style.display = 'none'; if (initialsDiv) initialsDiv.style.display = 'flex' }
               container.insertBefore(img, container.firstChild)
-              if (initialsDiv) {
-                initialsDiv.classList.add('hidden')
-                initialsDiv.style.display = 'none'
-              }
+              if (initialsDiv) { initialsDiv.classList.add('hidden'); initialsDiv.style.display = 'none' }
             }
-
-            document.querySelectorAll('img[src*="/uploads/avatars/"]').forEach((img) => {
-              const el = img as HTMLImageElement
-              const baseUrl = el.src.split('?')[0]
-              if (baseUrl.includes('/uploads/avatars/')) {
-                el.src = `${baseUrl.split('?')[0]}?t=${Date.now()}`
-              }
-            })
+            document.querySelectorAll('img[src*="/uploads/avatars/"]').forEach((el) => setImgSrc(el as HTMLImageElement, newSrc))
           } else {
             if (window.toast) {
               window.toast.error(data.error || 'Error while uploading avatar')
@@ -709,6 +714,57 @@ if (!session || !user) {
         if (passwordError) {
           passwordError.classList.add('hidden')
           passwordError.textContent = ''
+        }
+      })
+    }
+
+    const savePasswordBtn = document.getElementById('save-password-btn') as HTMLButtonElement | null
+    const passwordMatch = document.getElementById('password-match') as HTMLDivElement | null
+    if (passwordForm && savePasswordBtn && passwordError) {
+      passwordForm.addEventListener('submit', async function(event) {
+        event.preventDefault()
+        const currentPassword = (document.getElementById('current-password') as HTMLInputElement)?.value?.trim()
+        const newPassword = (document.getElementById('new-password') as HTMLInputElement)?.value?.trim()
+        const confirmPassword = (document.getElementById('confirm-password') as HTMLInputElement)?.value?.trim()
+        if (!currentPassword || !newPassword || !confirmPassword) {
+          if (window.toast) window.toast.error('Please fill in all required fields')
+          return
+        }
+        if (newPassword !== confirmPassword) {
+          if (passwordMatch) passwordMatch.textContent = 'New password and confirmation do not match.'
+          if (window.toast) window.toast.error('New password and confirmation do not match')
+          return
+        }
+        if (window.setButtonLoading) window.setButtonLoading(savePasswordBtn, true, 'Changing...')
+        try {
+          const response = await fetch('/api/auth/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ currentPassword, newPassword }),
+          })
+          const data = await response.json().catch(() => ({}))
+          if (!response.ok) {
+            const message = data.error || data.message || 'Error while changing'
+            if (passwordError) { passwordError.textContent = message; passwordError.classList.remove('hidden') }
+            if (window.toast) window.toast.error(message)
+            return
+          }
+          if (window.toast) window.toast.success('Updated successfully')
+          passwordForm.reset()
+          if (passwordMatch) passwordMatch.textContent = ''
+          if (passwordError) { passwordError.classList.add('hidden'); passwordError.textContent = '' }
+          passwordForm.classList.add('hidden')
+          if (showPasswordFormBtn) showPasswordFormBtn.classList.remove('hidden')
+        } catch (error) {
+          console.error(error)
+          if (passwordError) {
+            passwordError.textContent = error instanceof Error ? error.message : 'An unexpected error occurred'
+            passwordError.classList.remove('hidden')
+          }
+          if (window.toast) window.toast.error('Error while changing')
+        } finally {
+          if (window.setButtonLoading) window.setButtonLoading(savePasswordBtn, false)
         }
       })
     }
