@@ -4,7 +4,7 @@
   "description": "Monorepo Resonance - Where your music resonates. Landing Marketing + Application Gestion Collection Multi-Formats",
   "private": true,
   "engines": {
-    "node": ">=18.0.0"
+    "node": "22.12.0"
   },
   "scripts": {
     "dev": "concurrently \"npm run dev:landing\" \"npm run dev:app\" --kill-others-on-fail",
@@ -16,13 +16,16 @@
     "preview": "npm run preview:landing && npm run preview:app",
     "preview:landing": "cd landing && npm run preview",
     "preview:app": "cd app && npm run preview",
+    "a11y": "cd app && pnpm a11y",
     "install:all": "npm install && npm install --workspace=landing && npm install --workspace=app",
     "check:landing": "cd landing && npm run check",
     "check:app": "cd app && npm run check",
-    "clean": "rm -rf landing/node_modules app/node_modules node_modules"
+    "clean": "rm -rf landing/node_modules app/node_modules node_modules",
+    "prepare": "husky install"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "husky": "^9.1.7"
   },
   "keywords": [
     "monorepo",

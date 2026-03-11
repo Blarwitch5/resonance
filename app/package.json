@@ -12,6 +12,7 @@
     "astro": "astro",
     "format": "prettier --write . --ignore-path .prettierignore",
     "format:check": "prettier --check . --ignore-path .prettierignore",
+    "a11y": "playwright test --config playwright.config.cjs",
     "covers:update": "tsx scripts/update-covers-hq.ts",
     "covers:clean": "tsx scripts/clean-covers.ts",
     "seed:test": "tsx scripts/seed-test-data.ts",
@@ -33,6 +34,8 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.2.1",
     "@tailwindcss/vite": "^4.2.1",
     "@types/bcryptjs": "^2.4.6",
