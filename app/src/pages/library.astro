@@ -153,64 +153,69 @@ const formatInfo = {
       </div>
     </div>
 
-    <!-- Format Selector (Chips/Pills) -->
-    <div class="flex flex-wrap gap-3">
-      <a
-        href="/library?format=ALL"
-        class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
-          selectedFormat === 'ALL'
-            ? 'bg-gradient-resonance text-white shadow-lg shadow-primary/20'
-            : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
-        }`}
-      >
-        <span>All</span>
-      </a>
-      {totalItems > 0 && (
-        <a
-          href="/library?format=ALL&collection=none"
-          class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
-            showUncategorizedOnly
-              ? 'bg-gradient-resonance text-white shadow-lg shadow-primary/20'
-              : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
-          }`}
-        >
-          <Package size={18} class="fill-none stroke-2" />
-          <span>Uncategorized</span>
-        </a>
-      )}
-      {enabledFormats.map((format) => {
-        const info = formatInfo[format as keyof typeof formatInfo]
-        const Icon = info.icon
-        return (
-          <a
-            href={`/library?format=${format}`}
-            class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
-              selectedFormat === format
-                ? `bg-gradient-resonance text-white shadow-lg shadow-primary/20`
-                : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
-            }`}
-          >
-            <Icon size={18} class="fill-none stroke-2" />
-            <span>{info.label}</span>
-          </a>
-        )
-      })}
-    </div>
-
-    <!-- Search Bar -->
+    <!-- Search Bar (primary entry point) -->
     {totalItems > 0 && (
-      <div class="max-w-md">
+      <div class="max-w-xl">
         <CollectionSearch />
       </div>
     )}
 
-    <!-- Filters -->
+    <!-- Browsing controls: formats + filters -->
     {totalItems > 0 && (
-      <SortFilter
-        genres={availableGenres}
-        years={availableYears}
-        collections={userCollections}
-      />
+      <section
+        aria-label="Library browsing controls"
+        class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
+      >
+        {/* Format Selector (Chips/Pills) */}
+        <div class="flex flex-wrap gap-3">
+          <a
+            href="/library?format=ALL"
+            class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
+              selectedFormat === 'ALL'
+                ? 'bg-gradient-resonance text-white shadow-lg shadow-primary/20'
+                : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
+            }`}
+          >
+            <span>All formats</span>
+          </a>
+          <a
+            href="/library?format=ALL&collection=none"
+            class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
+              showUncategorizedOnly
+                ? 'bg-gradient-resonance text-white shadow-lg shadow-primary/20'
+                : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
+            }`}
+          >
+            <Package size={18} class="fill-none stroke-2" />
+            <span>Uncategorized</span>
+          </a>
+          {enabledFormats.map((format) => {
+            const info = formatInfo[format as keyof typeof formatInfo]
+            const Icon = info.icon
+            return (
+              <a
+                href={`/library?format=${format}`}
+                class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
+                  selectedFormat === format
+                    ? `bg-gradient-resonance text-white shadow-lg shadow-primary/20`
+                    : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
+                }`}
+              >
+                <Icon size={18} class="fill-none stroke-2" />
+                <span>{info.label}</span>
+              </a>
+            )
+          })}
+        </div>
+
+        <div class="w-full lg:w-auto">
+          <SortFilter
+            genres={availableGenres}
+            years={availableYears}
+            collections={userCollections}
+          />
+        </div>
+      </section>
     )}
 
     <!-- Items grouped by collection -->

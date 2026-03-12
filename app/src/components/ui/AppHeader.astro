@@ -5,6 +5,7 @@ import Avatar from './Avatar.astro'
 import Settings from '@lucide/astro/icons/settings'
 import User from '@lucide/astro/icons/user'
 import LogOut from '@lucide/astro/icons/log-out'
+import Globe from '@lucide/astro/icons/globe'
 
 type AppHeaderProps = {
   userName?: string | null
@@ -84,13 +85,21 @@ const hasUser = !!userName || !!userEmail
                     <User size={16} />
                     <span>My profile</span>
                   </a>
-          <a
-            href="/settings"
-            class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral transition-colors hover:bg-surface"
-            role="menuitem"
-          >
+                  <a
+                    href="/settings"
+                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral transition-colors hover:bg-surface"
+                    role="menuitem"
+                  >
                     <Settings size={16} />
                     <span>Settings</span>
+                  </a>
+                  <a
+                    href="/settings#language"
+                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral transition-colors hover:bg-surface"
+                    role="menuitem"
+                  >
+                    <Globe size={16} />
+                    <span>Language</span>
                   </a>
                   <div class="my-2 border-t border-border"></div>
                   <button

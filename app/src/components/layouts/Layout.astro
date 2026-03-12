@@ -25,10 +25,11 @@ const canonical = props.canonical ?? Astro.url?.href ?? '/'
 const showDashboardHeader = props.showDashboardHeader ?? false
 const showBottomBar = props.showBottomBar ?? false
 const showFooter = props.showFooter ?? true
+const locale = Astro.locals.locale ?? 'en'
 ---
 
 <!doctype html>
-<html lang="en" class="scroll-smooth">
+<html lang={locale} class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content={description} />

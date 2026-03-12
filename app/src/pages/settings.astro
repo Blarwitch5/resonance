@@ -1,6 +1,7 @@
 ---
 import DashboardLayout from '../components/layouts/DashboardLayout.astro'
 import ThemeSwitcher from '../components/ui/ThemeSwitcher.astro'
+import LanguageSwitcher from '../components/ui/LanguageSwitcher.astro'
 import Avatar from '../components/ui/Avatar.astro'
 import Camera from '@lucide/astro/icons/camera'
 import Pencil from '@lucide/astro/icons/pencil'
@@ -48,6 +49,14 @@ if (!session || !user) {
             <ThemeSwitcher size="lg" />
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- Language section -->
+    <section id="language" class="glass-card rounded-2xl p-6" aria-labelledby="language-heading">
+      <h2 id="language-heading" class="text-xl font-semibold text-neutral mb-4">Language</h2>
+      <div class="space-y-4">
+        <LanguageSwitcher variant="settings" currentLocale={Astro.locals.locale} />
       </div>
     </section>
 

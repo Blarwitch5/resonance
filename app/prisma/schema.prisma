@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "darwin-arm64"]
 }
 
 datasource db {
@@ -30,6 +31,7 @@ model User {
   lastActiveAt    DateTime?
   locked          Boolean      @default(false)
   phoneNumber     String?
+  preferredLocale String?      @default("en") // en, fr — used for UI language when user is logged in
   privateMetadata String?
   publicMetadata  String?
   collections     Collection[]

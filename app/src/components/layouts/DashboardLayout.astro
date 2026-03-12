@@ -123,7 +123,7 @@ function getWelcomeMessage(userName: string | null | undefined, userEmail: strin
 
   <div class="flex">
     <!-- Sidebar (desktop only) -->
-    <Sidebar userName={user?.name || null} userEmail={user?.email || null} userImageUrl={user?.image || null} />
+    <Sidebar userName={user?.name || null} userEmail={user?.email || null} userImageUrl={user?.image || null} currentLocale={Astro.locals.locale} />
 
     <!-- Main content area (min-w-0 allows flex child to shrink on mobile, avoiding horizontal overflow) -->
     <div class="min-w-0 flex-1 lg:ml-0">

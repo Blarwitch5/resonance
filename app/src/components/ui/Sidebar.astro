@@ -15,6 +15,7 @@ import BarChart3 from '@lucide/astro/icons/chart-bar'
 import FolderOpen from '@lucide/astro/icons/folder-open'
 import Logo from './Logo.astro'
 import ThemeSwitcher from './ThemeSwitcher.astro'
+import LanguageSwitcher from './LanguageSwitcher.astro'
 import Avatar from './Avatar.astro'
 import X from '@lucide/astro/icons/x'
 
@@ -22,9 +23,10 @@ type SidebarProps = {
   userName?: string | null
   userEmail?: string | null
   userImageUrl?: string | null
+  currentLocale?: string
 }
 
-const { userName, userEmail, userImageUrl } = Astro.props as SidebarProps
+const { userName, userEmail, userImageUrl, currentLocale = 'en' } = Astro.props as SidebarProps
 
 type NavItem = {
   id: string
@@ -251,6 +253,9 @@ const navItems: NavItem[] = [
         </div>
         <ThemeSwitcher size="md" />
       </div>
+
+      <!-- Language -->
+      <LanguageSwitcher variant="sidebar" currentLocale={currentLocale} />
 
       <!-- User profile section links to profile -->
       {userName || userEmail ? (
