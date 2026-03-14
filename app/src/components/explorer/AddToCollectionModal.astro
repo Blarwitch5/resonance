@@ -359,62 +359,63 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
               return release.cover_image || release.thumb || null
             }
 
-            // Create item
-            const createResponse = await fetch('/api/items/create', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                discogsId: release.id,
-                title: release.title,
-                artist: primaryArtist,
-                year,
-                genre: release.genres?.[0] || release.styles?.[0] || null,
-                country: release.country || null,
-                label: release.labels?.[0]?.name || null,
-                format,
-                barcode: release.identifiers?.find((id: { type: string; value: string }) => id.type === 'Barcode')?.value || null,
-                coverUrl: getBestCoverUrl(release),
-              }),
-            })
-
-            if (!createResponse.ok) {
-              const error = await createResponse.json()
-              throw new Error(error.error || 'Failed to create item')
+            const releasePayload = {
+              discogsId: release.id,
+              title: release.title,
+              artist: primaryArtist,
+              year,
+              genre: release.genres?.[0] || release.styles?.[0] || null,
+              country: release.country || null,
+              label: release.labels?.[0]?.name || null,
+              format,
+              barcode: release.identifiers?.find((id: { type: string; value: string }) => id.type === 'Barcode')?.value || null,
+              coverUrl: getBestCoverUrl(release),
             }
 
-            const item = await createResponse.json()
-
-            // Add item to collection
-            const addResponse = await fetch(`/api/collections/${collectionId}/add-item`, {
+            const addResponse = await fetch(`/api/collections/${collectionId}/add-by-discogs`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ itemId: item.id }),
+              body: JSON.stringify(releasePayload),
             })
 
             if (!addResponse.ok) {
               const error = await addResponse.json()
-              throw new Error(error.error || 'Failed to add item to collection')
+              throw new Error(error.error || 'Failed to add to collection')
             }
 
-            // Success
+            const result = await addResponse.json()
+            const item = result.item
+            const alreadyInCollection = result.alreadyInCollection === true
+
             if (!modal) return
             const redirectOnSuccess = modal.getAttribute('data-redirect-on-success')
-            modal.classList.add('hidden')
-            modal.style.display = ''
-            modal.removeAttribute('data-discogs-id')
-            modal.removeAttribute('data-redirect-on-success')
-            
+
             if (window.toast) {
-              window.toast.success('Album successfully added to collection!')
+              if (alreadyInCollection) {
+                window.toast.info('Album is already in this collection')
+              } else {
+                window.toast.success('Album successfully added to collection!')
+              }
             }
-            if (redirectOnSuccess === 'true' && item && item.slug) {
+
+            if (redirectOnSuccess === 'true' && item?.slug) {
+              modal.classList.add('hidden')
+              modal.style.display = ''
+              modal.removeAttribute('data-discogs-id')
+              modal.removeAttribute('data-redirect-on-success')
               setTimeout(function() {
                 window.location.href = '/items/' + item.slug
               }, 500)
+            } else {
+              // Garder le modal ouvert pour ajouter d'autres albums à des collections
+              if (window.setButtonLoading) {
+                window.setButtonLoading(button as HTMLElement, false)
+              } else {
+                (button as HTMLButtonElement).disabled = false
+                button.textContent = originalText
+              }
             }
           } catch (error) {
             console.error('Error adding to collection:', error)

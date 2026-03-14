@@ -64,6 +64,25 @@ export class ItemRepository {
     })
   }
 
+  /** Trouve un item par discogsId et userId, optionnellement filtré par collectionId (null = non classé). */
+  async findByDiscogsIdAndUserId(
+    discogsId: number,
+    userId: string,
+    collectionId?: string | null,
+  ) {
+    return db.item.findFirst({
+      where: {
+        discogsId,
+        userId,
+        ...(collectionId !== undefined && { collectionId }),
+      },
+      include: {
+        metadata: true,
+        collection: true,
+      },
+    })
+  }
+
   async createItem(data: Prisma.ItemCreateInput) {
     return db.item.create({
       data,
