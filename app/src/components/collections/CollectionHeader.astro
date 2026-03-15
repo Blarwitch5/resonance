@@ -2,8 +2,12 @@
 import Folder from '@lucide/astro/icons/folder'
 import Trash2 from '@lucide/astro/icons/trash-2'
 import Pencil from '@lucide/astro/icons/pencil'
+import Disc3 from '@lucide/astro/icons/disc-3'
+import Disc2 from '@lucide/astro/icons/disc-2'
+import CassetteTape from '@lucide/astro/icons/cassette-tape'
 import OptimizedImage from '../ui/OptimizedImage.astro'
 import type { Collection } from '@prisma/client'
+import type { CollectionsMessages } from '../../i18n/collections'
 
 type CollectionHeaderProps = {
   collection: Collection & {
@@ -13,9 +17,45 @@ type CollectionHeaderProps = {
     cassetteCount?: number
     coverImage?: string | null
   }
+  collectionT?: CollectionsMessages
 }
 
-const { collection } = Astro.props as CollectionHeaderProps
+const { collection, collectionT } = Astro.props as CollectionHeaderProps
+const itemCount =
+  collection.itemCount ??
+  (collection.vinylCount ?? 0) + (collection.cdCount ?? 0) + (collection.cassetteCount ?? 0)
+const header = collectionT?.header ?? {
+  editButton: 'Edit',
+  editCollection: 'Edit collection',
+  editCollectionAria: 'Edit collection',
+  deleteCollectionAria: 'Delete collection',
+  countAlbums: 'albums',
+  countVinyls: 'vinyls',
+  countCds: 'CDs',
+  countCassettes: 'cassettes',
+  editModal: {
+    nameLabel: 'Collection name *',
+    descriptionLabel: 'Description (optional)',
+    coverLabel: 'Cover image',
+    coverOptional: 'JPEG, PNG, WebP or GIF, max 5MB',
+    removeCover: 'Remove cover',
+    coverFileTooLarge: 'Cover image is too large (max 5MB).',
+    coverUploadError: 'Error while uploading cover image.',
+    save: 'Save',
+    cancel: 'Cancel',
+    saving: 'Saving...',
+    updatedSuccess: 'Collection updated successfully!',
+    errorUpdating: 'Error while updating',
+    errorGeneric: 'An error occurred',
+    deleteTitle: 'Delete collection',
+    deleteMessage: 'Are you sure you want to delete the collection "{name}"? This action is irreversible.',
+    deleteConfirm: 'Delete',
+    deleteCancel: 'Cancel',
+    deleting: 'Deleting...',
+    deletedSuccess: 'Collection deleted successfully!',
+    errorDeleting: 'Error while deleting',
+  },
+}
 ---
 
 <div class="glass-card mb-8 overflow-hidden rounded-2xl">
@@ -51,34 +91,25 @@ const { collection } = Astro.props as CollectionHeaderProps
         <div class="flex flex-wrap gap-4">
           <div>
             <span class="text-2xl font-bold text-primary">
-              {collection.itemCount || 0}
+              {itemCount}
             </span>
-            <span class="text-sm text-muted"> albums</span>
+            <span class="text-sm text-muted"> {header.countAlbums}</span>
           </div>
-          {collection.vinylCount && collection.vinylCount > 0 && (
-            <div>
-              <span class="text-xl font-bold text-format-vinyl">
-                {collection.vinylCount}
-              </span>
-              <span class="text-sm text-muted"> vinyls</span>
-            </div>
-          )}
-          {collection.cdCount && collection.cdCount > 0 && (
-            <div>
-              <span class="text-xl font-bold text-format-cd">
-                {collection.cdCount}
-              </span>
-              <span class="text-sm text-muted"> CDs</span>
-            </div>
-          )}
-          {collection.cassetteCount && collection.cassetteCount > 0 && (
-            <div>
-              <span class="text-xl font-bold text-format-cassette">
-                {collection.cassetteCount}
-              </span>
-              <span class="text-sm text-muted"> cassettes</span>
-            </div>
-          )}
+          <div class="flex items-center gap-1.5" title={header.countVinyls}>
+            <Disc3 size={20} class="fill-none stroke-2 text-format-vinyl stroke-format-vinyl shrink-0" aria-hidden="true" />
+            <span class="text-xl font-bold text-format-vinyl">{collection.vinylCount ?? 0}</span>
+            <span class="text-sm text-muted">{header.countVinyls}</span>
+          </div>
+          <div class="flex items-center gap-1.5" title={header.countCds}>
+            <Disc2 size={20} class="fill-none stroke-2 text-format-cd stroke-format-cd shrink-0" aria-hidden="true" />
+            <span class="text-xl font-bold text-format-cd">{collection.cdCount ?? 0}</span>
+            <span class="text-sm text-muted">{header.countCds}</span>
+          </div>
+          <div class="flex items-center gap-1.5" title={header.countCassettes}>
+            <CassetteTape size={20} class="fill-none stroke-2 text-format-cassette stroke-format-cassette shrink-0" aria-hidden="true" />
+            <span class="text-xl font-bold text-format-cassette">{collection.cassetteCount ?? 0}</span>
+            <span class="text-sm text-muted">{header.countCassettes}</span>
+          </div>
         </div>
       </div>
 
@@ -89,10 +120,10 @@ const { collection } = Astro.props as CollectionHeaderProps
           id="edit-collection-btn"
           data-collection-id={collection.id}
           class="btn-secondary-surface flex items-center gap-2 rounded-lg px-4 py-2"
-          aria-label="Edit collection"
+          aria-label={header.editCollectionAria}
         >
           <Pencil size={18} class="fill-none stroke-2" />
-          <span class="hidden sm:inline">Edit</span>
+          <span class="hidden sm:inline">{header.editButton}</span>
         </button>
         <button
           type="button"
@@ -100,7 +131,7 @@ const { collection } = Astro.props as CollectionHeaderProps
           data-collection-id={collection.id}
           data-collection-name={collection.name}
           class="btn-danger flex items-center gap-2 rounded-lg px-4 py-2"
-          aria-label="Delete collection"
+          aria-label={header.deleteCollectionAria}
         >
           <Trash2 size={18} class="fill-none stroke-2" />
         </button>
@@ -112,11 +143,11 @@ const { collection } = Astro.props as CollectionHeaderProps
 <!-- Edit modal -->
 <div id="edit-collection-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-md">
   <div class="glass-card mx-4 w-full max-w-lg rounded-2xl p-6">
-    <h2 class="mb-4 text-xl font-bold text-neutral">Edit collection</h2>
-    <form id="edit-collection-form" class="space-y-4">
+    <h2 class="mb-4 text-xl font-bold text-neutral">{header.editCollection}</h2>
+    <form id="edit-collection-form" class="space-y-4" data-initial-cover={collection.coverImage ?? ''}>
       <div>
         <label for="edit-name" class="mb-2 block text-sm font-medium text-neutral">
-          Collection name *
+          {header.editModal.nameLabel}
         </label>
         <input
           type="text"
@@ -128,7 +159,7 @@ const { collection } = Astro.props as CollectionHeaderProps
       </div>
       <div>
         <label for="edit-description" class="mb-2 block text-sm font-medium text-neutral">
-          Description (optional)
+          {header.editModal.descriptionLabel}
         </label>
         <textarea
           id="edit-description"
@@ -137,40 +168,110 @@ const { collection } = Astro.props as CollectionHeaderProps
           class="w-full rounded-xl border border-border bg-surface p-3 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
         ></textarea>
       </div>
+      <div>
+        <label for="edit-cover-upload" class="mb-2 block text-sm font-medium text-neutral">
+          {header.editModal.coverLabel}
+        </label>
+        <p class="mb-2 text-xs text-muted">{header.editModal.coverOptional}</p>
+        <div class="flex flex-wrap items-center gap-3">
+          <input
+            type="file"
+            id="edit-cover-upload"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            class="flex-1 rounded-xl border border-border bg-surface p-3 text-neutral file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground"
+          />
+          <button
+            type="button"
+            id="edit-cover-remove"
+            class="btn-secondary-surface rounded-xl px-4 py-2 text-sm"
+          >
+            {header.editModal.removeCover}
+          </button>
+        </div>
+        <div id="edit-cover-preview-wrapper" class="mt-3 hidden">
+          <img
+            id="edit-cover-preview"
+            src=""
+            alt=""
+            class="max-h-40 rounded-xl border border-border object-cover"
+          />
+        </div>
+      </div>
       <div class="flex gap-3">
         <button
           type="submit"
           class="btn-primary-gradient flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3"
         >
-          Save
+          {header.editModal.save}
         </button>
         <button
           type="button"
           id="cancel-edit-btn"
           class="btn-secondary-surface flex items-center justify-center rounded-xl px-6 py-3"
         >
-          Cancel
+          {header.editModal.cancel}
         </button>
       </div>
     </form>
   </div>
 </div>
 
-<script>
-  // TypeScript fonctionne nativement dans les scripts Astro !
+<script type="application/json" id="edit-collection-messages" set:html={JSON.stringify({
+  savingLabel: header.editModal.saving,
+  updatedSuccessMsg: header.editModal.updatedSuccess,
+  errorUpdatingMsg: header.editModal.errorUpdating,
+  errorGenericMsg: header.editModal.errorGeneric,
+  deleteTitleLabel: header.editModal.deleteTitle,
+  deleteMessageTemplate: header.editModal.deleteMessage,
+  deleteConfirmLabel: header.editModal.deleteConfirm,
+  deleteCancelLabel: header.editModal.deleteCancel,
+  deletingLabel: header.editModal.deleting,
+  deletedSuccessMsg: header.editModal.deletedSuccess,
+  errorDeletingMsg: header.editModal.errorDeleting,
+  coverFileTooLargeMsg: header.editModal.coverFileTooLarge,
+  coverUploadErrorMsg: header.editModal.coverUploadError,
+}).replace(/<\/script/gi, '<\\/script')}></script>
+
+<script is:inline>
   (function() {
-    const collectionId = document.getElementById('edit-collection-btn')?.dataset.collectionId
-    const collectionName = document.getElementById('delete-collection-btn')?.dataset.collectionName
+    var editMessages = { savingLabel: '', updatedSuccessMsg: '', errorUpdatingMsg: '', errorGenericMsg: '', deleteTitleLabel: '', deleteMessageTemplate: '', deleteConfirmLabel: '', deleteCancelLabel: '', deletingLabel: '', deletedSuccessMsg: '', errorDeletingMsg: '', coverFileTooLargeMsg: '', coverUploadErrorMsg: '' }
+    try {
+      var el = document.getElementById('edit-collection-messages')
+      if (el && el.textContent) { editMessages = JSON.parse(el.textContent) }
+    } catch (e) { console.warn('Could not parse edit-collection-messages', e) }
+
     const editBtn = document.getElementById('edit-collection-btn')
     const deleteBtn = document.getElementById('delete-collection-btn')
+    const collectionId = editBtn && editBtn.dataset && editBtn.dataset.collectionId
+    const collectionName = deleteBtn && deleteBtn.dataset && deleteBtn.dataset.collectionName
     const editModal = document.getElementById('edit-collection-modal')
-    const editForm = document.getElementById('edit-collection-form') as HTMLFormElement | null
+    const editForm = document.getElementById('edit-collection-form')
     const cancelEditBtn = document.getElementById('cancel-edit-btn')
-    const editNameInput = document.getElementById('edit-name') as HTMLInputElement | null
-    const editDescriptionInput = document.getElementById('edit-description') as HTMLTextAreaElement | null
+    const editNameInput = document.getElementById('edit-name')
+    const editDescriptionInput = document.getElementById('edit-description')
+    const editCoverUpload = document.getElementById('edit-cover-upload')
+    const editCoverRemove = document.getElementById('edit-cover-remove')
+    const editCoverPreviewWrapper = document.getElementById('edit-cover-preview-wrapper')
+    const editCoverPreview = document.getElementById('edit-cover-preview')
 
-    // Load collection data into edit form
-    function loadCollectionData(): void {
+    let pendingCoverUrl = null
+
+    const ALLOWED_COVER_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+    const MAX_COVER_SIZE = 5 * 1024 * 1024
+
+    function syncEditCoverPreview() {
+      if (!editCoverPreview || !editCoverPreviewWrapper) return
+      if (pendingCoverUrl) {
+        editCoverPreview.src = pendingCoverUrl
+        editCoverPreview.alt = 'Cover preview'
+        editCoverPreviewWrapper.classList.remove('hidden')
+      } else {
+        editCoverPreview.src = ''
+        editCoverPreviewWrapper.classList.add('hidden')
+      }
+    }
+
+    function loadCollectionData() {
       const nameElement = document.querySelector('h1.text-3xl')
       const descElement = document.querySelector('p.text-muted')
       
@@ -180,6 +281,13 @@ const { collection } = Astro.props as CollectionHeaderProps
       if (descElement && editDescriptionInput) {
         editDescriptionInput.value = descElement.textContent || ''
       }
+      if (editForm && editForm.dataset.initialCover) {
+        pendingCoverUrl = editForm.dataset.initialCover
+      } else {
+        pendingCoverUrl = null
+      }
+      if (editCoverUpload) editCoverUpload.value = ''
+      syncEditCoverPreview()
     }
 
     // Open edit modal
@@ -200,15 +308,59 @@ const { collection } = Astro.props as CollectionHeaderProps
     })
 
     // Fermer le modal en cliquant sur l'overlay
-    editModal?.addEventListener('click', function(event: MouseEvent) {
+    editModal?.addEventListener('click', function(event) {
       if (event.target === editModal) {
         editModal.classList.add('hidden')
         editModal.classList.remove('flex')
       }
     })
 
+    // Edit cover: upload
+    editCoverUpload?.addEventListener('change', async function(event) {
+      const target = event.target
+      const file = target.files?.[0]
+      if (!file) return
+      if (!ALLOWED_COVER_TYPES.includes(file.type)) {
+        if (window.toast) window.toast.error(editMessages.coverUploadErrorMsg)
+        target.value = ''
+        return
+      }
+      if (file.size > MAX_COVER_SIZE) {
+        if (window.toast) window.toast.error(editMessages.coverFileTooLargeMsg)
+        target.value = ''
+        return
+      }
+      const formDataUpload = new FormData()
+      formDataUpload.append('cover', file)
+      try {
+        const response = await fetch('/api/collections/upload-cover', {
+          method: 'POST',
+          body: formDataUpload,
+          credentials: 'include',
+        })
+        const data = await response.json()
+        if (response.ok && data.imageUrl) {
+          pendingCoverUrl = data.imageUrl
+          syncEditCoverPreview()
+        } else {
+          if (window.toast) window.toast.error(data.error || editMessages.coverUploadErrorMsg)
+          target.value = ''
+        }
+      } catch (error) {
+        if (window.toast) window.toast.error(editMessages.coverUploadErrorMsg)
+        target.value = ''
+      }
+    })
+
+    // Edit cover: remove
+    editCoverRemove?.addEventListener('click', function() {
+      pendingCoverUrl = null
+      if (editCoverUpload) editCoverUpload.value = ''
+      syncEditCoverPreview()
+    })
+
     // Submit edit form
-    editForm?.addEventListener('submit', async function(event: SubmitEvent) {
+    editForm?.addEventListener('submit', async function(event) {
       event.preventDefault()
       
       if (!editForm) return
@@ -217,13 +369,14 @@ const { collection } = Astro.props as CollectionHeaderProps
       const collectionData = {
         name: formData.get('name'),
         description: formData.get('description') || null,
+        coverImage: pendingCoverUrl,
       }
 
-      const submitBtn = editForm.querySelector('button[type="submit"]') as HTMLButtonElement | null
+      const submitBtn = editForm.querySelector('button[type="submit"]')
       const originalText = submitBtn?.textContent || ''
       if (submitBtn) {
         submitBtn.disabled = true
-        submitBtn.textContent = 'Enregistrement...'
+        submitBtn.textContent = editMessages.savingLabel
       }
 
       try {
@@ -239,20 +392,20 @@ const { collection } = Astro.props as CollectionHeaderProps
 
         if (response.ok) {
           if (window.toast) {
-            window.toast.success('Collection updated successfully!')
+            window.toast.success(editMessages.updatedSuccessMsg)
           }
           setTimeout(function() {
             window.location.reload()
           }, 500)
         } else {
           if (window.toast) {
-            window.toast.error(responseData.error || 'Error while updating')
+            window.toast.error(responseData.error || errorUpdatingMsg)
           }
         }
       } catch (error) {
         console.error('Error updating collection:', error)
         if (window.toast) {
-          window.toast.error('An error occurred')
+          window.toast.error(editMessages.errorGenericMsg)
         }
       } finally {
         if (submitBtn) {
@@ -264,21 +417,22 @@ const { collection } = Astro.props as CollectionHeaderProps
 
     // Supprimer la collection
     deleteBtn?.addEventListener('click', async function() {
+      const deleteMessage = editMessages.deleteMessageTemplate.replace('{name}', collectionName || '')
       const confirmed = await window.confirmDialog?.(
-        'Delete collection',
-        'Are you sure you want to delete the collection "' + collectionName + '"? This action is irreversible.',
-        'Delete',
-        'Cancel'
+        editMessages.deleteTitleLabel,
+        deleteMessage,
+        editMessages.deleteConfirmLabel,
+        editMessages.deleteCancelLabel
       )
       
       if (!confirmed) {
         return
       }
 
-      const button = deleteBtn as HTMLButtonElement
+      const button = deleteBtn
       const originalText = button.textContent || ''
       button.disabled = true
-      button.textContent = 'Suppression...'
+      button.textContent = editMessages.deletingLabel
 
       try {
         const response = await fetch('/api/collections/' + collectionId + '/delete', {
@@ -287,7 +441,7 @@ const { collection } = Astro.props as CollectionHeaderProps
 
         if (response.ok || response.status === 204) {
           if (window.toast) {
-            window.toast.success('Collection deleted successfully!')
+            window.toast.success(editMessages.deletedSuccessMsg)
           }
           setTimeout(function() {
             window.location.href = '/collections'
@@ -295,13 +449,13 @@ const { collection } = Astro.props as CollectionHeaderProps
         } else {
           const responseData = await response.json()
           if (window.toast) {
-            window.toast.error(responseData.error || 'Error while deleting')
+            window.toast.error(responseData.error || editMessages.errorDeletingMsg)
           }
         }
       } catch (error) {
         console.error('Error deleting collection:', error)
         if (window.toast) {
-          window.toast.error('An error occurred')
+          window.toast.error(editMessages.errorGenericMsg)
         }
       } finally {
         button.disabled = false

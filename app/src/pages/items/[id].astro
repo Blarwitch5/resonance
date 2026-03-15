@@ -15,6 +15,8 @@ import TrackList from '../../components/items/TrackList.astro'
 import DashboardLayout from '../../components/layouts/DashboardLayout.astro'
 import EmptyState from '../../components/ui/EmptyState.astro'
 import OptimizedImage from '../../components/ui/OptimizedImage.astro'
+import { getItemMessages } from '../../i18n/item'
+import { normalizeLocale } from '../../i18n/config'
 import { looksLikeItemId } from '../../lib/slug'
 import { collectionRepository } from '../../repositories/collection-repository'
 import { itemRepository } from '../../repositories/item-repository'
@@ -22,7 +24,6 @@ import { discogsService } from '../../services/discogs-service'
 
 export const prerender = false
 
-// Utiliser la session depuis le middleware
 const session = Astro.locals.session
 if (!session) return Astro.redirect('/login')
 
@@ -76,19 +77,20 @@ if (item.discogsId) {
 // Collection is already included in item
 const collection = item.collection || null
 
-// Fetch all user collections for the selector
 const userCollections = await collectionRepository.findByUserId(Astro.locals.user!.id)
+
+const locale = normalizeLocale(Astro.locals.userPreferences?.locale ?? Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const itemT = getItemMessages(locale)
 ---
 
 <DashboardLayout title={`${item.title} - ${item.artist} - Resonance`}>
   <div class="space-y-6 page-transition pb-24 md:pb-20">
-    <!-- Bouton retour -->
     <a
       href={collection ? `/collections/${collection.slug}` : '/library'}
       class="inline-flex items-center gap-2 text-muted transition-colors hover:text-primary"
     >
       <ArrowLeft size={18} />
-      <span>Back {collection ? `to ${collection.name}` : 'to the collection'}</span>
+      <span>{collection ? itemT.backToCollection.replace('{name}', collection.name) : itemT.backToLibrary}</span>
     </a>
 
     <!-- Header avec cover et infos principales -->
@@ -164,6 +166,7 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
               itemId={item.id}
               currentCollection={collection}
               collections={userCollections}
+              labels={itemT.collectionSelector}
             />
           </div>
 
@@ -175,6 +178,8 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
               currentCollection={collection}
               collections={userCollections}
               isFavorite={item.metadata?.isFavorite || false}
+              actionLabels={itemT.actions}
+              toastMessages={itemT.toasts}
             />
           </div>
         </div>
@@ -189,6 +194,14 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
         albumArtist={item.artist}
         coverUrl={item.coverUrl}
         discogsId={item.discogsId}
+        tracklistTitle={itemT.tracklistTitle}
+        trackCountOne={itemT.trackCountOne}
+        trackCountOther={itemT.trackCountOther}
+        audioLabels={itemT.audio}
+        noPreviewForTrack={itemT.noPreviewForTrack}
+        closeLabel={itemT.deleteModal.closeAria}
+        previewsUnavailableLabel={itemT.audio.previewsUnavailable}
+        loadPreviewErrorLabel={itemT.audio.loadPreviewError}
       />
     )}
 
@@ -197,11 +210,11 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
       <div class="grid gap-6 md:grid-cols-2">
         <!-- Detailed information -->
         <div class="glass-card rounded-2xl p-4 md:p-6">
-          <h2 class="mb-4 text-lg md:text-xl font-bold text-neutral">Details</h2>
+          <h2 class="mb-4 text-lg md:text-xl font-bold text-neutral">{itemT.details}</h2>
           <div class="space-y-3 text-sm">
             {discogsDetails.released && (
               <div>
-                <span class="font-medium text-muted">Date de sortie :</span>
+                <span class="font-medium text-muted">{itemT.labels.releaseDate}</span>
                 <span class="ml-2 text-neutral">
                   {discogsDetails.releasedFormatted || discogsDetails.released}
                 </span>
@@ -209,13 +222,13 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
             )}
             {discogsDetails.country && (
               <div>
-                <span class="font-medium text-muted">Pays :</span>
+                <span class="font-medium text-muted">{itemT.labels.country}</span>
                 <span class="ml-2 text-neutral">{discogsDetails.country}</span>
               </div>
             )}
             {discogsDetails.labels.length > 0 && (
               <div>
-                <span class="font-medium text-muted">Label(s) :</span>
+                <span class="font-medium text-muted">{itemT.labels.labels}</span>
                 <span class="ml-2 text-neutral">
                   {discogsDetails.labels.map((label) => label.name).join(', ')}
                 </span>
@@ -223,7 +236,7 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
             )}
             {discogsDetails.genres.length > 0 && (
               <div>
-                <span class="font-medium text-muted">Genres :</span>
+                <span class="font-medium text-muted">{itemT.labels.genres}</span>
                 <span class="ml-2 text-neutral">
                   {discogsDetails.genres.join(', ')}
                 </span>
@@ -231,7 +244,7 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
             )}
             {discogsDetails.styles.length > 0 && (
               <div>
-                <span class="font-medium text-muted">Styles :</span>
+                <span class="font-medium text-muted">{itemT.labels.styles}</span>
                 <span class="ml-2 text-neutral">
                   {discogsDetails.styles.join(', ')}
                 </span>
@@ -239,7 +252,7 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
             )}
             {discogsDetails.identifiers.length > 0 && (
               <div>
-                <span class="font-medium text-muted">Identifiants :</span>
+                <span class="font-medium text-muted">{itemT.labels.identifiers}</span>
                 <div class="mt-1 space-y-1">
                   {discogsDetails.identifiers.map((id) => (
                     <div class="text-neutral">
@@ -254,11 +267,11 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
 
         <!-- Format and community -->
         <div class="glass-card rounded-2xl p-4 md:p-6">
-          <h2 class="mb-4 text-lg md:text-xl font-bold text-neutral">Format & Community</h2>
+          <h2 class="mb-4 text-lg md:text-xl font-bold text-neutral">{itemT.formatAndCommunity}</h2>
           <div class="space-y-3 text-sm">
             {discogsDetails.formats.length > 0 && (
               <div>
-                <span class="font-medium text-muted">Format(s) :</span>
+                <span class="font-medium text-muted">{itemT.labels.formats}</span>
                 <div class="mt-1 space-y-1">
                   {discogsDetails.formats.map((format) => (
                     <div class="text-neutral">
@@ -271,25 +284,25 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
             {discogsDetails.community && (
               <div class="space-y-2">
                 <div>
-                  <span class="font-medium text-muted">Note moyenne :</span>
+                  <span class="font-medium text-muted">{itemT.labels.averageRating}</span>
                   <span class="ml-2 text-neutral">
                     {discogsDetails.community.rating.average > 0
                       ? `${discogsDetails.community.rating.average.toFixed(1)} / 5`
-                      : 'Not rated'}
+                      : itemT.labels.notRated}
                     {discogsDetails.community.rating.count > 0 &&
-                      ` (${discogsDetails.community.rating.count} avis)`}
+                      ` ${itemT.labels.ratingsCount.replace('{count}', String(discogsDetails.community.rating.count))}`}
                   </span>
                 </div>
                 <div>
-                  <span class="font-medium text-muted">Collectionneurs :</span>
+                  <span class="font-medium text-muted">{itemT.labels.collectors}</span>
                   <span class="ml-2 text-neutral">
-                    {discogsDetails.community.have} ont cet album
+                    {discogsDetails.community.have} {itemT.labels.collectorsHave}
                   </span>
                 </div>
                 <div>
-                  <span class="font-medium text-muted">Wanted by:</span>
+                  <span class="font-medium text-muted">{itemT.labels.wantedBy}</span>
                   <span class="ml-2 text-neutral">
-                    {discogsDetails.community.want} personnes
+                    {discogsDetails.community.want} {itemT.labels.people}
                   </span>
                 </div>
               </div>
@@ -302,24 +315,22 @@ const userCollections = await collectionRepository.findByUserId(Astro.locals.use
     <!-- Notes Discogs -->
     {discogsDetails?.notes && (
       <div class="glass-card rounded-2xl p-4 md:p-6">
-        <h2 class="mb-4 text-lg md:text-xl font-bold text-neutral">Notes</h2>
+        <h2 class="mb-4 text-lg md:text-xl font-bold text-neutral">{itemT.notes}</h2>
         <p class="whitespace-pre-wrap text-muted">{discogsDetails.notes}</p>
       </div>
     )}
 
-    <!-- Personal data -->
-    <PersonalDataSection itemId={item.id} metadata={item.metadata} />
+    <PersonalDataSection itemId={item.id} metadata={item.metadata} personalDataT={itemT.personalData} />
 
-    <!-- When Discogs data is not available -->
     {!discogsRelease && item.discogsId && (
       <EmptyState
-        title="Details not available"
-        description="The full details for this album are not available at the moment."
+        title={itemT.emptyDetails.title}
+        description={itemT.emptyDetails.description}
         icon={Music}
       />
     )}
 
     <!-- Modal de suppression -->
-    <DeleteItemModal itemId={item.id} itemTitle={item.title} />
+    <DeleteItemModal itemId={item.id} itemTitle={item.title} deleteModal={itemT.deleteModal} toasts={itemT.toasts} />
   </div>
 </DashboardLayout>

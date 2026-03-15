@@ -29,22 +29,31 @@ function getActiveTab(path: string): string | null {
 const currentPath = Astro.url.pathname
 const activeTab = getActiveTab(currentPath)
 
+type BottomBarProps = {
+  mainNavAria?: string
+  libraryLabel?: string
+  exploreLabel?: string
+  profileLabel?: string
+}
+
+const { mainNavAria = 'Main navigation', libraryLabel = 'Library', exploreLabel = 'Explore', profileLabel = 'Profile' } = Astro.props as BottomBarProps
+
 const tabs: TabItem[] = [
   {
     id: 'collection',
-    label: 'Library',
+    label: libraryLabel,
     icon: Library,
     href: '/library',
   },
   {
     id: 'explorer',
-    label: 'Explore',
+    label: exploreLabel,
     icon: Search,
     href: '/explorer',
   },
   {
     id: 'profile',
-    label: 'Profile',
+    label: profileLabel,
     icon: User,
     href: '/profile',
   },
@@ -53,7 +62,7 @@ const tabs: TabItem[] = [
 
 <!-- Barre flottante style Floating Bottom Navigation (mobile uniquement) -->
 <nav
-  aria-label="Main navigation"
+  aria-label={mainNavAria}
   class="bottom-bar fixed bottom-6 left-4 right-4 z-50 mx-auto max-w-sm rounded-[1.75rem] md:hidden"
 >
   <div

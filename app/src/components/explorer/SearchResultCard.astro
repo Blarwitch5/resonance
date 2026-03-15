@@ -14,9 +14,29 @@ type SearchResultCardProps = {
     year?: string | number
     format?: string[]
   }
+  addToCollectionAria?: string
+  addToWishlistAria?: string
+  noImageLabel?: string
+  unknownArtistLabel?: string
+  scriptLabels?: {
+    unknownArtist: string
+    addedToWishlistToast: string
+    failedToAddToWishlist: string
+    fetchReleaseError: string
+    genericError: string
+  }
 }
 
-const { result } = Astro.props as SearchResultCardProps
+const defaultScriptLabels = {
+  unknownArtist: 'Unknown Artist',
+  addedToWishlistToast: 'Album successfully added to wishlist!',
+  failedToAddToWishlist: 'Failed to add to wishlist',
+  fetchReleaseError: 'Failed to fetch release details',
+  genericError: 'An error occurred',
+}
+
+const { result, addToCollectionAria = 'Add to collection', addToWishlistAria = 'Add to wishlist', noImageLabel = 'No image', unknownArtistLabel = 'Unknown', scriptLabels = defaultScriptLabels } = Astro.props as SearchResultCardProps
+const scriptL = scriptLabels
 
 // Fonction pour extraire les formats affichables
 function extractDisplayFormats(formats: string[] | undefined): string[] {
@@ -56,7 +76,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
     {coverUrl ? (
       <OptimizedImage
         src={coverUrl}
-        alt={`${albumTitle} - ${artist || 'Unknown'}`}
+        alt={`${albumTitle} - ${artist || unknownArtistLabel}`}
         width={400}
         height={400}
         loading="lazy"
@@ -65,7 +85,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
       />
     ) : (
       <div class="flex h-full items-center justify-center text-muted">
-        No image
+        {noImageLabel}
       </div>
     )}
   </div>
@@ -73,7 +93,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
   <!-- Info -->
   <div class="p-3">
     <p class="truncate text-sm font-medium text-neutral">{albumTitle}</p>
-    <p class="truncate text-xs text-muted">{artist || 'Unknown'}</p>
+    <p class="truncate text-xs text-muted">{artist || unknownArtistLabel}</p>
     {formatsText && (
       <p class="mt-1 text-xs font-medium text-primary">{formatsText}</p>
     )}
@@ -87,7 +107,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
     <button
       type="button"
       class="rounded-full bg-white/90 p-2 shadow-lg backdrop-blur-sm hover:bg-white"
-      aria-label="Add to collection"
+      aria-label={addToCollectionAria}
       data-discogs-id={result.id}
       data-action="collection"
       onclick="event.preventDefault(); event.stopPropagation();"
@@ -97,7 +117,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
     <button
       type="button"
       class="rounded-full bg-pink-500/90 p-2 shadow-lg backdrop-blur-sm hover:bg-pink-500"
-      aria-label="Add to wishlist"
+      aria-label={addToWishlistAria}
       data-discogs-id={result.id}
       data-action="wishlist"
       onclick="event.preventDefault(); event.stopPropagation();"
@@ -107,8 +127,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
   </div>
 </a>
 
-<script>
-  // TypeScript fonctionne nativement dans les scripts Astro !
+<script define:vars={{ scriptUnknownArtist: scriptL.unknownArtist, scriptAddedToast: scriptL.addedToWishlistToast, scriptFailedWishlist: scriptL.failedToAddToWishlist, scriptFetchReleaseError: scriptL.fetchReleaseError, scriptGenericError: scriptL.genericError }}>
   document.addEventListener('click', async (event: Event) => {
     const target = event.target as HTMLElement | null
     const button = target?.closest('button[data-discogs-id]') as HTMLButtonElement | null
@@ -140,7 +159,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
       // Fetch release details
       const releaseResponse = await fetch(`/api/discogs/release/${discogsId}`)
       if (!releaseResponse.ok) {
-        throw new Error('Failed to fetch release details')
+        throw new Error(scriptFetchReleaseError)
       }
 
       // Types pour les releases Discogs
@@ -171,7 +190,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
         format = 'CASSETTE'
       }
 
-      const primaryArtist = release.artists?.[0]?.name || 'Unknown Artist'
+      const primaryArtist = release.artists?.[0]?.name || scriptUnknownArtist
       const year = release.year || parseInt(release.released || '0') || null
 
       // Extraire la meilleure cover
@@ -202,16 +221,16 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
 
       if (!wishlistResponse.ok) {
         const error = await wishlistResponse.json()
-        throw new Error(error.error || 'Failed to add to wishlist')
+        throw new Error(error.error || scriptFailedWishlist)
       }
 
       if (window.toast) {
-        window.toast.success('Album successfully added to wishlist!')
+        window.toast.success(scriptAddedToast)
       }
     } catch (error) {
       console.error('Error adding to wishlist:', error)
       if (window.toast) {
-        window.toast.error(`Error: ${error instanceof Error ? error.message : 'An error occurred'}`)
+        window.toast.error(`Error: ${error instanceof Error ? error.message : scriptGenericError}`)
       }
     }
   }

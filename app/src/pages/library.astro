@@ -10,18 +10,26 @@ import ItemGrid from '../components/items/ItemGrid.astro'
 import DashboardLayout from '../components/layouts/DashboardLayout.astro'
 import EmptyState from '../components/ui/EmptyState.astro'
 import Pagination from '../components/ui/Pagination.astro'
+import { getLibraryMessages } from '../i18n/library'
+import { getLayoutMessages } from '../i18n/layout'
+import { getItemMessages } from '../i18n/item'
+import { normalizeLocale } from '../i18n/config'
 import { collectionRepository } from '../repositories/collection-repository'
 import { itemRepository } from '../repositories/item-repository'
 
 export const prerender = false
 
-// Use session from middleware (Astro.locals)
 const session = Astro.locals.session
 const user = Astro.locals.user
 
 if (!session || !user) {
   return Astro.redirect('/login')
 }
+
+const locale = normalizeLocale(Astro.locals.userPreferences?.locale ?? Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const libraryT = getLibraryMessages(locale)
+const layoutT = getLayoutMessages(locale)
+const itemT = getItemMessages(locale)
 
 // Get format from query params (default: 'ALL')
 const formatParam = Astro.url.searchParams.get('format') || 'ALL'
@@ -124,21 +132,19 @@ userCollections.forEach((collection) => {
 
 const totalItems = paginatedResult.pagination.total
 
-// Format display info
 const formatInfo = {
-  VINYL: { label: 'Vinyl', icon: Turntable, color: 'format-vinyl' },
-  CASSETTE: { label: 'Cassette', icon: CassetteTape, color: 'format-cassette' },
-  CD: { label: 'CD', icon: Disc, color: 'format-cd' },
+  VINYL: { label: libraryT.formats.vinyl, icon: Turntable, color: 'format-vinyl' },
+  CASSETTE: { label: libraryT.formats.cassette, icon: CassetteTape, color: 'format-cassette' },
+  CD: { label: libraryT.formats.cd, icon: Disc, color: 'format-cd' },
 }
 ---
 
-<DashboardLayout title="My Library - Resonance">
+<DashboardLayout title={libraryT.meta.title}>
   <div class="space-y-8">
-    <!-- Header with stats and actions -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h1 class="text-3xl font-bold text-neutral mb-2">
-          My Library
+          {libraryT.header.title}
         </h1>
         <p class="text-muted text-sm sm:text-base">
           {totalItems} {totalItems === 1 ? 'album' : 'albums'}
@@ -153,69 +159,65 @@ const formatInfo = {
       </div>
     </div>
 
-    <!-- Search Bar (primary entry point) -->
+    <!-- Format Selector (Chips/Pills) -->
+    <div class="flex flex-wrap gap-3">
+      <a
+        href="/library?format=ALL"
+        class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
+          selectedFormat === 'ALL'
+            ? 'bg-gradient-resonance text-white shadow-lg shadow-primary/20'
+            : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
+        }`}
+      >
+        <span>{libraryT.formats.all}</span>
+      </a>
+      {totalItems > 0 && (
+        <a
+          href="/library?format=ALL&collection=none"
+          class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
+            showUncategorizedOnly
+              ? 'bg-gradient-resonance text-white shadow-lg shadow-primary/20'
+              : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
+          }`}
+        >
+          <Package size={18} class="fill-none stroke-2" />
+          <span>{libraryT.formats.uncategorized}</span>
+        </a>
+      )}
+      {enabledFormats.map((format) => {
+        const info = formatInfo[format as keyof typeof formatInfo]
+        const Icon = info.icon
+        return (
+          <a
+            href={`/library?format=${format}`}
+            class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
+              selectedFormat === format
+                ? `bg-gradient-resonance text-white shadow-lg shadow-primary/20`
+                : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
+            }`}
+          >
+            <Icon size={18} class="fill-none stroke-2" />
+            <span>{info.label}</span>
+          </a>
+        )
+      })}
+    </div>
+
+    <!-- Search Bar -->
     {totalItems > 0 && (
-      <div class="max-w-xl">
-        <CollectionSearch />
+      <div class="max-w-md">
+        <CollectionSearch labels={libraryT.collectionSearch} />
       </div>
     )}
 
-    <!-- Browsing controls: formats + filters -->
+    <!-- Filters -->
     {totalItems > 0 && (
-      <section
-        aria-label="Library browsing controls"
-        class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
-      >
-        {/* Format Selector (Chips/Pills) */}
-        <div class="flex flex-wrap gap-3">
-          <a
-            href="/library?format=ALL"
-            class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
-              selectedFormat === 'ALL'
-                ? 'bg-gradient-resonance text-white shadow-lg shadow-primary/20'
-                : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
-            }`}
-          >
-            <span>All formats</span>
-          </a>
-          <a
-            href="/library?format=ALL&collection=none"
-            class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
-              showUncategorizedOnly
-                ? 'bg-gradient-resonance text-white shadow-lg shadow-primary/20'
-                : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
-            }`}
-          >
-            <Package size={18} class="fill-none stroke-2" />
-            <span>Uncategorized</span>
-          </a>
-          {enabledFormats.map((format) => {
-            const info = formatInfo[format as keyof typeof formatInfo]
-            const Icon = info.icon
-            return (
-              <a
-                href={`/library?format=${format}`}
-                class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
-                  selectedFormat === format
-                    ? `bg-gradient-resonance text-white shadow-lg shadow-primary/20`
-                    : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
-                }`}
-              >
-                <Icon size={18} class="fill-none stroke-2" />
-                <span>{info.label}</span>
-              </a>
-            )
-          })}
-        </div>
-
-        <div class="w-full lg:w-auto">
-          <SortFilter
-            genres={availableGenres}
-            years={availableYears}
-            collections={userCollections}
-          />
-        </div>
-      </section>
+      <SortFilter
+        genres={availableGenres}
+        years={availableYears}
+        collections={userCollections}
+        sortFilter={libraryT.sortFilter}
+      />
     )}
 
     <!-- Items grouped by collection -->
@@ -223,13 +225,13 @@ const formatInfo = {
       <EmptyState
         title={
           selectedFormat === 'ALL'
-            ? 'Start your music collection'
-            : `Start your ${formatInfo[selectedFormat as keyof typeof formatInfo]?.label} collection`
+            ? libraryT.emptyState.allTitle
+            : libraryT.emptyState.formatTitle.replace('{format}', formatInfo[selectedFormat as keyof typeof formatInfo]?.label ?? '')
         }
         description={
           selectedFormat === 'ALL'
-            ? 'Explore millions of albums on Discogs and start building your personalized collection. Every vinyl, CD, or cassette tells a story.'
-            : `Discover beautiful ${formatInfo[selectedFormat as keyof typeof formatInfo]?.label.toLowerCase()}s and start your collection. Explore Discogs to find your favorite albums.`
+            ? libraryT.emptyState.allDescription
+            : libraryT.emptyState.formatDescription.replace('{format}', formatInfo[selectedFormat as keyof typeof formatInfo]?.label ?? '').replace('{formatPlural}', formatInfo[selectedFormat as keyof typeof formatInfo]?.label?.toLowerCase() ?? '')
         }
         icon={
           selectedFormat === 'ALL'
@@ -237,12 +239,12 @@ const formatInfo = {
             : formatInfo[selectedFormat as keyof typeof formatInfo]?.icon || Turntable
         }
         action={{
-          label: `Add ${selectedFormat === 'ALL' ? 'an album' : formatInfo[selectedFormat as keyof typeof formatInfo]?.label.toLowerCase() || 'an album'}`,
+          label: selectedFormat === 'ALL' ? libraryT.emptyState.addAlbum : libraryT.emptyState.addAlbum,
           href: '/explorer',
         }}
         secondaryAction={{
-          label: 'Scan a barcode',
-          onClick: 'alert("Barcode scanning coming soon")',
+          label: libraryT.emptyState.scanBarcode,
+          onClick: `alert(${JSON.stringify(libraryT.emptyState.comingSoonBarcode)})`,
         }}
       />
     ) : (
@@ -259,12 +261,12 @@ const formatInfo = {
                   <div class="flex items-center gap-3">
                     <h2 class="text-xl font-bold text-neutral">
                       {collectionId === 'no-collection'
-                        ? 'Uncategorized'
+                        ? libraryT.collections.uncategorized
                         : collection?.name}
                     </h2>
                     {items.length > 0 && (
                       <span class="inline-flex items-center justify-center rounded-full bg-surface px-3 py-1 text-xs font-medium text-muted">
-                        {items.length} {items.length === 1 ? 'album' : 'albums'}
+                        {items.length} {items.length === 1 ? libraryT.header.albumsCount.one.replace('{count}', String(items.length)) : libraryT.header.albumsCount.other.replace('{count}', String(items.length))}
                       </span>
                     )}
                   </div>
@@ -273,7 +275,7 @@ const formatInfo = {
                       href={`/collections/${collection.slug}`}
                       class="inline-flex items-center gap-1 text-sm font-medium text-primary transition-colors hover:text-primary/80"
                     >
-                      <span>View collection</span>
+                      <span>{libraryT.collections.viewCollection}</span>
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                       </svg>
@@ -289,13 +291,13 @@ const formatInfo = {
                     </div>
                     <p class="mb-2 text-base font-medium text-neutral">
                       {collectionId === 'no-collection'
-                        ? 'No uncategorized albums'
-                        : 'This collection is empty'}
+                        ? libraryT.collections.noUncategorized
+                        : libraryT.collections.empty}
                     </p>
                     <p class="mb-6 text-sm text-muted">
                       {collectionId === 'no-collection'
-                        ? 'Albums you add without selecting a collection will appear here.'
-                        : 'Start adding albums to this collection to fill it.'}
+                        ? libraryT.collections.noUncategorizedHint
+                        : libraryT.collections.emptyHint}
                     </p>
                     {collectionId !== 'no-collection' && (
                       <a
@@ -305,12 +307,12 @@ const formatInfo = {
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
-                        Add an album
+                        {libraryT.emptyState.addAlbum}
                       </a>
                     )}
                   </div>
                 ) : (
-                  <ItemGrid items={items} columns={6} />
+                  <ItemGrid items={items} columns={6} actionLabels={itemT.actions} />
                 )}
               </section>
             )
@@ -332,6 +334,11 @@ const formatInfo = {
                 ...(collectionId && { collection: collectionId }),
                 ...(favoritesOnly && { favorites: 'true' }),
               }}
+              previousPage={layoutT.common.previousPage}
+              nextPage={layoutT.common.nextPage}
+              previousPageAria={layoutT.common.previousPageAria}
+              nextPageAria={layoutT.common.nextPageAria}
+              paginationAria={layoutT.common.paginationAria}
             />
           </div>
         )}

@@ -1,6 +1,17 @@
 ---
 import Search from '@lucide/astro/icons/search'
 import Loader from '@lucide/astro/icons/loader'
+import { getExplorerMessages } from '../../i18n/explorer'
+import type { ExplorerMessages } from '../../i18n/explorer'
+
+type SearchBarProps = {
+  search?: ExplorerMessages['search']
+  client?: ExplorerMessages['client']
+  addToCollection?: ExplorerMessages['addToCollection']
+}
+
+const defaultMessages = getExplorerMessages('en')
+const { search = defaultMessages.search, client = defaultMessages.client, addToCollection: addToCollectionMessages = defaultMessages.addToCollection } = Astro.props as SearchBarProps
 ---
 
 <div class="relative">
@@ -10,7 +21,7 @@ import Loader from '@lucide/astro/icons/loader'
   <input
     type="text"
     id="discogs-search"
-    placeholder="Search for an album, artist, or label..."
+    placeholder={search.placeholder}
     class="w-full rounded-xl border border-border bg-surface pl-12 pr-20 py-4 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
   />
   <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
@@ -22,7 +33,7 @@ import Loader from '@lucide/astro/icons/loader'
   </div>
 </div>
 
-<script>
+<script define:vars={{ search, client, addToCollectionMessages }}>
   type SearchResult = {
     id: string
     slug?: string
@@ -57,8 +68,8 @@ import Loader from '@lucide/astro/icons/loader'
     if (filteredResults.length === 0) {
       const isBarcode = /^\d{8,14}$/.test(query)
       const messageText = isBarcode
-        ? `No album found for barcode "${query}".`
-        : `No results for "${query}".`
+        ? search.noAlbumForBarcode.replace('{query}', query)
+        : search.noResultsFor.replace('{query}', query)
       const wrapper = document.createElement('div')
       wrapper.className = 'search-no-results glass-card rounded-2xl border border-border/50 p-8 text-center'
       const p1 = document.createElement('p')
@@ -66,7 +77,7 @@ import Loader from '@lucide/astro/icons/loader'
       p1.textContent = messageText
       const p2 = document.createElement('p')
       p2.className = 'text-sm text-muted'
-      p2.textContent = 'Try another code or search by artist / title.'
+      p2.textContent = search.tryAnotherCodeOrSearch
       wrapper.appendChild(p1)
       wrapper.appendChild(p2)
       container.replaceChildren(wrapper)
@@ -77,17 +88,31 @@ import Loader from '@lucide/astro/icons/loader'
       const renderResponse = await fetch('/api/discogs/render-search-results', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ results: filteredResults }),
+        body: JSON.stringify({
+          results: filteredResults,
+          resultsCountLabel: client.resultsCount,
+          noImageLabel: client.noImage,
+          unknownArtistLabel: client.unknownArtist,
+          addToCollectionAria: addToCollectionMessages.addToCollectionAria,
+          addToWishlistAria: addToCollectionMessages.addToWishlistAria,
+          scriptLabels: {
+            unknownArtist: client.unknownArtist,
+            addedToWishlistToast: addToCollectionMessages.addedToWishlistToast,
+            failedToAddToWishlist: addToCollectionMessages.failedToAddToWishlist,
+            fetchReleaseError: addToCollectionMessages.fetchReleaseError,
+            genericError: client.genericError,
+          },
+        }),
       })
       if (renderResponse.ok) {
         const html = await renderResponse.text()
         container.innerHTML = html
       } else {
-        throw new Error('Failed to render search results')
+        throw new Error(client.renderSearchResultsError)
       }
     } catch (error) {
       console.error('Error rendering search results:', error)
-      if (window.toast) window.toast.error('Error while displaying results')
+      if (window.toast) window.toast.error(client.barcodeErrorDisplay)
     }
   }
 
@@ -102,8 +127,8 @@ import Loader from '@lucide/astro/icons/loader'
       if (format) urlParams.set('format', format)
       const response = await fetch(`/api/discogs/search?${urlParams.toString()}`)
       if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: 'Unknown error' }))
-        if (window.toast) window.toast.error(err.error || 'Error while searching')
+        const err = await response.json().catch(() => ({ error: client.unknownError }))
+        if (window.toast) window.toast.error(err.error || client.generalSearchError)
         return
       }
       const data = await response.json()
@@ -117,10 +142,10 @@ import Loader from '@lucide/astro/icons/loader'
           wrapper.className = 'search-no-results glass-card rounded-2xl border border-border/50 p-8 text-center'
           const p1 = document.createElement('p')
           p1.className = 'text-lg font-medium text-neutral mb-2'
-          p1.textContent = `No results for "${query}".`
+          p1.textContent = search.noResultsFor.replace('{query}', query)
           const p2 = document.createElement('p')
           p2.className = 'text-sm text-muted'
-          p2.textContent = 'Try another search.'
+          p2.textContent = search.tryAnotherSearch
           wrapper.appendChild(p1)
           wrapper.appendChild(p2)
           container.replaceChildren(wrapper)
@@ -128,7 +153,7 @@ import Loader from '@lucide/astro/icons/loader'
       }
     } catch (error) {
       console.error('Error searching:', error)
-      if (window.toast) window.toast.error('Error while searching')
+      if (window.toast) window.toast.error(client.generalSearchError)
     } finally {
       if (loaderElement) loaderElement.classList.add('hidden')
     }
@@ -172,10 +197,10 @@ import Loader from '@lucide/astro/icons/loader'
           const response = await fetch(`/api/discogs/search?${url}`)
 
           if (!response.ok) {
-            const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+            const error = await response.json().catch(() => ({ error: client.unknownError }))
             console.error('Search error:', error)
             if (window.toast) {
-              window.toast.error(error.error || 'Error while searching')
+              window.toast.error(error.error || client.generalSearchError)
             }
             return
           }
@@ -190,7 +215,7 @@ import Loader from '@lucide/astro/icons/loader'
               container.classList.add('hidden')
             }
             if (window.toast) {
-              window.toast.error('No results found')
+              window.toast.error(client.noResultsFound)
             }
           }
         } catch (error) {
@@ -228,7 +253,7 @@ import Loader from '@lucide/astro/icons/loader'
       // Fetch release details
       const releaseResponse = await fetch(`/api/discogs/release/${discogsId}`)
       if (!releaseResponse.ok) {
-        throw new Error('Failed to fetch release details')
+        throw new Error(addToCollectionMessages.fetchReleaseError)
       }
 
       // Types pour les releases Discogs
@@ -259,7 +284,7 @@ import Loader from '@lucide/astro/icons/loader'
         format = 'CASSETTE'
       }
 
-      const primaryArtist = release.artists?.[0]?.name || 'Unknown Artist'
+      const primaryArtist = release.artists?.[0]?.name || client.unknownArtist
       const year = release.year || parseInt(release.released || '0') || null
 
       // Extraire la meilleure cover
@@ -290,16 +315,16 @@ import Loader from '@lucide/astro/icons/loader'
 
       if (!wishlistResponse.ok) {
         const error = await wishlistResponse.json()
-        throw new Error(error.error || 'Failed to add to wishlist')
+        throw new Error(error.error || addToCollectionMessages.failedToAddToWishlist)
       }
 
       if (window.toast) {
-        window.toast.success('Album successfully added to wishlist!')
+        window.toast.success(addToCollectionMessages.addedToWishlistToast)
       }
     } catch (error) {
       console.error('Error adding to wishlist:', error)
       if (window.toast) {
-        window.toast.error(`Error: ${error instanceof Error ? error.message : 'An error occurred'}`)
+        window.toast.error(client.generalSearchError)
       }
     }
   }

@@ -11,6 +11,9 @@ import StatsCharts from '../components/profile/StatsCharts.astro'
 import StatsGrid from '../components/profile/StatsGrid.astro'
 import WishlistGrid from '../components/profile/WishlistGrid.astro'
 import ActivityTimeline from '../components/profile/ActivityTimeline.astro'
+import { getProfileMessages } from '../i18n/profile'
+import { getItemMessages } from '../i18n/item'
+import { normalizeLocale } from '../i18n/config'
 import { itemRepository } from '../repositories/item-repository'
 import { userRepository } from '../repositories/user-repository'
 import { wishlistRepository } from '../repositories/wishlist-repository'
@@ -24,6 +27,10 @@ const user = Astro.locals.user
 
 if (!session || !user) return Astro.redirect('/login')
 
+const locale = normalizeLocale(Astro.locals.userPreferences?.locale ?? Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const profileT = getProfileMessages(locale)
+const itemT = getItemMessages(locale)
+
 const [stats, favorites, wishlistItems, recentActivities] = await Promise.all([
   statsService.getUserStats(user.id),
   itemRepository.getFavoritesByUserId(user.id),
@@ -32,7 +39,7 @@ const [stats, favorites, wishlistItems, recentActivities] = await Promise.all([
 ])
 ---
 
-<DashboardLayout title="Profile - Resonance">
+<DashboardLayout title={profileT.meta.title}>
   {!session ? (
     <!-- Sign-in form when not authenticated -->
     <div class="flex min-h-[60vh] items-center justify-center">
@@ -57,14 +64,14 @@ const [stats, favorites, wishlistItems, recentActivities] = await Promise.all([
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
           </div>
-          <h1 class="text-gradient-resonance text-3xl font-bold mb-2">Sign in required</h1>
-          <p class="text-muted">Sign in to access your profile</p>
+          <h1 class="text-gradient-resonance text-3xl font-bold mb-2">{profileT.unauthenticated.title}</h1>
+          <p class="text-muted">{profileT.unauthenticated.description}</p>
         </div>
 
         <form method="POST" action="/api/auth/sign-in/email" class="glass-card rounded-2xl p-8 space-y-6">
           <div>
             <label for="email-profile" class="block text-sm font-medium text-neutral mb-2">
-              Email
+              {profileT.unauthenticated.emailLabel}
             </label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -76,14 +83,14 @@ const [stats, favorites, wishlistItems, recentActivities] = await Promise.all([
                 name="email"
                 required
                 class="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-surface text-neutral placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-                placeholder="you@example.com"
+                placeholder={profileT.unauthenticated.emailPlaceholder}
               />
             </div>
           </div>
 
           <div>
             <label for="password-profile" class="block text-sm font-medium text-neutral mb-2">
-              Password
+              {profileT.unauthenticated.passwordLabel}
             </label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -95,7 +102,7 @@ const [stats, favorites, wishlistItems, recentActivities] = await Promise.all([
                 name="password"
                 required
                 class="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-surface text-neutral placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-                placeholder="••••••••"
+                placeholder={profileT.unauthenticated.passwordPlaceholder}
               />
             </div>
           </div>
@@ -104,16 +111,16 @@ const [stats, favorites, wishlistItems, recentActivities] = await Promise.all([
             type="submit"
             class="btn-primary-gradient w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2"
           >
-            Sign in
+            {profileT.unauthenticated.submit}
           </button>
 
           <div class="text-center text-sm text-muted">
-            No account yet?{' '}
+            {profileT.unauthenticated.noAccountPrefix}{' '}
             <a
               href="/signup"
               class="text-primary hover:text-primary-hover font-medium"
             >
-              Create an account
+              {profileT.unauthenticated.createAccount}
             </a>
           </div>
         </form>
@@ -129,42 +136,42 @@ const [stats, favorites, wishlistItems, recentActivities] = await Promise.all([
       <StatsGrid stats={stats} />
 
       <!-- Tabs: Favorites | Wishlist | Statistics | All Formats -->
-      <ProfileTabs>
+      <ProfileTabs tabsAriaLabel={profileT.tabs.ariaLabel}>
         <div slot="favorites" data-tab-content="favorites">
-          <FavoritesByGenre favorites={favorites} />
+          <FavoritesByGenre favorites={favorites} emptyLabels={profileT.favoritesEmpty} actionLabels={itemT.actions} />
         </div>
 
         <div slot="wishlist" data-tab-content="wishlist">
-          <WishlistGrid wishlistItems={wishlistItems} />
+          <WishlistGrid wishlistItems={wishlistItems} wishlist={profileT.wishlist} />
         </div>
 
         <div slot="statistics" data-tab-content="statistics">
           <div class="min-w-0 space-y-8">
             <!-- Recent activity -->
             <div>
-              <h2 class="mb-4 text-xl font-bold text-neutral">Recent activity</h2>
-              <ActivityTimeline activities={recentActivities} />
+              <h2 class="mb-4 text-xl font-bold text-neutral">{profileT.sections.recentActivity}</h2>
+              <ActivityTimeline activities={recentActivities} activity={profileT.activity} />
             </div>
 
             <!-- Import/Export -->
-            <ImportExport />
+            <ImportExport labels={profileT.importExport} />
 
             <!-- Quick stats -->
             <div>
-              <h2 class="mb-4 text-xl font-bold text-neutral">Quick statistics</h2>
+              <h2 class="mb-4 text-xl font-bold text-neutral">{profileT.sections.quickStatistics}</h2>
               <StatsGrid stats={stats} />
             </div>
             
             <!-- Charts -->
             <div>
-              <h2 class="mb-4 text-xl font-bold text-neutral">Visual statistics</h2>
-              <StatsCharts userId={user.id} />
+              <h2 class="mb-4 text-xl font-bold text-neutral">{profileT.sections.visualStatistics}</h2>
+              <StatsCharts userId={user.id} chartsLabels={profileT.charts} />
             </div>
           </div>
         </div>
 
         <div slot="all-formats" data-tab-content="all-formats">
-          <RecentCollections userId={user.id} />
+          <RecentCollections userId={user.id} labels={profileT.recentCollections} />
         </div>
       </ProfileTabs>
     </div>

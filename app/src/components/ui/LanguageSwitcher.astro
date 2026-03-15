@@ -1,135 +1,107 @@
 ---
-/**
- * Language switcher for i18n.
- * UX: Use in Settings (canonical), Sidebar (quick access), and link from AppHeader dropdown.
- * Persists choice in cookie "resonance-locale" for SSR; document.documentElement.lang is set on client.
- */
-import Globe from '@lucide/astro/icons/globe'
+import type { Locale } from '../../i18n/config'
+import { locales } from '../../i18n/config'
+import { localeLabels } from '../../data/locale-labels'
+import FlagLocale from './flags/FlagLocale.astro'
 
-type LocaleOption = {
-  value: string
-  label: string
+type Props = {
+  currentLocale: Locale
+  variant: 'sidebar' | 'navbar' | 'settings'
+  languageLabel?: string
 }
 
-const locales: LocaleOption[] = [
-  { value: 'en', label: 'English' },
-  { value: 'fr', label: 'Français' },
-]
-
-type LanguageSwitcherProps = {
-  variant?: 'sidebar' | 'settings'
-  /** Current locale from server (Astro.locals.locale) so the select shows the right value and we persist to user profile when logged in */
-  currentLocale?: string
-}
-
-const { variant = 'settings', currentLocale = 'en' } = Astro.props as LanguageSwitcherProps
-const safeLocale = ['en', 'fr'].includes(currentLocale) ? currentLocale : 'en'
+const { currentLocale, variant, languageLabel = 'Language' } = Astro.props as Props
+const flagSize = variant === 'settings' ? 22 : 18
 ---
 
-<div class="language-switcher-wrapper" data-variant={variant} data-initial-locale={safeLocale}>
-  {variant === 'sidebar' && (
-    <div class="flex items-center justify-between rounded-lg bg-surface p-3 border border-border/50">
-      <div class="flex items-center gap-2">
-        <Globe size={18} class="text-muted fill-none stroke-2" aria-hidden="true" />
-        <div>
-          <p class="text-sm font-medium text-neutral mb-0.5">Language</p>
-          <p class="text-xs text-muted">Display language</p>
-        </div>
-      </div>
-      <select
-        id="language-select-sidebar"
-        class="language-select rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-neutral focus:outline-none focus:ring-2 focus:ring-primary/50"
-        aria-label="Display language"
-        data-language-select
-      >
-        {locales.map((loc) => (
-          <option value={loc.value} selected={loc.value === safeLocale}>{loc.label}</option>
-        ))}
-      </select>
-    </div>
-  )}
+{variant === 'settings' && (
+  <div class="flex items-center gap-3">
+    <FlagLocale locale={currentLocale} size={flagSize} />
+    <select
+      id="settings-locale-select"
+      class="locale-select flex-1 rounded-lg border border-border bg-surface px-4 py-2 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 min-w-40"
+      aria-label={languageLabel}
+    >
+      {locales.map((loc) => (
+        <option value={loc} selected={loc === currentLocale}>
+          {localeLabels[loc]}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
 
-  {variant === 'settings' && (
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-xl border border-border/50 bg-surface hover:bg-surface-elevated transition-colors">
-      <div>
-        <h3 class="font-medium text-neutral mb-1">Language</h3>
-        <p class="text-sm text-muted">Choose the display language for the app</p>
-      </div>
-      <div class="shrink-0">
-        <select
-          id="language-select-settings"
-          class="language-select min-w-40 rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium text-neutral focus:outline-none focus:ring-2 focus:ring-primary/50"
-          aria-label="Display language"
-          data-language-select
-        >
-          {locales.map((loc) => (
-            <option value={loc.value} selected={loc.value === safeLocale}>{loc.label}</option>
-          ))}
-        </select>
-      </div>
-    </div>
-  )}
-</div>
+{(variant === 'sidebar' || variant === 'navbar') && (
+  <div class="language-switcher-compact flex items-center gap-2" data-current-locale={currentLocale}>
+    <FlagLocale locale={currentLocale} size={flagSize} />
+    <span class="locale-label text-sm font-medium text-neutral truncate max-w-24">
+      {localeLabels[currentLocale]}
+    </span>
+    <select
+      aria-label={languageLabel}
+      class="locale-select-compact absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+      data-current={currentLocale}
+    >
+      {locales.map((loc) => (
+        <option value={loc} selected={loc === currentLocale}>
+          {localeLabels[loc]}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
+
+<style>
+  .language-switcher-compact {
+    position: relative;
+    min-height: 2rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .language-switcher-compact:hover {
+    border-color: oklch(from var(--color-primary) l c h / 0.5);
+    background: oklch(from var(--color-primary) l c h / 0.08);
+  }
+  .locale-select-compact {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1;
+  }
+</style>
 
 <script>
-  const COOKIE_NAME = 'resonance-locale'
-  const COOKIE_MAX_AGE_DAYS = 365
-  const LOCALE_LABELS = { en: 'English', fr: 'Français' }
-
-  function getStoredLocale() {
-    if (typeof document === 'undefined') return 'en'
-    const match = document.cookie.match(new RegExp(`(?:^|; )${COOKIE_NAME}=([^;]*)`))
-    return match ? decodeURIComponent(match[1]) : 'en'
-  }
-
-  async function setLocale(value: string) {
-    try {
-      const response = await fetch('/api/profile/locale', {
-        method: 'PATCH',
+  (function() {
+    function setLocaleCookie(value: string) {
+      document.cookie = 'locale=' + value + '; path=/; max-age=' + (60 * 60 * 24 * 365) + '; SameSite=Lax'
+    }
+    function handleLocaleChange(select: HTMLSelectElement) {
+      const value = select.value
+      if (!value) return
+      fetch('/api/profile/preferences', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ locale: value }),
       })
-      if (!response.ok && response.status !== 401) {
-        const data = await response.json().catch(() => ({}))
-        if (window.toast) window.toast.error(data.error ?? 'Failed to save language')
-        return
+        .then(function(response) {
+          if (response.ok || response.status === 401) {
+            setLocaleCookie(value)
+            setTimeout(function() {
+              window.location.reload()
+            }, 0)
+          }
+        })
+        .catch(function() {})
+    }
+    document.addEventListener('change', function(event) {
+      const target = event.target
+      if (target instanceof HTMLSelectElement && (target.classList.contains('locale-select') || target.classList.contains('locale-select-compact'))) {
+        handleLocaleChange(target)
       }
-    } catch {
-      if (window.toast) window.toast.error('Failed to save language')
-      return
-    }
-    document.cookie = `${COOKIE_NAME}=${encodeURIComponent(value)}; path=/; max-age=${COOKIE_MAX_AGE_DAYS * 24 * 60 * 60}; SameSite=Lax`
-    document.documentElement.lang = value
-    if (window.toast) {
-      const label = (LOCALE_LABELS as Record<string, string>)[value] ?? value
-      window.toast.success(`${label} enabled`)
-    }
-    window.location.reload()
-  }
-
-  function initLanguageSwitcher() {
-    const wrapper = document.querySelector('[data-initial-locale]')
-    const serverLocale = wrapper?.getAttribute('data-initial-locale') ?? null
-    const stored = serverLocale ?? getStoredLocale()
-
-    const selects = document.querySelectorAll<HTMLSelectElement>('[data-language-select]')
-    selects.forEach((select) => {
-      if (select.value !== stored) select.value = stored
-      select.addEventListener('change', (event: Event) => {
-        const target = event.target as HTMLSelectElement | null
-        if (target?.value) setLocale(target.value)
-      })
     })
-    if (document.documentElement.lang !== stored) {
-      document.documentElement.lang = stored
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initLanguageSwitcher)
-  } else {
-    initLanguageSwitcher()
-  }
-
-  document.addEventListener('astro:page-load', initLanguageSwitcher)
+  })()
 </script>

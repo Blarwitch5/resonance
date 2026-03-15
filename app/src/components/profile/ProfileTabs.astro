@@ -8,9 +8,10 @@ import type { ComponentProps } from 'astro/types'
 type ProfileTabsProps = {
   activeTab?: string
   slot?: string
+  tabsAriaLabel?: string
 }
 
-const { activeTab = 'favorites', slot: defaultSlot } = Astro.props as ProfileTabsProps
+const { activeTab = 'favorites', slot: defaultSlot, tabsAriaLabel = 'Profile sections' } = Astro.props as ProfileTabsProps
 ---
 
 <div class="min-w-0 space-y-6">
@@ -20,7 +21,7 @@ const { activeTab = 'favorites', slot: defaultSlot } = Astro.props as ProfileTab
       id="profile-tablist"
       class="flex min-w-0 gap-2 overflow-x-auto px-4 -mx-4 pb-1 no-scrollbar snap-x snap-mandatory md:mx-0 md:px-0 md:overflow-visible md:snap-none"
       role="tablist"
-      aria-label="Profile sections"
+      aria-label={tabsAriaLabel}
     >
       <button
         type="button"
@@ -198,6 +199,9 @@ const { activeTab = 'favorites', slot: defaultSlot } = Astro.props as ProfileTab
             element.classList.remove('hidden')
             element.classList.add('active')
             element.style.display = 'block'
+            if (tabName === 'statistics') {
+              window.dispatchEvent(new CustomEvent('profile-tab-statistics-visible'))
+            }
           } else {
             element.classList.add('hidden')
             element.classList.remove('active')

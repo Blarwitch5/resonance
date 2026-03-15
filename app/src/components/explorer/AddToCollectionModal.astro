@@ -2,13 +2,18 @@
 import X from '@lucide/astro/icons/x'
 import Heart from '@lucide/astro/icons/heart'
 import type { Collection } from '@prisma/client'
+import { getExplorerMessages } from '../../i18n/explorer'
+import type { ExplorerMessages } from '../../i18n/explorer'
 
 type AddToCollectionModalProps = {
   collections: Collection[]
   itemId?: string
+  addToCollection?: ExplorerMessages['addToCollection']
+  client?: ExplorerMessages['client']
 }
 
-const { collections, itemId } = Astro.props as AddToCollectionModalProps
+const defaultMessages = getExplorerMessages('en')
+const { collections, itemId, addToCollection: addToCollectionLabels = defaultMessages.addToCollection, client: clientMessages = defaultMessages.client } = Astro.props as AddToCollectionModalProps
 ---
 
 <!-- Modal backdrop -->
@@ -25,8 +30,8 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
   <!-- Modal content -->
   <div class="modal-content glass-card relative z-10 w-full max-w-md rounded-2xl p-6 shadow-2xl">
     <div class="mb-6 flex items-center justify-between">
-      <h2 id="add-to-collection-title" class="text-2xl font-bold text-neutral">Add to a collection</h2>
-      <button type="button" class="close-modal text-muted hover:text-neutral" aria-label="Close the Add to collection window">
+      <h2 id="add-to-collection-title" class="text-2xl font-bold text-neutral">{addToCollectionLabels.title}</h2>
+      <button type="button" class="close-modal text-muted hover:text-neutral" aria-label={addToCollectionLabels.closeModalAria}>
         <X size={24} />
       </button>
     </div>
@@ -36,13 +41,13 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
       <button
         type="button"
         class="wishlist-add-btn w-full rounded-xl border-2 border-pink-500/30 bg-pink-500/10 p-4 text-left transition-all hover:border-pink-500/50 hover:bg-pink-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-        data-original-text="Add to wishlist"
+        data-original-text={addToCollectionLabels.addToWishlist}
       >
         <div class="flex items-center gap-3">
           <Heart size={20} class="fill-none stroke-2 text-pink-500 stroke-pink-500" />
           <div>
-            <h3 class="font-medium text-neutral">Add to wishlist</h3>
-            <p class="text-sm text-muted">Save for later</p>
+            <h3 class="font-medium text-neutral">{addToCollectionLabels.addToWishlist}</h3>
+            <p class="text-sm text-muted">{addToCollectionLabels.saveForLater}</p>
           </div>
         </div>
       </button>
@@ -51,15 +56,15 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
 
       {collections.length === 0 ? (
         <div class="rounded-xl border border-dashed border-border bg-surface p-8 text-center">
-          <p class="mb-4 font-medium text-neutral">No collection available</p>
+          <p class="mb-4 font-medium text-neutral">{addToCollectionLabels.noCollectionAvailable}</p>
           <p class="mb-4 text-sm text-muted">
-            Create your first collection to organize your albums.
+            {addToCollectionLabels.noCollectionHint}
           </p>
           <a
             href="/collections/new"
             class="btn-primary-gradient inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm"
           >
-            Create a collection
+            {addToCollectionLabels.createCollection}
           </a>
         </div>
       ) : (
@@ -68,7 +73,7 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
             type="button"
             class="collection-add-btn btn-secondary-surface w-full rounded-xl p-4 text-left disabled:opacity-50 disabled:cursor-not-allowed"
             data-collection-id={collection.id}
-            data-original-text="Add"
+            data-original-text={addToCollectionLabels.add}
           >
             <h3 class="font-medium">{collection.name}</h3>
             {collection.description && (
@@ -84,29 +89,43 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
         type="button"
         class="btn-secondary-surface close-modal rounded-xl px-4 py-2"
       >
-        Cancel
+        {addToCollectionLabels.cancel}
       </button>
       <a
         href="/collections/new"
         class="btn-primary-gradient rounded-xl px-4 py-2"
       >
-        New collection
+        {addToCollectionLabels.newCollection}
       </a>
     </div>
   </div>
 </div>
 
-<script>
-  // TypeScript fonctionne nativement dans les scripts Astro !
+<script type="application/json" id="add-to-collection-modal-messages" set:html={JSON.stringify({
+  addToCollectionLabels,
+  clientMessages,
+}).replace(/<\/script/gi, '<\\/script')}></script>
+
+<script is:inline>
   (function() {
-    // Gestion ouverture/fermeture modal
+    let addToCollectionLabels = {}
+    let clientMessages = {}
+    try {
+      const el = document.getElementById('add-to-collection-modal-messages')
+      if (el && el.textContent) {
+        const parsed = JSON.parse(el.textContent)
+        addToCollectionLabels = parsed.addToCollectionLabels || {}
+        clientMessages = parsed.clientMessages || {}
+      }
+    } catch (e) { console.warn('Could not parse add-to-collection-modal-messages', e) }
+
     const modal = document.getElementById('add-to-collection-modal')
     if (!modal) return
 
     const closeButtons = document.querySelectorAll('.close-modal')
-    let lastActiveElement: HTMLElement | null = null
+    let lastActiveElement = null
 
-    function closeModal(): void {
+    function closeModal() {
       const currentModal = document.getElementById('add-to-collection-modal')
       if (!currentModal) return
       currentModal.classList.add('hidden')
@@ -123,8 +142,7 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
       btn.addEventListener('click', closeModal)
     })
 
-    // Fermer avec Escape (uniquement quand le modal est ouvert) + piège de focus
-    modal.addEventListener('keydown', function(event: KeyboardEvent) {
+    modal.addEventListener('keydown', function(event) {
       if (event.key === 'Escape') {
         event.stopPropagation()
         if (!modal.classList.contains('hidden')) {
@@ -166,12 +184,12 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
         if (event.shiftKey) {
           if (current === firstElement || !modal.contains(current)) {
             event.preventDefault()
-            ;(lastElement as HTMLElement).focus()
+            if (lastElement && lastElement.focus) lastElement.focus()
           }
         } else {
           if (current === lastElement || !modal.contains(current)) {
             event.preventDefault()
-            ;(firstElement as HTMLElement).focus()
+            if (firstElement && firstElement.focus) firstElement.focus()
           }
         }
       }
@@ -186,18 +204,16 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
     // Empêcher la fermeture en cliquant sur le contenu du modal
     const modalContent = document.querySelector('.modal-content')
     if (modalContent) {
-      modalContent.addEventListener('click', (event: Event) => {
+      modalContent.addEventListener('click', function(event) {
         event.stopPropagation()
       })
     }
 
-    // Fonction pour attacher les listeners aux boutons
-    function attachButtonListeners(): void {
-      // Bouton wishlist
-      const wishlistButton = document.querySelector('.wishlist-add-btn') as HTMLButtonElement | null
+    function attachButtonListeners() {
+      const wishlistButton = document.querySelector('.wishlist-add-btn')
       if (wishlistButton && !wishlistButton.hasAttribute('data-listener-attached')) {
         wishlistButton.setAttribute('data-listener-attached', 'true')
-        wishlistButton.addEventListener('click', async function(event: Event) {
+        wishlistButton.addEventListener('click', async function(event) {
           event.preventDefault()
           event.stopPropagation()
           
@@ -209,44 +225,34 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
           }
 
           // Set loading state
-          const originalText = wishlistButton.getAttribute('data-original-text') || 'Add to wishlist'
+          const originalText = wishlistButton.getAttribute('data-original-text') || addToCollectionLabels.addToWishlist
           if (window.setButtonLoading) {
             window.setButtonLoading(wishlistButton, true, originalText)
           } else {
             wishlistButton.disabled = true
-            wishlistButton.textContent = 'Adding...'
+            wishlistButton.textContent = addToCollectionLabels.adding
           }
 
           try {
             // Récupérer les détails de la release Discogs
-            const releaseResponse = await fetch(`/api/discogs/release/${discogsId}`)
+            const releaseResponse = await fetch('/api/discogs/release/' + discogsId)
             if (!releaseResponse.ok) {
-              throw new Error('Failed to fetch release details')
+              throw new Error(addToCollectionLabels.fetchReleaseError)
             }
 
             const release = await releaseResponse.json()
-
-            // Déterminer le format
-            let format: 'VINYL' | 'CD' | 'CASSETTE' = 'VINYL'
-            const formatNames = release.formats?.map((formatItem: { name: string }) => formatItem.name.toUpperCase()) || []
-            if (formatNames.some((formatName: string) => formatName.includes('CD'))) {
-              format = 'CD'
-            } else if (formatNames.some((formatName: string) => formatName.includes('CASSETTE'))) {
-              format = 'CASSETTE'
-            }
-
-            const primaryArtist = release.artists?.[0]?.name || 'Unknown Artist'
-            const year = release.year || parseInt(release.released || '0') || null
-
-            // Extraire la meilleure cover
-            type DiscogsImage = { type?: string; uri?: string; resource_url?: string }
-            type DiscogsRelease = { images?: DiscogsImage[]; cover_image?: string; thumb?: string }
-            const getBestCoverUrl = (release: DiscogsRelease): string | null => {
-              if (release.images && release.images.length > 0) {
-                const primaryImage = release.images.find((image: DiscogsImage) => image.type === 'primary') || release.images[0]
+            let format = 'VINYL'
+            const formatNames = (release.formats && release.formats.map(function(f) { return f.name.toUpperCase() })) || []
+            if (formatNames.some(function(n) { return n.includes('CD') })) format = 'CD'
+            else if (formatNames.some(function(n) { return n.includes('CASSETTE') })) format = 'CASSETTE'
+            const primaryArtist = (release.artists && release.artists[0] && release.artists[0].name) || clientMessages.unknownArtist
+            const year = release.year || parseInt(release.released || '0', 10) || null
+            function getBestCoverUrl(rd) {
+              if (rd.images && rd.images.length > 0) {
+                const primaryImage = rd.images.find(function(img) { return img.type === 'primary' }) || rd.images[0]
                 return primaryImage.uri || primaryImage.resource_url || null
               }
-              return release.cover_image || release.thumb || null
+              return rd.cover_image || rd.thumb || null
             }
 
             // Add to wishlist
@@ -260,7 +266,7 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
                 title: release.title,
                 artist: primaryArtist,
                 year,
-                genre: release.genres?.[0] || release.styles?.[0] || null,
+                genre: (release.genres && release.genres[0]) || (release.styles && release.styles[0]) || null,
                 coverUrl: getBestCoverUrl(release),
                 format,
                 priority: 1,
@@ -269,7 +275,7 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
 
             if (!wishlistResponse.ok) {
               const error = await wishlistResponse.json()
-              throw new Error(error.error || 'Failed to add to wishlist')
+              throw new Error(error.error || addToCollectionLabels.failedToAddToWishlist)
             }
 
             // Success
@@ -279,12 +285,12 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
             modal.removeAttribute('data-redirect-on-success')
             
             if (window.toast) {
-              window.toast.success('Album successfully added to wishlist!')
+              window.toast.success(addToCollectionLabels.addedToWishlistToast)
             }
           } catch (error) {
             console.error('Error adding to wishlist:', error)
             if (window.toast) {
-              window.toast.error('Error: ' + (error instanceof Error ? error.message : 'An unexpected error occurred'))
+              window.toast.error(clientMessages.generalSearchError)
             }
             // Reset loading state
             if (window.setButtonLoading) {
@@ -297,15 +303,11 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
         })
       }
 
-      // Boutons de collection
       const collectionButtons = document.querySelectorAll('.collection-add-btn')
-      collectionButtons.forEach((button) => {
-        if (button.hasAttribute('data-listener-attached')) {
-          return
-        }
+      collectionButtons.forEach(function(button) {
+        if (button.hasAttribute('data-listener-attached')) return
         button.setAttribute('data-listener-attached', 'true')
-        
-        button.addEventListener('click', async function(event: Event) {
+        button.addEventListener('click', async function(event) {
           event.preventDefault()
           event.stopPropagation()
           
@@ -319,113 +321,107 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
           }
 
           // Set loading state
-          const originalText = button.getAttribute('data-original-text') || 'Add'
+          const originalText = button.getAttribute('data-original-text') || addToCollectionLabels.add
           if (window.setButtonLoading) {
-            window.setButtonLoading(button as HTMLElement, true, originalText)
+            window.setButtonLoading(button, true, originalText)
           } else {
-            (button as HTMLButtonElement).disabled = true
-            button.textContent = 'Adding...'
+            button.disabled = true
+            button.textContent = addToCollectionLabels.adding
           }
 
           try {
             // Récupérer les détails de la release Discogs
-            const releaseResponse = await fetch(`/api/discogs/release/${discogsId}`)
+            const releaseResponse = await fetch('/api/discogs/release/' + discogsId)
             if (!releaseResponse.ok) {
-              throw new Error('Failed to fetch release details')
+              throw new Error(addToCollectionLabels.fetchReleaseError)
             }
 
             const release = await releaseResponse.json()
-
-            // Déterminer le format
-            let format: 'VINYL' | 'CD' | 'CASSETTE' = 'VINYL'
-            const formatNames = release.formats?.map((formatItem: { name: string }) => formatItem.name.toUpperCase()) || []
-            if (formatNames.some((formatName: string) => formatName.includes('CD'))) {
-              format = 'CD'
-            } else if (formatNames.some((formatName: string) => formatName.includes('CASSETTE'))) {
-              format = 'CASSETTE'
-            }
-
-            const primaryArtist = release.artists?.[0]?.name || 'Unknown Artist'
-            const year = release.year || parseInt(release.released || '0') || null
-
-            // Extraire la meilleure cover
-            type DiscogsImage = { type?: string; uri?: string; resource_url?: string }
-            type DiscogsRelease = { images?: DiscogsImage[]; cover_image?: string; thumb?: string }
-            const getBestCoverUrl = (release: DiscogsRelease): string | null => {
-              if (release.images && release.images.length > 0) {
-                const primaryImage = release.images.find((image: DiscogsImage) => image.type === 'primary') || release.images[0]
+            let format = 'VINYL'
+            const formatNames = (release.formats && release.formats.map(function(f) { return f.name.toUpperCase() })) || []
+            if (formatNames.some(function(n) { return n.includes('CD') })) format = 'CD'
+            else if (formatNames.some(function(n) { return n.includes('CASSETTE') })) format = 'CASSETTE'
+            const primaryArtist = (release.artists && release.artists[0] && release.artists[0].name) || clientMessages.unknownArtist
+            const year = release.year || parseInt(release.released || '0', 10) || null
+            function getBestCoverUrl(rd) {
+              if (rd.images && rd.images.length > 0) {
+                const primaryImage = rd.images.find(function(img) { return img.type === 'primary' }) || rd.images[0]
                 return primaryImage.uri || primaryImage.resource_url || null
               }
-              return release.cover_image || release.thumb || null
+              return rd.cover_image || rd.thumb || null
+            }
+            const barcodeVal = null
+            if (release.identifiers && release.identifiers.length) {
+              const barcodeId = release.identifiers.find(function(id) { return id.type === 'Barcode' })
+              if (barcodeId) barcodeVal = barcodeId.value
+            }
+            const releasePayload = {
+              discogsId: release.id,
+              title: release.title,
+              artist: primaryArtist,
+              year,
+              genre: (release.genres && release.genres[0]) || (release.styles && release.styles[0]) || null,
+              country: release.country || null,
+              label: (release.labels && release.labels[0] && release.labels[0].name) || null,
+              format,
+              barcode: barcodeVal,
+              coverUrl: getBestCoverUrl(release),
             }
 
-            // Create item
-            const createResponse = await fetch('/api/items/create', {
+            const addResponse = await fetch('/api/collections/' + collectionId + '/add-by-discogs', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({
-                discogsId: release.id,
-                title: release.title,
-                artist: primaryArtist,
-                year,
-                genre: release.genres?.[0] || release.styles?.[0] || null,
-                country: release.country || null,
-                label: release.labels?.[0]?.name || null,
-                format,
-                barcode: release.identifiers?.find((id: { type: string; value: string }) => id.type === 'Barcode')?.value || null,
-                coverUrl: getBestCoverUrl(release),
-              }),
-            })
-
-            if (!createResponse.ok) {
-              const error = await createResponse.json()
-              throw new Error(error.error || 'Failed to create item')
-            }
-
-            const item = await createResponse.json()
-
-            // Add item to collection
-            const addResponse = await fetch(`/api/collections/${collectionId}/add-item`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ itemId: item.id }),
+              body: JSON.stringify(releasePayload),
             })
 
             if (!addResponse.ok) {
               const error = await addResponse.json()
-              throw new Error(error.error || 'Failed to add item to collection')
+              throw new Error(error.error || addToCollectionLabels.failedToAddToCollection)
             }
 
-            // Success
+            const result = await addResponse.json()
+            const item = result.item
+            const alreadyInCollection = result.alreadyInCollection === true
+
             if (!modal) return
             const redirectOnSuccess = modal.getAttribute('data-redirect-on-success')
-            modal.classList.add('hidden')
-            modal.style.display = ''
-            modal.removeAttribute('data-discogs-id')
-            modal.removeAttribute('data-redirect-on-success')
-            
+
             if (window.toast) {
-              window.toast.success('Album successfully added to collection!')
+              if (alreadyInCollection) {
+                window.toast.info(addToCollectionLabels.alreadyInCollectionToast)
+              } else {
+                window.toast.success(addToCollectionLabels.addedToCollectionToast)
+              }
             }
+
             if (redirectOnSuccess === 'true' && item && item.slug) {
+              modal.classList.add('hidden')
+              modal.style.display = ''
+              modal.removeAttribute('data-discogs-id')
+              modal.removeAttribute('data-redirect-on-success')
               setTimeout(function() {
                 window.location.href = '/items/' + item.slug
               }, 500)
+            } else {
+              // Garder le modal ouvert pour ajouter d'autres albums à des collections
+              if (window.setButtonLoading) {
+                window.setButtonLoading(button, false)
+              } else {
+                button.disabled = false
+                button.textContent = originalText
+              }
             }
           } catch (error) {
             console.error('Error adding to collection:', error)
             if (window.toast) {
-              window.toast.error('Error: ' + (error instanceof Error ? error.message : 'An error occurred'))
+              window.toast.error('Error: ' + (error && error.message ? error.message : clientMessages.genericError))
             }
-            // Reset loading state
             if (window.setButtonLoading) {
-              window.setButtonLoading(button as HTMLElement, false)
+              window.setButtonLoading(button, false)
             } else {
-              (button as HTMLButtonElement).disabled = false
+              button.disabled = false
               button.textContent = originalText
             }
           }
@@ -440,20 +436,16 @@ const { collections, itemId } = Astro.props as AddToCollectionModalProps
       attachButtonListeners()
     }
 
-    // Réattacher les listeners quand le modal s'ouvre (au cas où les boutons seraient re-rendus)
-    const observer = new MutationObserver(() => {
+    const observer = new MutationObserver(function() {
       if (modal && !modal.classList.contains('hidden')) {
-        // Mémoriser l'élément actif à l'ouverture si ce n'est pas déjà fait
-        if (!lastActiveElement && document.activeElement instanceof HTMLElement) {
+        if (!lastActiveElement && document.activeElement) {
           lastActiveElement = document.activeElement
         }
-
-        // Focus initial sur le premier bouton interactif du contenu
         const firstInteractive =
           modal.querySelector('.wishlist-add-btn') ||
           modal.querySelector('.collection-add-btn') ||
           modal.querySelector('button')
-        if (firstInteractive instanceof HTMLElement && typeof firstInteractive.focus === 'function') {
+        if (firstInteractive && typeof firstInteractive.focus === 'function') {
           firstInteractive.focus()
         }
 

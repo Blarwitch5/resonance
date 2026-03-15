@@ -1,19 +1,46 @@
 ---
 import Logo from './Logo.astro'
 import ThemeSwitcher from './ThemeSwitcher.astro'
+import LanguageSwitcher from './LanguageSwitcher.astro'
 import Avatar from './Avatar.astro'
 import Settings from '@lucide/astro/icons/settings'
 import User from '@lucide/astro/icons/user'
 import LogOut from '@lucide/astro/icons/log-out'
-import Globe from '@lucide/astro/icons/globe'
+import type { Locale } from '../../i18n/config'
 
 type AppHeaderProps = {
   userName?: string | null
   userEmail?: string | null
   userImageUrl?: string | null
+  currentLocale?: Locale
+  languageLabel?: string
+  backToLibraryAria?: string
+  myProfileLabel?: string
+  settingsLabel?: string
+  signOutLabel?: string
+  signInLabel?: string
+  themeChangeAria?: string
+  openProfileMenuAria?: string
+  profileMenuAria?: string
+  profileTitle?: string
 }
 
-const { userName, userEmail, userImageUrl } = Astro.props as AppHeaderProps
+const {
+  userName,
+  userEmail,
+  userImageUrl,
+  currentLocale = 'en',
+  languageLabel = 'Language',
+  backToLibraryAria = 'Back to my library',
+  myProfileLabel = 'My profile',
+  settingsLabel = 'Settings',
+  signOutLabel = 'Sign out',
+  signInLabel = 'Sign in',
+  themeChangeAria = 'Change theme',
+  openProfileMenuAria = 'Open profile menu',
+  profileMenuAria = 'Profile menu',
+  profileTitle = 'Profile',
+} = Astro.props as AppHeaderProps
 const hasUser = !!userName || !!userEmail
 ---
 
@@ -25,7 +52,7 @@ const hasUser = !!userName || !!userEmail
     <div class="flex h-16 items-center justify-between">
       <!-- Logo à gauche -->
       <div class="flex items-center">
-        <a href="/library" aria-label="Back to my library">
+        <a href="/library" aria-label={backToLibraryAria}>
           <Logo size="md" showText={true} noHover={false} />
         </a>
       </div>
@@ -35,7 +62,9 @@ const hasUser = !!userName || !!userEmail
         {hasUser ? (
           <>
             <!-- Theme toggle (mobile seulement) -->
-            <ThemeSwitcher size="md" variant="icon-only" />
+            <ThemeSwitcher size="md" variant="icon-only" ariaLabel={themeChangeAria} />
+            <!-- Langue (mobile) -->
+            <LanguageSwitcher currentLocale={currentLocale} variant="navbar" languageLabel={languageLabel} />
 
             <!-- Profil avec menu dropdown (mobile seulement) -->
             <div class="relative group">
@@ -43,11 +72,11 @@ const hasUser = !!userName || !!userEmail
                 type="button"
                 id="user-menu-trigger"
                 class="btn-icon flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden"
-                aria-label="Open profile menu"
+                aria-label={openProfileMenuAria}
                 aria-haspopup="menu"
                 aria-expanded="false"
                 aria-controls="user-menu-dropdown"
-                title={userName || userEmail || 'Profile'}
+                title={userName || userEmail || profileTitle}
               >
                 <Avatar
                   userName={userName}
@@ -63,7 +92,7 @@ const hasUser = !!userName || !!userEmail
                 id="user-menu-dropdown"
                 class="absolute right-0 top-full mt-2 hidden w-48 rounded-xl border border-border bg-surface-elevated shadow-lg backdrop-blur-sm"
                 role="menu"
-                aria-label="Profile menu"
+                aria-label={profileMenuAria}
               >
                 <div class="p-2">
                   {userName && (
@@ -83,23 +112,15 @@ const hasUser = !!userName || !!userEmail
                     role="menuitem"
                   >
                     <User size={16} />
-                    <span>My profile</span>
+                    <span>{myProfileLabel}</span>
                   </a>
-                  <a
-                    href="/settings"
-                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral transition-colors hover:bg-surface"
-                    role="menuitem"
-                  >
+          <a
+            href="/settings"
+            class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral transition-colors hover:bg-surface"
+            role="menuitem"
+          >
                     <Settings size={16} />
-                    <span>Settings</span>
-                  </a>
-                  <a
-                    href="/settings#language"
-                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral transition-colors hover:bg-surface"
-                    role="menuitem"
-                  >
-                    <Globe size={16} />
-                    <span>Language</span>
+                    <span>{settingsLabel}</span>
                   </a>
                   <div class="my-2 border-t border-border"></div>
                   <button
@@ -109,7 +130,7 @@ const hasUser = !!userName || !!userEmail
                     role="menuitem"
                   >
                     <LogOut size={16} />
-                    <span>Sign out</span>
+                    <span>{signOutLabel}</span>
                   </button>
                 </div>
               </div>
@@ -118,14 +139,14 @@ const hasUser = !!userName || !!userEmail
         ) : (
           <>
             <!-- Theme toggle (mobile only) -->
-            <ThemeSwitcher size="md" variant="icon-only" />
+            <ThemeSwitcher size="md" variant="icon-only" ariaLabel={themeChangeAria} />
             
             <!-- Sign in -->
             <a
               href="/login"
               class="btn-secondary-surface px-4 py-2 rounded-xl text-sm"
             >
-              Sign in
+              {signInLabel}
             </a>
           </>
         )}

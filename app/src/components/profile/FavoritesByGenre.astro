@@ -4,15 +4,31 @@ import type { Item, ItemMetadata } from '@prisma/client'
 import ItemCard from '../items/ItemCard.astro'
 import EmptyState from '../ui/EmptyState.astro'
 
-type FavoritesByGenreProps = {
-  favorites: Array<Item & { metadata: ItemMetadata | null }>
+type FavoritesEmptyLabels = {
+  emptyTitle: string
+  emptyDescription: string
+  exploreAction: string
+  noGenre: string
 }
 
-const { favorites } = Astro.props as FavoritesByGenreProps
+type FavoritesByGenreProps = {
+  favorites: Array<Item & { metadata: ItemMetadata | null }>
+  emptyLabels?: FavoritesEmptyLabels
+  actionLabels?: { addToFavorites: string; moreActions: string }
+}
+
+const defaultEmptyLabels: FavoritesEmptyLabels = {
+  emptyTitle: 'No favorites yet',
+  emptyDescription: 'Mark your favorite albums with a heart to build your personal selection and find them easily.',
+  exploreAction: 'Explore my collection',
+  noGenre: 'No genre',
+}
+
+const { favorites, emptyLabels = defaultEmptyLabels, actionLabels } = Astro.props as FavoritesByGenreProps
 
 // Grouper par genre
 const byGenre = favorites.reduce((acc, item) => {
-  const genre = item.genre || 'No genre'
+  const genre = item.genre || emptyLabels.noGenre
   if (!acc[genre]) {
     acc[genre] = []
   }
@@ -26,11 +42,11 @@ const genreEntries = Object.entries(byGenre).sort((a, b) => b[1].length - a[1].l
 <div class="min-w-0 space-y-8">
   {favorites.length === 0 ? (
     <EmptyState
-      title="No favorites yet"
-      description="Mark your favorite albums with a heart to build your personal selection and find them easily."
+      title={emptyLabels.emptyTitle}
+      description={emptyLabels.emptyDescription}
       icon={Heart}
       action={{
-        label: 'Explorer ma collection',
+        label: emptyLabels.exploreAction,
         href: '/library',
       }}
       size="sm"
@@ -43,7 +59,7 @@ const genreEntries = Object.entries(byGenre).sort((a, b) => b[1].length - a[1].l
         </h3>
         <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
           {items.map((item) => (
-            <ItemCard item={item} />
+            <ItemCard item={item} actionLabels={actionLabels} />
           ))}
         </div>
       </section>

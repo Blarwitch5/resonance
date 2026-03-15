@@ -8,10 +8,14 @@ import Menu from '@lucide/astro/icons/menu'
 import KeyboardShortcuts from '../ui/KeyboardShortcuts.astro'
 import BarcodeScanner from '../ui/BarcodeScanner.astro'
 import ConfirmDialog from '../ui/ConfirmDialog.astro'
+import { getLayoutMessages } from '../../i18n/layout'
+import { normalizeLocale } from '../../i18n/config'
 
 // Utiliser la session depuis le middleware (Astro.locals)
 const session = Astro.locals.session
 const user = Astro.locals.user
+const locale = normalizeLocale(Astro.locals.userPreferences?.locale ?? Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const layoutT = getLayoutMessages(locale)
 
 type SectionConfig = {
   title: string
@@ -44,35 +48,36 @@ const currentPath = props.currentPath ?? Astro.url?.pathname ?? '/'
 const activeSection = getActiveSection(currentPath)
 const isHomePage = currentPath === '/' || currentPath === '/index'
 
-// Section configuration
+// Section configuration (titres et descriptions traduits via layout i18n)
+const dashboardSections = layoutT.dashboard.sections
 const sections: Record<string, SectionConfig> = {
   vinyl: {
-    title: 'Vinyl Collection',
-    description: 'Manage your vinyl records',
+    title: dashboardSections.vinyl.title,
+    description: dashboardSections.vinyl.description,
     icon: '💿',
     color: 'format-vinyl',
   },
   cassette: {
-    title: 'Cassette Collection',
-    description: 'Manage your cassettes',
+    title: dashboardSections.cassette.title,
+    description: dashboardSections.cassette.description,
     icon: '📼',
     color: 'format-cassette',
   },
   cd: {
-    title: 'CD Collection',
-    description: 'Manage your CDs',
+    title: dashboardSections.cd.title,
+    description: dashboardSections.cd.description,
     icon: '💽',
     color: 'format-cd',
   },
   explorer: {
-    title: 'Explore',
-    description: 'Discover new albums',
+    title: dashboardSections.explorer.title,
+    description: dashboardSections.explorer.description,
     icon: '🔍',
     color: 'format-explorer',
   },
   profile: {
-    title: 'Profile',
-    description: 'Your favorites and statistics',
+    title: dashboardSections.profile.title,
+    description: dashboardSections.profile.description,
     icon: '👤',
     color: 'format-profile',
   },
@@ -81,19 +86,19 @@ const sections: Record<string, SectionConfig> = {
 const currentSection = sections[activeSection]
 
 // Generate a personalized welcome message
-function getWelcomeMessage(userName: string | null | undefined, userEmail: string | null | undefined): string {
+function getWelcomeMessage(userName: string | null | undefined, userEmail: string | null | undefined, greetings: { goodMorning: string; goodAfternoon: string; goodEvening: string; goodNight: string }): string {
   const name = userName || userEmail?.split('@')[0] || 'User'
   const hour = new Date().getHours()
   
-  let greeting = 'Hello'
+  let greeting: string
   if (hour >= 5 && hour < 12) {
-    greeting = 'Good morning'
+    greeting = greetings.goodMorning
   } else if (hour >= 12 && hour < 18) {
-    greeting = 'Good afternoon'
+    greeting = greetings.goodAfternoon
   } else if (hour >= 18 && hour < 22) {
-    greeting = 'Good evening'
+    greeting = greetings.goodEvening
   } else {
-    greeting = 'Good night'
+    greeting = greetings.goodNight
   }
   
   const messages = [
@@ -118,12 +123,42 @@ function getWelcomeMessage(userName: string | null | undefined, userEmail: strin
 >
   <!-- App Header (mobile seulement) -->
   <div class="md:hidden">
-    <AppHeader userName={user?.name || null} userEmail={user?.email || null} userImageUrl={user?.image || null} />
+    <AppHeader
+      userName={user?.name || null}
+      userEmail={user?.email || null}
+      userImageUrl={user?.image || null}
+      currentLocale={locale}
+      languageLabel={layoutT.appHeader.language}
+      backToLibraryAria={layoutT.appHeader.backToLibraryAria}
+      myProfileLabel={layoutT.appHeader.myProfile}
+      settingsLabel={layoutT.appHeader.settings}
+      signOutLabel={layoutT.appHeader.signOut}
+      signInLabel={layoutT.appHeader.signIn}
+      themeChangeAria={layoutT.sidebar.themeChangeAria}
+      openProfileMenuAria={layoutT.appHeader.openProfileMenuAria}
+      profileMenuAria={layoutT.appHeader.profileMenuAria}
+      profileTitle={layoutT.appHeader.profileTitle}
+    />
   </div>
 
   <div class="flex">
     <!-- Sidebar (desktop only) -->
-    <Sidebar userName={user?.name || null} userEmail={user?.email || null} userImageUrl={user?.image || null} currentLocale={Astro.locals.locale} />
+    <Sidebar
+      userName={user?.name || null}
+      userEmail={user?.email || null}
+      userImageUrl={user?.image || null}
+      currentLocale={locale}
+      languageLabel={layoutT.appHeader.language}
+      themeTitle={layoutT.sidebar.themeTitle}
+      themeDescription={layoutT.sidebar.themeDescription}
+      settingsLabel={layoutT.sidebar.settings}
+      signOutLabel={layoutT.sidebar.signOut}
+      userFallback={layoutT.sidebar.userFallback}
+      closeMenuLabel={layoutT.sidebar.closeMenuLabel}
+      themeChangeAria={layoutT.sidebar.themeChangeAria}
+      siteNavAria={layoutT.sidebar.siteNavAria}
+      navLabels={layoutT.nav}
+    />
 
     <!-- Main content area (min-w-0 allows flex child to shrink on mobile, avoiding horizontal overflow) -->
     <div class="min-w-0 flex-1 lg:ml-0">
@@ -134,19 +169,19 @@ function getWelcomeMessage(userName: string | null | undefined, userEmail: strin
             type="button"
             id="sidebar-toggle-btn"
             class="flex items-center justify-center gap-2 rounded-xl border border-border/30 bg-surface-elevated/95 px-4 py-2.5 text-sm font-medium text-neutral shadow-sm transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-            aria-label="Open menu"
+            aria-label={layoutT.sidebar.openMenuLabel}
             aria-expanded="false"
           >
             <Menu size={20} class="fill-none stroke-2 shrink-0" />
-            <span>Menu</span>
+            <span>{layoutT.sidebar.menuLabel}</span>
           </button>
         </div>
         <!-- Logo et titre (desktop seulement) -->
         <div class="hidden md:block mb-6">
           <!-- Logo animé -->
           <div class="flex flex-col items-center mb-4">
-            <a href="/library" aria-label="Back to my library" class="logo-animated">
-              <Logo size="2xl" showText={false} animated={true} noHover={false} />
+            <a href="/library" aria-label={layoutT.appHeader.backToLibraryAria} class="logo-animated">
+              <Logo size="2xl" showText={false} animated={true} noHover={false} backToHomeAria={layoutT.common.backToHome} />
             </a>
           </div>
           {!isHomePage && (
@@ -169,7 +204,7 @@ function getWelcomeMessage(userName: string | null | undefined, userEmail: strin
           <div class="hidden md:block mb-6">
             <div class="glass-card rounded-xl p-4 bg-gradient-resonance-subtle border border-primary/20">
               <p class="text-center text-neutral font-medium">
-                {getWelcomeMessage(user.name, user.email)}
+                {getWelcomeMessage(user.name, user.email, layoutT.common.greetings)}
               </p>
             </div>
           </div>
@@ -184,16 +219,16 @@ function getWelcomeMessage(userName: string | null | undefined, userEmail: strin
   </div>
 
   <!-- Toast notifications -->
-  <Toast />
+  <Toast closeAria={layoutT.common.closeAria} />
 
   <!-- Confirm Dialog -->
   <ConfirmDialog />
 
   <!-- Keyboard shortcuts -->
-  <KeyboardShortcuts />
+  <KeyboardShortcuts shortcutsHint={layoutT.common.shortcutsHint} />
 
   <!-- Barcode Scanner (mobile only) -->
-  <BarcodeScanner />
+  <BarcodeScanner barcodeMessages={layoutT.barcodeScanner} />
 
   </Layout>
 

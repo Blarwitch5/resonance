@@ -7,6 +7,9 @@ import SearchBar from '../components/explorer/SearchBar.astro'
 import FormatFilter from '../components/explorer/FormatFilter.astro'
 import AddToCollectionModal from '../components/explorer/AddToCollectionModal.astro'
 import RecommendationGrid from '../components/explorer/RecommendationGrid.astro'
+import { getExplorerMessages } from '../i18n/explorer'
+import { getLibraryMessages } from '../i18n/library'
+import { normalizeLocale } from '../i18n/config'
 import Search from '@lucide/astro/icons/search'
 
 export const prerender = false
@@ -14,6 +17,10 @@ export const prerender = false
 const session = Astro.locals.session
 const user = Astro.locals.user
 if (!session || !user) return Astro.redirect('/login')
+
+const locale = normalizeLocale(Astro.locals.userPreferences?.locale ?? Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const explorerT = getExplorerMessages(locale)
+const libraryT = getLibraryMessages(locale)
 
 const genreStats = await statsService.getRecentItemsByGenre(user.id)
 const topGenres = genreStats.slice(0, 3).map((g) => g.genre)
@@ -27,20 +34,24 @@ if (topGenres.length > 0) {
     const rawRecommendations = await discogsService.getRecommendations(topGenres, 24)
     recommendations = rawRecommendations.slice(0, 8)
   } catch (error) {
-    recommendationsError = error instanceof Error ? error.message : 'Unknown error'
+    recommendationsError = error instanceof Error ? error.message : explorerT.client.unknownError
   }
 }
 ---
 
-<DashboardLayout title="Explorer - Resonance">
+<DashboardLayout title={explorerT.meta.title}>
+  <script type="application/json" id="explorer-page-messages" set:html={JSON.stringify({
+    search: explorerT.search,
+    client: explorerT.client,
+    addToCollection: explorerT.addToCollection,
+  }).replace(/<\/script/gi, '<\\/script')}></script>
   <div class="space-y-8">
-    <!-- Search -->
     <section>
-      <h2 class="mb-4 text-xl font-bold">Search Discogs</h2>
+      <h2 class="mb-4 text-xl font-bold">{explorerT.search.title}</h2>
       <div class="mb-4">
-        <SearchBar />
+        <SearchBar search={explorerT.search} client={explorerT.client} addToCollection={explorerT.addToCollection} />
       </div>
-      <FormatFilter />
+      <FormatFilter formats={{ all: libraryT.formats.all, vinyl: libraryT.formats.vinyl, cassette: libraryT.formats.cassette, cd: libraryT.formats.cd }} />
     </section>
 
     <!-- Search results (loaded dynamically, champ recherche uniquement) -->
@@ -50,29 +61,41 @@ if (topGenres.length > 0) {
 
     <!-- Barcode results (manual input / scan, independent from search field) -->
     <section id="barcode-results-section" class="hidden">
-      <h2 id="barcode-results-title" class="mb-4 text-xl font-bold text-neutral">Results for barcode</h2>
+      <h2 id="barcode-results-title" class="mb-4 text-xl font-bold text-neutral">{explorerT.search.barcodeResultsTitle}</h2>
       <div id="barcode-results-container"></div>
     </section>
 
     <!-- Personalized recommendations -->
     {topGenres.length > 0 && (
       <section id="recommendations-section">
-        <h2 class="mb-4 text-xl font-bold">Recommendations for you</h2>
+        <h2 class="mb-4 text-xl font-bold">{explorerT.recommendations.title}</h2>
         <p class="mb-6 text-muted">
-          Based on your favorite genres: {topGenres.join(', ')}
+          {explorerT.recommendations.descriptionPrefix} {topGenres.join(', ')}
         </p>
         {recommendationsError ? (
           <div class="glass-card rounded-xl p-6 text-center">
-            <p class="text-muted mb-2">Unable to load recommendations.</p>
+            <p class="text-muted mb-2">{explorerT.recommendations.loadErrorTitle}</p>
             <p class="text-sm text-muted">{recommendationsError}</p>
           </div>
         ) : recommendations.length > 0 ? (
-          <RecommendationGrid recommendations={recommendations} />
+          <RecommendationGrid
+            recommendations={recommendations}
+            addToCollectionAria={explorerT.addToCollection.addToCollectionAria}
+            addToWishlistAria={explorerT.addToCollection.addToWishlistAria}
+            unknownArtistLabel={explorerT.client.unknownArtist}
+            scriptLabels={{
+              unknownArtist: explorerT.client.unknownArtist,
+              addedToWishlistToast: explorerT.addToCollection.addedToWishlistToast,
+              failedToAddToWishlist: explorerT.addToCollection.failedToAddToWishlist,
+              fetchReleaseError: explorerT.addToCollection.fetchReleaseError,
+              genericError: explorerT.client.genericError,
+            }}
+          />
         ) : (
           <div class="glass-card rounded-xl p-8 text-center">
-            <p class="mb-2 font-medium text-neutral">No recommendations yet</p>
+            <p class="mb-2 font-medium text-neutral">{explorerT.recommendations.emptyTitle}</p>
             <p class="text-sm text-muted">
-              Keep adding albums to your collection to receive personalized recommendations.
+              {explorerT.recommendations.emptyDescription}
             </p>
           </div>
         )}
@@ -81,9 +104,9 @@ if (topGenres.length > 0) {
 
     <!-- General discovery -->
     <section>
-      <h2 class="mb-4 text-xl font-bold">Discover</h2>
+      <h2 class="mb-4 text-xl font-bold">{explorerT.discover.title}</h2>
       <p class="mb-6 text-muted">
-        Search for an album, artist, or label to get started
+        {explorerT.discover.subtitle}
       </p>
       <div class="glass-card rounded-2xl p-12 text-center">
         <div
@@ -92,81 +115,94 @@ if (topGenres.length > 0) {
           <Search size={48} class="text-primary" />
         </div>
         <h3 class="font-display mb-4 text-xl font-semibold">
-          Search Discogs
+          {explorerT.discover.cardTitle}
         </h3>
         <p class="text-muted mx-auto max-w-md">
-          Discover over 25 million albums, vinyl records, CDs, and cassettes in the world's largest music database.
+          {explorerT.discover.cardDescription}
         </p>
       </div>
     </section>
   </div>
 
   <!-- Add to Collection Modal -->
-  <AddToCollectionModal collections={collections} />
+  <AddToCollectionModal collections={collections} addToCollection={explorerT.addToCollection} client={explorerT.client} />
 </DashboardLayout>
 
-<script>
-  // Au chargement : ?barcode= → recherche par code-barres uniquement (sans toucher au champ recherche)
-  // ?q= → general search from the search field
-  window.addEventListener('DOMContentLoaded', async () => {
-    const params = new URLSearchParams(window.location.search)
-    const barcode = params.get('barcode')?.trim()
-    const q = params.get('q')?.trim()
-
-    if (barcode) {
-      const section = document.getElementById('barcode-results-section')
-      const container = document.getElementById('barcode-results-container')
-      const title = document.getElementById('barcode-results-title')
-      if (title) title.textContent = `Results for barcode “${barcode}”`
-      if (!section || !container) return
-      section.classList.remove('hidden')
-      try {
-        const response = await fetch(`/api/discogs/search-by-barcode?barcode=${encodeURIComponent(barcode)}`)
-        const data = await response.json()
-        if (data.found && data.results?.length > 0) {
-          const renderRes = await fetch('/api/discogs/render-search-results', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ results: data.results }),
-          })
-          if (renderRes.ok) {
-            container.innerHTML = await renderRes.text()
-          } else {
-            const p = document.createElement('p')
-            p.className = 'text-muted'
-            p.textContent = 'Error while displaying results.'
-            container.replaceChildren(p)
-          }
-        } else {
-          const wrapper = document.createElement('div')
-          wrapper.className = 'glass-card rounded-2xl border border-border/50 p-8 text-center'
-          const p1 = document.createElement('p')
-          p1.className = 'text-lg font-medium text-neutral mb-2'
-          p1.textContent = 'No album found for this barcode.'
-          const p2 = document.createElement('p')
-          p2.className = 'text-sm text-muted'
-          p2.textContent = 'Check the code or try a search by artist/title in the field above.'
-          wrapper.appendChild(p1)
-          wrapper.appendChild(p2)
-          container.replaceChildren(wrapper)
-        }
-      } catch (error) {
-        console.error('Barcode search error:', error)
-        const wrapper = document.createElement('div')
-        wrapper.className = 'glass-card rounded-2xl border border-border/50 p-8 text-center'
-        const p = document.createElement('p')
-        p.className = 'text-muted'
-        p.textContent = 'Error while searching by barcode.'
-        wrapper.appendChild(p)
-        container.replaceChildren(wrapper)
+<script is:inline>
+  (function() {
+    let explorerSearch = {}
+    let explorerClient = {}
+    try {
+      const el = document.getElementById('explorer-page-messages')
+      if (el && el.textContent) {
+        const parsed = JSON.parse(el.textContent)
+        explorerSearch = parsed.search || {}
+        explorerClient = parsed.client || {}
       }
-      return
-    }
+    } catch (e) { console.warn('Could not parse explorer-page-messages', e) }
 
-    if (q) {
-      window.dispatchEvent(new CustomEvent('explorer-search-from-url', { detail: { query: q } }))
-    }
-  })
+    window.addEventListener('DOMContentLoaded', async function() {
+      const params = new URLSearchParams(window.location.search)
+      const barcodeParam = params.get('barcode')
+      const barcode = (barcodeParam && barcodeParam.trim) ? barcodeParam.trim() : ''
+      const qParam = params.get('q')
+      const q = (qParam && qParam.trim) ? qParam.trim() : ''
+
+      if (barcode) {
+        const section = document.getElementById('barcode-results-section')
+        const container = document.getElementById('barcode-results-container')
+        const titleEl = document.getElementById('barcode-results-title')
+        if (titleEl) titleEl.textContent = (explorerSearch.barcodeResultsTitleWithBarcode || '').replace('{barcode}', barcode)
+        if (!section || !container) return
+        section.classList.remove('hidden')
+        try {
+          const response = await fetch('/api/discogs/search-by-barcode?barcode=' + encodeURIComponent(barcode))
+          const data = await response.json()
+          if (data.found && data.results && data.results.length > 0) {
+            const renderRes = await fetch('/api/discogs/render-search-results', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ results: data.results }),
+            })
+            if (renderRes.ok) {
+              container.innerHTML = await renderRes.text()
+            } else {
+              const p = document.createElement('p')
+              p.className = 'text-muted'
+              p.textContent = explorerClient.barcodeErrorDisplay || ''
+              container.replaceChildren(p)
+            }
+          } else {
+            const wrapper = document.createElement('div')
+            wrapper.className = 'glass-card rounded-2xl border border-border/50 p-8 text-center'
+            const p1 = document.createElement('p')
+            p1.className = 'text-lg font-medium text-neutral mb-2'
+            p1.textContent = explorerClient.barcodeNoResults || ''
+            const p2 = document.createElement('p')
+            p2.className = 'text-sm text-muted'
+            p2.textContent = explorerSearch.barcodeNoResultsHint || ''
+            wrapper.appendChild(p1)
+            wrapper.appendChild(p2)
+            container.replaceChildren(wrapper)
+          }
+        } catch (error) {
+          console.error('Barcode search error:', error)
+          const errWrapper = document.createElement('div')
+          errWrapper.className = 'glass-card rounded-2xl border border-border/50 p-8 text-center'
+          const errP = document.createElement('p')
+          errP.className = 'text-muted'
+          errP.textContent = explorerClient.barcodeErrorSearch || ''
+          errWrapper.appendChild(errP)
+          container.replaceChildren(errWrapper)
+        }
+        return
+      }
+
+      if (q) {
+        window.dispatchEvent(new CustomEvent('explorer-search-from-url', { detail: { query: q } }))
+      }
+    })
+  })()
 </script>
 
 <style>

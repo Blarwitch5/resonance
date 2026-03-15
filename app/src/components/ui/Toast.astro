@@ -5,6 +5,10 @@
 // Accessibilité:
 // - conteneur avec aria-live pour annoncer les messages
 // - chaque toast a un role adapté (status / alert) selon le type
+type ToastProps = {
+  closeAria?: string
+}
+const { closeAria = 'Close' } = Astro.props as ToastProps
 ---
 
 <div
@@ -16,7 +20,10 @@
   <!-- Toasts will be dynamically added here -->
 </div>
 
+<script type="application/json" id="toast-messages" set:html={JSON.stringify({ closeAriaLabel: closeAria })}></script>
 <script>
+  const toastMessagesEl = document.getElementById('toast-messages')
+  const closeAriaLabel = (toastMessagesEl && JSON.parse(toastMessagesEl.textContent || '{}')).closeAriaLabel || 'Close'
   let toastIdCounter = 0
 
   const iconSvgByType: Record<'success' | 'error' | 'info' | 'warning', string> = {
@@ -66,7 +73,7 @@
     const closeBtn = document.createElement('button')
     closeBtn.type = 'button'
     closeBtn.className = 'toast-close shrink-0 rounded p-1 transition-colors hover:bg-black/10'
-    closeBtn.setAttribute('aria-label', 'Close')
+    closeBtn.setAttribute('aria-label', closeAriaLabel)
     closeBtn.innerHTML = closeButtonSvgMarkup
     closeBtn.addEventListener('click', () => removeToast(toast.id))
     toastElement.appendChild(closeBtn)

@@ -34,6 +34,8 @@ model User {
   preferredLocale String?      @default("en") // en, fr — used for UI language when user is logged in
   privateMetadata String?
   publicMetadata  String?
+  preferredTheme  String?      // 'light' | 'dark'
+  preferredLocale String?      // 'en' | 'fr'
   collections     Collection[]
   items           Item[]
   wishlist        Wishlist[]

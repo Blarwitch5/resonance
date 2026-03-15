@@ -4,22 +4,35 @@ import { collectionRepository } from '../../repositories/collection-repository'
 import CollectionCard from '../collections/CollectionCard.astro'
 import EmptyState from '../ui/EmptyState.astro'
 
-type RecentCollectionsProps = {
-  userId: string
+type RecentCollectionsLabels = {
+  emptyTitle: string
+  emptyDescription: string
+  createAction: string
 }
 
-const { userId } = Astro.props as RecentCollectionsProps
+type RecentCollectionsProps = {
+  userId: string
+  labels?: RecentCollectionsLabels
+}
+
+const defaultLabels: RecentCollectionsLabels = {
+  emptyTitle: 'No collections yet',
+  emptyDescription: 'Create your first collection to organize and group your albums by theme, genre, or era.',
+  createAction: 'Create a collection',
+}
+
+const { userId, labels = defaultLabels } = Astro.props as RecentCollectionsProps
 const collections = await collectionRepository.getRecentCollections(userId, 10)
 ---
 
 <div class="min-w-0 space-y-6">
   {collections.length === 0 ? (
     <EmptyState
-      title="No collections yet"
-      description="Create your first collection to organize and group your albums by theme, genre, or era."
+      title={labels.emptyTitle}
+      description={labels.emptyDescription}
       icon={Folder}
       action={{
-        label: 'Create a collection',
+        label: labels.createAction,
         href: '/collections/new',
       }}
       size="sm"

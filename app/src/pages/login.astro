@@ -7,12 +7,18 @@ import EyeOff from '@lucide/astro/icons/eye-off'
 import Layout from '../components/layouts/Layout.astro'
 import Logo from '../components/ui/Logo.astro'
 import OAuthButtons from '../components/auth/OAuthButtons.astro'
+import { getLoginMessages } from '../i18n/login'
+import { normalizeLocale } from '../i18n/config'
 
 export const prerender = false
+
+const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const t = getLoginMessages(locale)
 ---
 
 <Layout
-  title="Sign In - Resonance"
+  title={t.meta.title}
+  description={t.meta.description}
   showDashboardHeader={false}
   showBottomBar={false}
   showFooter={false}
@@ -25,7 +31,7 @@ export const prerender = false
       </div>
 
       <h1 class="mb-6 text-center text-2xl font-bold text-neutral">
-        Sign in to Resonance
+        {t.title}
       </h1>
 
       <!-- Back button -->
@@ -35,14 +41,14 @@ export const prerender = false
           class="inline-flex items-center gap-2 text-muted no-underline transition-colors hover:text-primary"
         >
           <ArrowLeft size={18} />
-          <span class="text-sm">Back to home</span>
+          <span class="text-sm">{t.backToHome}</span>
         </a>
       </div>
 
       <form method="POST" action="/api/auth/sign-in/email" class="glass-card space-y-6 rounded-2xl p-8" novalidate>
         <div>
           <label for="email" class="mb-2 block text-sm font-medium text-neutral">
-            Email
+            {t.form.emailLabel}
           </label>
           <div class="relative">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -55,14 +61,14 @@ export const prerender = false
               autocomplete="email"
               required
               class="w-full rounded-xl border border-border bg-surface py-3 pr-4 pl-10 text-neutral placeholder-muted transition-colors focus:border-primary focus:ring-2 focus:ring-primary/50 focus:outline-none"
-              placeholder="you@example.com"
+              placeholder={t.form.emailPlaceholder}
             />
           </div>
         </div>
 
         <div>
           <label for="password" class="mb-2 block text-sm font-medium text-neutral">
-            Password
+            {t.form.passwordLabel}
           </label>
           <div class="relative">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -75,13 +81,13 @@ export const prerender = false
               autocomplete="current-password"
               required
               class="w-full rounded-xl border border-border bg-surface py-3 pr-12 pl-10 text-neutral placeholder-muted transition-colors focus:border-primary focus:ring-2 focus:ring-primary/50 focus:outline-none"
-              placeholder="••••••••"
+              placeholder={t.form.passwordPlaceholder}
             />
             <button
               type="button"
               id="toggle-password"
               class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted transition-colors hover:text-neutral"
-              aria-label="Show password"
+              aria-label={t.form.showPassword}
             >
               <Eye id="eye-icon" size={20} class="hidden" />
               <EyeOff id="eye-off-icon" size={20} />
@@ -99,7 +105,7 @@ export const prerender = false
           type="submit"
           class="bg-gradient-resonance hover:bg-gradient-resonance-hover flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium text-white transition-all duration-300"
         >
-          Sign In
+          {t.form.submit}
         </button>
 
         <OAuthButtons mode="signin" />
@@ -110,16 +116,16 @@ export const prerender = false
               href="/forgot-password"
               class="font-medium text-primary no-underline hover:text-primary-hover"
             >
-              Forgot your password?
+              {t.form.forgotPassword}
             </a>
           </div>
           <div class="text-muted">
-            Don't have an account?{' '}
+            {t.form.noAccountPrefix}{' '}
             <a
               href="/signup"
               class="font-medium text-primary no-underline hover:text-primary-hover"
             >
-              Create an account
+              {t.form.createAccount}
             </a>
           </div>
         </div>
@@ -128,8 +134,10 @@ export const prerender = false
   </div>
 </Layout>
 
-<script is:inline>
+<script is:inline define:vars={{ loginMessages: t }}>
   (function() {
+  const form = loginMessages.form
+  const errors = loginMessages.errors
   // Toggle password visibility
   const togglePasswordButton = document.getElementById('toggle-password')
   const passwordInput = document.getElementById('password')
@@ -145,11 +153,11 @@ export const prerender = false
         if (isPassword) {
           eyeIcon.classList.remove('hidden')
           eyeOffIcon.classList.add('hidden')
-          togglePasswordButton.setAttribute('aria-label', 'Hide password')
+          togglePasswordButton.setAttribute('aria-label', form.hidePassword)
         } else {
           eyeIcon.classList.add('hidden')
           eyeOffIcon.classList.remove('hidden')
-          togglePasswordButton.setAttribute('aria-label', 'Show password')
+          togglePasswordButton.setAttribute('aria-label', form.showPassword)
         }
       }
     })
@@ -188,7 +196,7 @@ export const prerender = false
 
       if (!email || !password) {
         if (errorBox) {
-          errorBox.textContent = 'Please fill in all required fields.'
+          errorBox.textContent = errors.fillRequired
           errorBox.classList.remove('hidden')
         }
         setFieldError(emailInput, !email)
@@ -199,16 +207,16 @@ export const prerender = false
           passwordInput.focus()
         }
         if (window.toast) {
-          window.toast.error('Please fill in all required fields')
+          window.toast.error(errors.fillRequired)
         }
         return
       }
 
       const submitButton = form.querySelector('button[type="submit"]')
-      const originalButtonText = submitButton ? (submitButton.textContent || '') : 'Sign In'
+      const originalButtonText = submitButton ? (submitButton.textContent || '') : form.submit
       if (submitButton) {
         submitButton.disabled = true
-        submitButton.textContent = 'Signing in...'
+        submitButton.textContent = form.signingIn
       }
 
       try {
@@ -226,7 +234,7 @@ export const prerender = false
 
         if (!response.ok) {
           const data = await response.json().catch(() => ({}))
-          const message = data.message || data.error || 'Error while signing in'
+          const message = data.message || data.error || errors.signInError
 
           if (errorBox) {
             errorBox.textContent = message
@@ -252,19 +260,19 @@ export const prerender = false
       } catch (error) {
         console.error('Error signing in:', error)
         if (errorBox) {
-          const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+          const errorMessage = error instanceof Error ? error.message : errors.generic
           errorBox.textContent = errorMessage
           errorBox.classList.remove('hidden')
         }
         if (window.toast) {
-          const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+          const errorMessage = error instanceof Error ? error.message : errors.generic
           window.toast.error(errorMessage)
         }
       } finally {
         const submitButton = form.querySelector('button[type="submit"]')
         if (submitButton) {
           submitButton.disabled = false
-          submitButton.textContent = originalButtonText || 'Sign In'
+          submitButton.textContent = originalButtonText || form.submit
         }
       }
     })
@@ -273,16 +281,16 @@ export const prerender = false
   // Check for logout toast and OAuth errors
   document.addEventListener('DOMContentLoaded', function() {
     const showLogoutToast = sessionStorage.getItem('showLogoutToast')
-    if (showLogoutToast && window.toast) {
-      window.toast.info('You have been signed out successfully. See you soon!', 4000)
+    if (showLogoutToast && window.toast && loginMessages.toasts) {
+      window.toast.info(loginMessages.toasts.signedOutSuccess, 4000)
       sessionStorage.removeItem('showLogoutToast')
     }
 
     // Check for OAuth configuration error
     const urlParams = new URLSearchParams(window.location.search)
     const oauthError = urlParams.get('error')
-    if (oauthError === 'oauth_not_configured' && window.toast) {
-      window.toast.warning('OAuth sign-in is not configured yet. Please use email sign-in.', 5000)
+    if (oauthError === 'oauth_not_configured' && window.toast && loginMessages.toasts) {
+      window.toast.warning(loginMessages.toasts.oauthNotConfigured, 5000)
       // Clean URL
       window.history.replaceState({}, document.title, window.location.pathname)
     }

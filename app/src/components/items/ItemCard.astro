@@ -6,9 +6,15 @@ import type { Item, ItemMetadata } from '@prisma/client'
 
 type ItemCardProps = {
   item: Item & { metadata: ItemMetadata | null }
+  actionLabels?: {
+    addToFavorites: string
+    moreActions: string
+  }
 }
 
-const { item } = Astro.props as ItemCardProps
+const { item, actionLabels } = Astro.props as ItemCardProps
+const addToFavoritesLabel = actionLabels?.addToFavorites ?? 'Add to favorites'
+const moreActionsLabel = actionLabels?.moreActions ?? 'More actions'
 ---
 
 <article
@@ -49,7 +55,7 @@ const { item } = Astro.props as ItemCardProps
     <button
       type="button"
       class="item-favorite-btn rounded-full bg-white/90 p-2 shadow-lg backdrop-blur-sm hover:bg-white"
-      aria-label="Add to favorites"
+      aria-label={addToFavoritesLabel}
       data-item-id={item.id}
       data-favorite={item.metadata?.isFavorite ? 'true' : 'false'}
     >
@@ -61,7 +67,7 @@ const { item } = Astro.props as ItemCardProps
     <button
       type="button"
       class="item-actions-btn rounded-full bg-white/90 p-2 shadow-lg backdrop-blur-sm hover:bg-white"
-      aria-label="More actions"
+      aria-label={moreActionsLabel}
       data-item-id={item.id}
     >
       <EllipsisVertical size={16} class="fill-none stroke-2 text-gray-700 stroke-gray-700" />
@@ -72,7 +78,8 @@ const { item } = Astro.props as ItemCardProps
 <script>
   // Empêcher les clics sur les boutons d'action de déclencher le lien parent
   document.addEventListener('click', (event) => {
-    const target = event.target
+    const target = event.target instanceof Element ? event.target : null
+    if (!target) return
     const button = target.closest('.item-favorite-btn, .item-actions-btn')
     
     if (button) {
@@ -83,7 +90,8 @@ const { item } = Astro.props as ItemCardProps
 
   // Favorite toggle handling
   document.addEventListener('click', async (event) => {
-    const target = event.target
+    const target = event.target instanceof Element ? event.target : null
+    if (!target) return
     const button = target.closest('.item-favorite-btn')
 
     if (!button) return

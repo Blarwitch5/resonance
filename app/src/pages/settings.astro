@@ -10,6 +10,9 @@ import X from '@lucide/astro/icons/x'
 import ArrowLeft from '@lucide/astro/icons/arrow-left'
 import Eye from '@lucide/astro/icons/eye'
 import EyeOff from '@lucide/astro/icons/eye-off'
+import { getSettingsMessages } from '../i18n/settings'
+import { getLayoutMessages } from '../i18n/layout'
+import { normalizeLocale } from '../i18n/config'
 
 const session = Astro.locals.session
 const user = Astro.locals.user
@@ -17,9 +20,15 @@ const user = Astro.locals.user
 if (!session || !user) {
   return Astro.redirect('/login')
 }
+
+const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const t = getSettingsMessages(locale)
+const layoutT = getLayoutMessages(locale)
+type UserWithImageUrl = typeof user & { imageUrl?: string }
+const userImage = (user as UserWithImageUrl).image ?? (user as UserWithImageUrl).imageUrl
 ---
 
-<DashboardLayout title="Settings - Resonance" description="Manage your preferences and account settings">
+<DashboardLayout title={t.meta.title} description={t.meta.description}>
   <div class="mx-auto max-w-4xl space-y-8">
     <!-- Header -->
     <div>
@@ -28,25 +37,40 @@ if (!session || !user) {
         class="mb-3 inline-flex items-center gap-2 text-sm text-muted transition-colors hover:text-primary"
       >
         <ArrowLeft size={16} />
-        <span>Back to profile</span>
+        <span>{t.header.backToProfile}</span>
       </a>
-      <h1 class="text-3xl font-bold text-neutral mb-1">Settings</h1>
-      <p class="text-muted">Manage your preferences and account settings</p>
+      <h1 class="text-3xl font-bold text-neutral mb-1">{t.header.title}</h1>
+      <p class="text-muted">{t.header.subtitle}</p>
     </div>
 
     <!-- Appearance section -->
     <section class="glass-card rounded-2xl p-6">
-      <h2 class="text-xl font-semibold text-neutral mb-4">Appearance</h2>
+      <h2 class="text-xl font-semibold text-neutral mb-4">{t.appearance.title}</h2>
       
       <div class="space-y-4">
         <!-- Theme -->
         <div class="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-surface hover:bg-surface-elevated transition-colors">
           <div>
-            <h3 class="font-medium text-neutral mb-1">Theme</h3>
-            <p class="text-sm text-muted">Choose between light and dark theme</p>
+            <h3 class="font-medium text-neutral mb-1">{t.appearance.theme.title}</h3>
+            <p class="text-sm text-muted">{t.appearance.theme.description}</p>
           </div>
           <div class="shrink-0">
-            <ThemeSwitcher size="lg" />
+            <ThemeSwitcher size="lg" ariaLabel={layoutT.sidebar.themeChangeAria} />
+          </div>
+        </div>
+
+        <!-- Language (select prêt pour d'autres langues plus tard) -->
+        <div class="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-surface hover:bg-surface-elevated transition-colors">
+          <div>
+            <h3 class="font-medium text-neutral mb-1">{t.language.title}</h3>
+            <p class="text-sm text-muted">{t.language.description}</p>
+          </div>
+          <div class="shrink-0">
+            <LanguageSwitcher
+              currentLocale={locale}
+              variant="settings"
+              languageLabel={t.language.title}
+            />
           </div>
         </div>
       </div>
@@ -62,25 +86,25 @@ if (!session || !user) {
 
     <!-- Account section -->
     <section class="glass-card rounded-2xl p-6">
-      <h2 class="text-xl font-semibold text-neutral mb-4">Account</h2>
+      <h2 class="text-xl font-semibold text-neutral mb-4">{t.account.title}</h2>
       
       <div class="space-y-6">
         <!-- Avatar -->
         <div>
-          <h3 class="font-medium text-neutral mb-3">Profile picture</h3>
+          <h3 class="font-medium text-neutral mb-3">{t.account.profilePicture}</h3>
           <div class="flex items-center gap-4">
             <div class="relative" id="user-avatar-container">
               <Avatar
                 userName={user.name}
                 userEmail={user.email}
-                imageUrl={(user.image ?? user.imageUrl) ? `${(user.image ?? user.imageUrl)}?t=${Date.now()}` : undefined}
+                imageUrl={userImage ? `${userImage}?t=${Date.now()}` : undefined}
                 size="xl"
                 id="user-avatar"
               />
               <label
                 for="avatar-upload"
                 class="absolute bottom-0 right-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-white shadow-lg transition-all hover:scale-110"
-                title="Change profile picture"
+                title={t.account.changePictureTitle}
               >
                 <Camera size={16} />
                 <input
@@ -94,10 +118,10 @@ if (!session || !user) {
             </div>
             <div class="flex-1">
               <p class="text-sm text-muted mb-1">
-                Click the icon to change your profile picture
+                {t.account.changePictureHint}
               </p>
               <p class="text-xs text-muted">
-                Accepted formats: JPEG, PNG, WebP, GIF (max 5MB)
+                {t.account.acceptedFormats}
               </p>
             </div>
           </div>
@@ -105,12 +129,12 @@ if (!session || !user) {
 
         <!-- User info -->
         <div>
-          <h3 class="font-medium text-neutral mb-4">Personal information</h3>
+          <h3 class="font-medium text-neutral mb-4">{t.account.personalInfo}</h3>
           <div class="space-y-4">
             <!-- Name -->
             <div>
               <label class="block text-sm font-medium text-neutral mb-2">
-                Name
+                {t.account.name}
               </label>
               <div class="flex items-center gap-2">
                 <input
@@ -118,7 +142,7 @@ if (!session || !user) {
                   id="profile-name"
                   name="name"
                   value={user.name || ''}
-                  placeholder="Your name"
+                  placeholder={t.account.namePlaceholder}
                   readonly
                   class="flex-1 rounded-lg border border-border bg-surface px-4 py-2 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 read-only:cursor-default read-only:opacity-75"
                 />
@@ -126,7 +150,7 @@ if (!session || !user) {
                   type="button"
                   id="edit-name-btn"
                   class="btn-icon-secondary p-2 rounded-lg"
-                  aria-label="Edit name"
+                  aria-label={t.account.editName}
                 >
                   <Pencil size={18} />
                 </button>
@@ -134,7 +158,7 @@ if (!session || !user) {
                   type="button"
                   id="save-name-btn"
                   class="btn-icon-colored p-2 rounded-lg hidden"
-                  aria-label="Save name"
+                  aria-label={t.account.saveName}
                 >
                   <Check size={18} />
                 </button>
@@ -142,7 +166,7 @@ if (!session || !user) {
                   type="button"
                   id="cancel-name-btn"
                   class="btn-icon-secondary p-2 rounded-lg hidden"
-                  aria-label="Cancel"
+                  aria-label={t.account.cancel}
                 >
                   <X size={18} />
                 </button>
@@ -152,7 +176,7 @@ if (!session || !user) {
             <!-- Email -->
             <div>
               <label class="block text-sm font-medium text-neutral mb-2">
-                Email
+                {t.account.email}
               </label>
               <div class="flex items-center gap-2">
                 <input
@@ -160,7 +184,7 @@ if (!session || !user) {
                   id="profile-email"
                   name="email"
                   value={user.email || ''}
-                  placeholder="you@example.com"
+                  placeholder={t.account.emailPlaceholder}
                   readonly
                   class="flex-1 rounded-lg border border-border bg-surface px-4 py-2 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 read-only:cursor-default read-only:opacity-75"
                 />
@@ -168,7 +192,7 @@ if (!session || !user) {
                   type="button"
                   id="edit-email-btn"
                   class="btn-icon-secondary p-2 rounded-lg"
-                  aria-label="Edit email"
+                  aria-label={t.account.editEmail}
                 >
                   <Pencil size={18} />
                 </button>
@@ -176,7 +200,7 @@ if (!session || !user) {
                   type="button"
                   id="save-email-btn"
                   class="btn-icon-colored p-2 rounded-lg hidden"
-                  aria-label="Save email"
+                  aria-label={t.account.saveEmail}
                 >
                   <Check size={18} />
                 </button>
@@ -184,7 +208,7 @@ if (!session || !user) {
                   type="button"
                   id="cancel-email-btn"
                   class="btn-icon-secondary p-2 rounded-lg hidden"
-                  aria-label="Cancel"
+                  aria-label={t.account.cancel}
                 >
                   <X size={18} />
                 </button>
@@ -196,13 +220,13 @@ if (!session || !user) {
         <!-- Change password -->
         <div class="border-t border-border pt-6">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="font-medium text-neutral">Password</h3>
+            <h3 class="font-medium text-neutral">{t.account.password}</h3>
             <button
               type="button"
               id="show-password-form-btn"
               class="btn-secondary-surface px-4 py-2 rounded-lg text-sm"
             >
-              Change password
+              {t.account.changePassword}
             </button>
           </div>
           
@@ -218,14 +242,14 @@ if (!session || !user) {
             />
             <div>
               <label for="current-password" class="block text-sm font-medium text-neutral mb-2">
-                Current password
+                {t.account.currentPassword}
               </label>
               <div class="relative">
                 <input
                   type="password"
                   id="current-password"
                   name="currentPassword"
-                  placeholder="Enter your current password"
+                  placeholder={t.account.currentPasswordPlaceholder}
                   class="w-full rounded-lg border border-border bg-surface px-4 py-2 pr-11 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   required
                   autocomplete="current-password"
@@ -234,7 +258,7 @@ if (!session || !user) {
                   type="button"
                   id="toggle-current-password"
                   class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted transition-colors hover:text-neutral"
-                  aria-label="Show current password"
+                  aria-label={t.account.showCurrentPassword}
                 >
                   <Eye id="eye-current" size={18} class="hidden" />
                   <EyeOff id="eye-off-current" size={18} />
@@ -243,14 +267,14 @@ if (!session || !user) {
             </div>
             <div>
               <label for="new-password" class="block text-sm font-medium text-neutral mb-2">
-                New password
+                {t.account.newPassword}
               </label>
               <div class="relative">
                 <input
                   type="password"
                   id="new-password"
                   name="newPassword"
-                  placeholder="Enter your new password"
+                  placeholder={t.account.newPasswordPlaceholder}
                   class="w-full rounded-lg border border-border bg-surface px-4 py-2 pr-11 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   required
                   autocomplete="new-password"
@@ -259,33 +283,33 @@ if (!session || !user) {
                   type="button"
                   id="toggle-new-password"
                   class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted transition-colors hover:text-neutral"
-                  aria-label="Show new password"
+                  aria-label={t.account.showNewPassword}
                 >
                   <Eye id="eye-new" size={18} class="hidden" />
                   <EyeOff id="eye-off-new" size={18} />
                 </button>
               </div>
               <p class="mt-2 text-xs text-muted">
-                At least 8 characters, with uppercase, lowercase, number and special character.
+                {t.account.passwordHint}
               </p>
               <div id="password-requirements" class="mt-2 space-y-1 text-xs">
-                <div id="req-length" class="text-muted">• At least 8 characters</div>
-                <div id="req-lowercase" class="text-muted">• One lowercase letter</div>
-                <div id="req-uppercase" class="text-muted">• One uppercase letter</div>
-                <div id="req-number" class="text-muted">• One number</div>
-                <div id="req-special" class="text-muted">• One special character</div>
+                <div id="req-length" class="text-muted">• {t.account.reqLength}</div>
+                <div id="req-lowercase" class="text-muted">• {t.account.reqLowercase}</div>
+                <div id="req-uppercase" class="text-muted">• {t.account.reqUppercase}</div>
+                <div id="req-number" class="text-muted">• {t.account.reqNumber}</div>
+                <div id="req-special" class="text-muted">• {t.account.reqSpecial}</div>
               </div>
             </div>
             <div>
               <label for="confirm-password" class="block text-sm font-medium text-neutral mb-2">
-                Confirm new password
+                {t.account.confirmPassword}
               </label>
               <div class="relative">
                 <input
                   type="password"
                   id="confirm-password"
                   name="confirmPassword"
-                  placeholder="Confirm your new password"
+                  placeholder={t.account.confirmPasswordPlaceholder}
                   class="w-full rounded-lg border border-border bg-surface px-4 py-2 pr-11 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   required
                   autocomplete="new-password"
@@ -294,7 +318,7 @@ if (!session || !user) {
                   type="button"
                   id="toggle-confirm-password"
                   class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted transition-colors hover:text-neutral"
-                  aria-label="Show confirm password"
+                  aria-label={t.account.showConfirmPassword}
                 >
                   <Eye id="eye-confirm" size={18} class="hidden" />
                   <EyeOff id="eye-off-confirm" size={18} />
@@ -313,14 +337,14 @@ if (!session || !user) {
                 id="cancel-password-btn"
                 class="btn-secondary-surface px-4 py-2 rounded-lg"
               >
-                Cancel
+                {t.account.cancel}
               </button>
               <button
                 type="submit"
                 id="save-password-btn"
                 class="btn-primary-gradient px-6 py-2 rounded-lg"
               >
-                Change password
+                {t.account.changePassword}
               </button>
             </div>
           </form>
@@ -330,21 +354,21 @@ if (!session || !user) {
 
     <!-- Data section -->
     <section class="glass-card rounded-2xl p-6">
-      <h2 class="text-xl font-semibold text-neutral mb-4">Data</h2>
+      <h2 class="text-xl font-semibold text-neutral mb-4">{t.data.title}</h2>
       
       <div class="space-y-4">
         <!-- Export data -->
         <div class="flex flex-col gap-3 border-b border-border/60 pb-4 md:flex-row md:items-center md:justify-between md:border-b-0 md:pb-0">
           <div>
-            <h3 class="font-medium text-neutral mb-1">Export my data</h3>
-            <p class="text-sm text-muted">Download all your collections and data as JSON</p>
+            <h3 class="font-medium text-neutral mb-1">{t.data.exportTitle}</h3>
+            <p class="text-sm text-muted">{t.data.exportDescription}</p>
           </div>
           <div>
             <button
               id="export-data-btn"
               class="btn-secondary-surface w-full px-4 py-2 rounded-lg md:w-auto"
             >
-              Export
+              {t.data.exportButton}
             </button>
           </div>
         </div>
@@ -352,15 +376,15 @@ if (!session || !user) {
         <!-- Delete all data -->
         <div class="flex flex-col gap-3 border-b border-border/60 pt-4 pb-4 md:flex-row md:items-center md:justify-between md:border-b-0 md:pt-4 md:pb-0">
           <div>
-            <h3 class="font-medium text-neutral mb-1">Delete all data</h3>
-            <p class="text-sm text-muted">Delete all your collections and items, but keep your account</p>
+            <h3 class="font-medium text-neutral mb-1">{t.data.deleteAllTitle}</h3>
+            <p class="text-sm text-muted">{t.data.deleteAllDescription}</p>
           </div>
           <div>
             <button
               id="delete-all-data-btn"
               class="btn-danger w-full px-4 py-2 rounded-lg md:w-auto"
             >
-              Delete data
+              {t.data.deleteAllButton}
             </button>
           </div>
         </div>
@@ -368,9 +392,9 @@ if (!session || !user) {
         <!-- Delete account -->
         <div class="flex flex-col gap-3 border-t border-border pt-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h3 class="font-medium text-neutral mb-1">Delete my account</h3>
+            <h3 class="font-medium text-neutral mb-1">{t.data.deleteAccountTitle}</h3>
             <p class="text-sm text-muted">
-              This action is irreversible and will permanently delete your account and all your data.
+              {t.data.deleteAccountDescription}
             </p>
           </div>
           <div>
@@ -378,7 +402,7 @@ if (!session || !user) {
               id="delete-account-btn"
               class="btn-danger w-full px-4 py-2 rounded-lg md:w-auto"
             >
-              Delete account
+              {t.data.deleteAccountButton}
             </button>
           </div>
         </div>
@@ -387,42 +411,43 @@ if (!session || !user) {
 
     <!-- Notifications (coming soon) -->
     <section class="glass-card rounded-2xl p-6 opacity-60">
-      <h2 class="text-xl font-semibold text-neutral mb-4">Notifications</h2>
-      <p class="text-sm text-muted">Notifications will be available soon.</p>
+      <h2 class="text-xl font-semibold text-neutral mb-4">{t.notifications.title}</h2>
+      <p class="text-sm text-muted">{t.notifications.comingSoon}</p>
     </section>
 
     <!-- About section -->
     <section class="glass-card rounded-2xl p-6">
-      <h2 class="text-xl font-semibold text-neutral mb-4">About</h2>
+      <h2 class="text-xl font-semibold text-neutral mb-4">{t.about.title}</h2>
       
       <div class="space-y-2 text-sm text-muted">
-        <p><strong class="text-neutral">Resonance</strong> — Music collection manager</p>
-        <p>Version 1.0.0</p>
+        <p><strong class="text-neutral">Resonance</strong> — {t.about.tagline}</p>
+        <p>{t.about.version}</p>
       </div>
     </section>
   </div>
 </DashboardLayout>
 
-<script>
-  // TypeScript fonctionne nativement dans les scripts Astro !
+<script define:vars={{ scriptMessagesJson: JSON.stringify(t.script), accountMessagesJson: JSON.stringify(t.account) }}>
   (function() {
+    const msg = JSON.parse(scriptMessagesJson)
+    const account = JSON.parse(accountMessagesJson)
     // Avatar upload
-    const avatarUpload = document.getElementById('avatar-upload') as HTMLInputElement | null
+    const avatarUpload = document.getElementById('avatar-upload')
     if (avatarUpload) {
-      avatarUpload.addEventListener('change', async function(event: Event) {
-        const target = event.target as HTMLInputElement
+      avatarUpload.addEventListener('change', async function(event) {
+        const target = event.target
         const file = target.files?.[0]
         if (!file) return
 
         if (file.size > 5 * 1024 * 1024) {
           if (window.toast) {
-            window.toast.error('File is too large (max 5MB)')
+            window.toast.error(msg.fileTooLarge)
           }
           return
         }
 
         if (window.toast) {
-          window.toast.info('Uploading avatar...', 2000)
+          window.toast.info(msg.uploadingAvatar, 2000)
         }
 
         const formData = new FormData()
@@ -439,26 +464,26 @@ if (!session || !user) {
 
           if (response.ok && data.imageUrl) {
             if (window.toast) {
-              window.toast.success('Avatar updated successfully!')
+              window.toast.success(msg.avatarUpdated)
             }
 
             const newSrc = `${data.imageUrl}?t=${Date.now()}`
             const container = document.getElementById('user-avatar-container')
             if (!container) return
-            function setImgSrc(img: HTMLImageElement, src: string) {
+            function setImgSrc(img, src) {
               img.removeAttribute('src')
               img.src = src
               img.style.display = ''
               img.removeAttribute('hidden')
             }
-            const avatarImg = container.querySelector('img') as HTMLImageElement | null
+            const avatarImg = container.querySelector('img')
             if (avatarImg) {
               setImgSrc(avatarImg, newSrc)
-              const initialsDiv = container.querySelector('.bg-gradient-resonance') as HTMLElement | null
+              const initialsDiv = container.querySelector('.bg-gradient-resonance')
               if (initialsDiv) { initialsDiv.classList.add('hidden'); initialsDiv.style.display = 'none' }
             } else {
               container.querySelectorAll('img').forEach((el) => el.remove())
-              const initialsDiv = container.querySelector('.bg-gradient-resonance') as HTMLElement | null
+              const initialsDiv = container.querySelector('.bg-gradient-resonance')
               const img = document.createElement('img')
               img.id = 'user-avatar-img'
               img.src = newSrc
@@ -470,16 +495,16 @@ if (!session || !user) {
               container.insertBefore(img, container.firstChild)
               if (initialsDiv) { initialsDiv.classList.add('hidden'); initialsDiv.style.display = 'none' }
             }
-            document.querySelectorAll('img[src*="/uploads/avatars/"], img[src*="blob.vercel-storage.com"]').forEach((el) => setImgSrc(el as HTMLImageElement, newSrc))
+            document.querySelectorAll('img[src*="/uploads/avatars/"], img[src*="blob.vercel-storage.com"]').forEach((el) => setImgSrc(el, newSrc))
           } else {
             if (window.toast) {
-              window.toast.error(data.error || 'Error while uploading avatar')
+              window.toast.error(data.error || msg.avatarError)
             }
           }
         } catch (error) {
           console.error('Avatar upload error:', error)
           if (window.toast) {
-            window.toast.error('Error while uploading avatar')
+            window.toast.error(msg.avatarError)
           }
         } finally {
           target.value = ''
@@ -488,14 +513,14 @@ if (!session || !user) {
     }
 
     // Export data
-    const exportBtn = document.getElementById('export-data-btn') as HTMLButtonElement | null
+    const exportBtn = document.getElementById('export-data-btn')
     if (exportBtn) {
       exportBtn.addEventListener('click', async function() {
         const button = exportBtn
         const originalText = button.textContent || ''
         
         button.disabled = true
-        button.textContent = 'Exporting...'
+        button.textContent = msg.exporting
         
         try {
           const response = await fetch('/api/collections/export')
@@ -512,15 +537,15 @@ if (!session || !user) {
             window.URL.revokeObjectURL(url)
             
             if (window.toast) {
-              window.toast.success('Data exported successfully!')
+              window.toast.success(msg.exportSuccess)
             }
           } else {
-            throw new Error('Error while exporting data')
+            throw new Error(msg.exportError)
           }
         } catch (error) {
           console.error('Export error:', error)
           if (window.toast) {
-            window.toast.error('Error while exporting data')
+            window.toast.error(msg.exportError)
           }
         } finally {
           button.disabled = false
@@ -530,14 +555,14 @@ if (!session || !user) {
     }
 
     // Delete all data
-    const deleteAllBtn = document.getElementById('delete-all-data-btn') as HTMLButtonElement | null
+    const deleteAllBtn = document.getElementById('delete-all-data-btn')
     if (deleteAllBtn) {
       deleteAllBtn.addEventListener('click', async function() {
         const confirmed = await window.confirmDialog?.(
-          'Delete all data',
-          'Are you sure you want to delete all your collections and data? This action cannot be undone.',
-          'Delete everything',
-          'Cancel'
+          msg.deleteAllConfirmTitle,
+          msg.deleteAllConfirmMessage,
+          msg.deleteAllConfirmButton,
+          msg.cancel
         )
         
         if (!confirmed) {
@@ -548,7 +573,7 @@ if (!session || !user) {
         const originalText = button.textContent || ''
         
         button.disabled = true
-        button.textContent = 'Deleting...'
+        button.textContent = msg.deleting
         
         try {
           const response = await fetch('/api/dev/purge-collections', {
@@ -557,18 +582,18 @@ if (!session || !user) {
           
           if (response.ok) {
             if (window.toast) {
-              window.toast.success('All data has been deleted')
+              window.toast.success(msg.allDataDeleted)
             }
             setTimeout(function() {
               window.location.href = '/collections'
             }, 1000)
           } else {
-            throw new Error('Error while deleting data')
+            throw new Error(msg.deleteDataError)
           }
         } catch (error) {
           console.error('Delete error:', error)
           if (window.toast) {
-            window.toast.error('Error while deleting data')
+            window.toast.error(msg.deleteDataError)
           }
         } finally {
           button.disabled = false
@@ -578,10 +603,10 @@ if (!session || !user) {
     }
 
     // Edit name
-    const nameInput = document.getElementById('profile-name') as HTMLInputElement | null
-    const editNameBtn = document.getElementById('edit-name-btn') as HTMLButtonElement | null
-    const saveNameBtn = document.getElementById('save-name-btn') as HTMLButtonElement | null
-    const cancelNameBtn = document.getElementById('cancel-name-btn') as HTMLButtonElement | null
+    const nameInput = document.getElementById('profile-name')
+    const editNameBtn = document.getElementById('edit-name-btn')
+    const saveNameBtn = document.getElementById('save-name-btn')
+    const cancelNameBtn = document.getElementById('cancel-name-btn')
     let originalName = nameInput?.value || ''
 
     if (editNameBtn && nameInput && saveNameBtn && cancelNameBtn) {
@@ -627,7 +652,7 @@ if (!session || !user) {
 
           if (response.ok) {
             if (window.toast) {
-              window.toast.success('Name updated successfully!')
+              window.toast.success(msg.nameUpdated)
             }
             originalName = name
             nameInput.setAttribute('readonly', '')
@@ -637,14 +662,14 @@ if (!session || !user) {
             cancelNameBtn.classList.add('hidden')
           } else {
             if (window.toast) {
-              window.toast.error(data.error || 'Error while updating name')
+              window.toast.error(data.error || msg.nameError)
             }
             nameInput.value = originalName
           }
         } catch (error) {
           console.error('Name update error:', error)
           if (window.toast) {
-            window.toast.error('Error while updating name')
+            window.toast.error(msg.nameError)
           }
           nameInput.value = originalName
         } finally {
@@ -654,10 +679,10 @@ if (!session || !user) {
     }
 
     // Edit email
-    const emailInput = document.getElementById('profile-email') as HTMLInputElement | null
-    const editEmailBtn = document.getElementById('edit-email-btn') as HTMLButtonElement | null
-    const saveEmailBtn = document.getElementById('save-email-btn') as HTMLButtonElement | null
-    const cancelEmailBtn = document.getElementById('cancel-email-btn') as HTMLButtonElement | null
+    const emailInput = document.getElementById('profile-email')
+    const editEmailBtn = document.getElementById('edit-email-btn')
+    const saveEmailBtn = document.getElementById('save-email-btn')
+    const cancelEmailBtn = document.getElementById('cancel-email-btn')
     let originalEmail = emailInput?.value || ''
 
     if (editEmailBtn && emailInput && saveEmailBtn && cancelEmailBtn) {
@@ -690,7 +715,7 @@ if (!session || !user) {
 
         if (!email.includes('@')) {
           if (window.toast) {
-            window.toast.error('Please enter a valid email')
+            window.toast.error(msg.validEmail)
           }
           return
         }
@@ -710,7 +735,7 @@ if (!session || !user) {
 
           if (response.ok) {
             if (window.toast) {
-              window.toast.success('Email updated successfully!')
+              window.toast.success(msg.emailUpdated)
             }
             originalEmail = email
             emailInput.setAttribute('readonly', '')
@@ -720,14 +745,14 @@ if (!session || !user) {
             cancelEmailBtn.classList.add('hidden')
           } else {
             if (window.toast) {
-              window.toast.error(data.error || 'Error while updating email')
+              window.toast.error(data.error || msg.emailError)
             }
             emailInput.value = originalEmail
           }
         } catch (error) {
           console.error('Email update error:', error)
           if (window.toast) {
-            window.toast.error('Error while updating email')
+            window.toast.error(msg.emailError)
           }
           emailInput.value = originalEmail
         } finally {
@@ -737,10 +762,10 @@ if (!session || !user) {
     }
 
     // Show/hide password form
-    const showPasswordFormBtn = document.getElementById('show-password-form-btn') as HTMLButtonElement | null
-    const passwordForm = document.getElementById('password-form') as HTMLFormElement | null
-    const cancelPasswordBtn = document.getElementById('cancel-password-btn') as HTMLButtonElement | null
-    const passwordError = document.getElementById('password-error') as HTMLDivElement | null
+    const showPasswordFormBtn = document.getElementById('show-password-form-btn')
+    const passwordForm = document.getElementById('password-form')
+    const cancelPasswordBtn = document.getElementById('cancel-password-btn')
+    const passwordError = document.getElementById('password-error')
 
     if (showPasswordFormBtn && passwordForm) {
       showPasswordFormBtn.addEventListener('click', function() {
@@ -766,15 +791,15 @@ if (!session || !user) {
     }
 
     function bindPasswordToggle(
-      inputId: string,
-      toggleBtnId: string,
-      eyeId: string,
-      eyeOffId: string,
-      ariaLabelShow: string,
-      ariaLabelHide: string,
+      inputId,
+      toggleBtnId,
+      eyeId,
+      eyeOffId,
+      ariaLabelShow,
+      ariaLabelHide,
     ) {
-      const input = document.getElementById(inputId) as HTMLInputElement | null
-      const btn = document.getElementById(toggleBtnId) as HTMLButtonElement | null
+      const input = document.getElementById(inputId)
+      const btn = document.getElementById(toggleBtnId)
       const eye = document.getElementById(eyeId)
       const eyeOff = document.getElementById(eyeOffId)
       if (!input || !btn) return
@@ -794,28 +819,28 @@ if (!session || !user) {
         }
       })
     }
-    bindPasswordToggle('current-password', 'toggle-current-password', 'eye-current', 'eye-off-current', 'Show current password', 'Hide current password')
-    bindPasswordToggle('new-password', 'toggle-new-password', 'eye-new', 'eye-off-new', 'Show new password', 'Hide new password')
-    bindPasswordToggle('confirm-password', 'toggle-confirm-password', 'eye-confirm', 'eye-off-confirm', 'Show confirm password', 'Hide confirm password')
+    bindPasswordToggle('current-password', 'toggle-current-password', 'eye-current', 'eye-off-current', account.showCurrentPassword, account.hideCurrentPassword)
+    bindPasswordToggle('new-password', 'toggle-new-password', 'eye-new', 'eye-off-new', account.showNewPassword, account.hideNewPassword)
+    bindPasswordToggle('confirm-password', 'toggle-confirm-password', 'eye-confirm', 'eye-off-confirm', account.showConfirmPassword, account.hideConfirmPassword)
 
-    const savePasswordBtn = document.getElementById('save-password-btn') as HTMLButtonElement | null
-    const passwordMatch = document.getElementById('password-match') as HTMLDivElement | null
+    const savePasswordBtn = document.getElementById('save-password-btn')
+    const passwordMatch = document.getElementById('password-match')
     if (passwordForm && savePasswordBtn && passwordError) {
       passwordForm.addEventListener('submit', async function(event) {
         event.preventDefault()
-        const currentPassword = (document.getElementById('current-password') as HTMLInputElement)?.value?.trim()
-        const newPassword = (document.getElementById('new-password') as HTMLInputElement)?.value?.trim()
-        const confirmPassword = (document.getElementById('confirm-password') as HTMLInputElement)?.value?.trim()
+        const currentPassword = document.getElementById('current-password')?.value?.trim()
+        const newPassword = document.getElementById('new-password')?.value?.trim()
+        const confirmPassword = document.getElementById('confirm-password')?.value?.trim()
         if (!currentPassword || !newPassword || !confirmPassword) {
-          if (window.toast) window.toast.error('Please fill in all required fields')
+          if (window.toast) window.toast.error(msg.fillRequired)
           return
         }
         if (newPassword !== confirmPassword) {
-          if (passwordMatch) passwordMatch.textContent = 'New password and confirmation do not match.'
-          if (window.toast) window.toast.error('New password and confirmation do not match')
+          if (passwordMatch) passwordMatch.textContent = msg.passwordMismatch
+          if (window.toast) window.toast.error(msg.passwordMismatch)
           return
         }
-        if (window.setButtonLoading) window.setButtonLoading(savePasswordBtn, true, 'Changing...')
+        if (window.setButtonLoading) window.setButtonLoading(savePasswordBtn, true, msg.changing)
         try {
           const response = await fetch('/api/auth/change-password', {
             method: 'POST',
@@ -825,12 +850,12 @@ if (!session || !user) {
           })
           const data = await response.json().catch(() => ({}))
           if (!response.ok) {
-            const message = data.error || data.message || 'Error while changing'
+            const message = data.error || data.message || msg.changePasswordError
             if (passwordError) { passwordError.textContent = message; passwordError.classList.remove('hidden') }
             if (window.toast) window.toast.error(message)
             return
           }
-          if (window.toast) window.toast.success('Updated successfully')
+          if (window.toast) window.toast.success(msg.passwordUpdated)
           passwordForm.reset()
           if (passwordMatch) passwordMatch.textContent = ''
           if (passwordError) { passwordError.classList.add('hidden'); passwordError.textContent = '' }
@@ -839,10 +864,10 @@ if (!session || !user) {
         } catch (error) {
           console.error(error)
           if (passwordError) {
-            passwordError.textContent = error instanceof Error ? error.message : 'An unexpected error occurred'
+            passwordError.textContent = error instanceof Error ? error.message : msg.unexpectedError
             passwordError.classList.remove('hidden')
           }
-          if (window.toast) window.toast.error('Error while changing')
+          if (window.toast) window.toast.error(msg.changePasswordError)
         } finally {
           if (window.setButtonLoading) window.setButtonLoading(savePasswordBtn, false)
         }
@@ -850,14 +875,14 @@ if (!session || !user) {
     }
 
     // Delete account
-    const deleteAccountBtn = document.getElementById('delete-account-btn') as HTMLButtonElement | null
+    const deleteAccountBtn = document.getElementById('delete-account-btn')
     if (deleteAccountBtn) {
       deleteAccountBtn.addEventListener('click', async function() {
         const confirmed = await window.confirmDialog?.(
-          'Permanently delete your account',
-          'This action is irreversible. All your data will be permanently deleted:\n\n• Your user account\n• All your collections\n• All your albums\n• Your wishlist\n• Your statistics\n\nAre you absolutely sure you want to continue?',
-          'Yes, delete my account',
-          'Cancel'
+          msg.deleteAccountConfirmTitle,
+          msg.deleteAccountConfirmMessage,
+          msg.deleteAccountConfirmButton,
+          msg.cancel
         )
         
         if (!confirmed) {
@@ -865,10 +890,10 @@ if (!session || !user) {
         }
 
         const doubleConfirmed = await window.confirmDialog?.(
-          'Final confirmation',
-          'You are about to permanently delete your account. This action cannot be undone.\n\nDo you really want to continue?',
-          'Confirm deletion',
-          'Cancel'
+          msg.deleteAccountFinalTitle,
+          msg.deleteAccountFinalMessage,
+          msg.deleteAccountFinalButton,
+          msg.cancel
         )
 
         if (!doubleConfirmed) {
@@ -879,7 +904,7 @@ if (!session || !user) {
         const originalText = button.textContent || ''
         
         button.disabled = true
-        button.textContent = 'Deleting...'
+        button.textContent = msg.deleting
         
         try {
           const response = await fetch('/api/profile/delete-account', {
@@ -888,25 +913,33 @@ if (!session || !user) {
           
           if (response.ok) {
             if (window.toast) {
-              window.toast.success('Your account has been deleted. You will be redirected...', 3000)
+              window.toast.success(msg.accountDeleted, 3000)
             }
             setTimeout(() => {
               window.location.href = '/'
             }, 2000)
           } else {
             const data = await response.json()
-            throw new Error(data.error || 'Error while deleting account')
+            throw new Error(data.error || msg.deleteAccountError)
           }
         } catch (error) {
           console.error('Delete account error:', error)
           if (window.toast) {
-            window.toast.error('Error while deleting account: ' + (error instanceof Error ? error.message : 'Unknown error'))
+            window.toast.error(msg.deleteAccountError + ': ' + (error instanceof Error ? error.message : msg.unknownError))
           }
           button.disabled = false
           button.textContent = originalText
         }
       })
     }
+
+    // Toast traduit lors du changement de thème (page paramètres)
+    document.addEventListener('themeChanged', function(event) {
+      const theme = event.detail && event.detail.theme
+      if (window.toast && theme) {
+        window.toast.success(theme === 'dark' ? msg.themeDarkLabel : msg.themeLightLabel)
+      }
+    })
   })()
 </script>
 

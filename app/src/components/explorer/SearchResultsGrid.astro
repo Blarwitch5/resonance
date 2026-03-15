@@ -11,9 +11,21 @@ type SearchResultsGridProps = {
     year?: string | number
     format?: string[]
   }>
+  addToCollectionAria?: string
+  addToWishlistAria?: string
+  resultsCountLabel?: string
+  noImageLabel?: string
+  unknownArtistLabel?: string
+  scriptLabels?: {
+    unknownArtist: string
+    addedToWishlistToast: string
+    failedToAddToWishlist: string
+    fetchReleaseError?: string
+    genericError: string
+  }
 }
 
-const { results } = Astro.props as SearchResultsGridProps
+const { results, addToCollectionAria, addToWishlistAria, resultsCountLabel, noImageLabel, unknownArtistLabel, scriptLabels } = Astro.props as SearchResultsGridProps
 
 // Fonction pour vérifier si un format est valide (Vinyl, CD, Cassette)
 function isValidFormat(formats: string[] | undefined): boolean {
@@ -38,10 +50,17 @@ const filteredResults = results.filter((item) => {
 
 {filteredResults.length > 0 && (
   <div id="search-results-content">
-    <h3 class="mb-4 text-lg font-semibold">{filteredResults.length} results</h3>
+    <h3 class="mb-4 text-lg font-semibold">{resultsCountLabel != null ? resultsCountLabel.replace('{count}', String(filteredResults.length)) : `${filteredResults.length} results`}</h3>
     <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
       {filteredResults.map((result) => (
-        <SearchResultCard result={result} />
+        <SearchResultCard
+          result={result}
+          addToCollectionAria={addToCollectionAria}
+          addToWishlistAria={addToWishlistAria}
+          noImageLabel={noImageLabel}
+          unknownArtistLabel={unknownArtistLabel}
+          scriptLabels={scriptLabels}
+        />
       ))}
     </div>
   </div>

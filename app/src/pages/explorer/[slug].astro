@@ -15,6 +15,8 @@ import { db } from '../../lib/db'
 import { buildExplorerSlug, parseExplorerSlug } from '../../lib/slug'
 import { collectionRepository } from '../../repositories/collection-repository'
 import { discogsService } from '../../services/discogs-service'
+import { getExplorerMessages } from '../../i18n/explorer'
+import { normalizeLocale } from '../../i18n/config'
 
 export const prerender = false
 
@@ -76,11 +78,15 @@ try {
   return Astro.redirect('/explorer')
 }
 
-// Extraire titre et artiste
-const title = release.title || 'Unknown'
+// Locale et messages (pour fallbacks titre/artiste)
+const locale = normalizeLocale(Astro.locals.userPreferences?.locale ?? Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const explorerT = getExplorerMessages(locale)
+
+// Extraire titre et artiste (fallbacks i18n)
+const title = release.title || explorerT.client.unknownTitle
 const artist = release.artists && release.artists.length > 0
-  ? release.artists.map((artistItem) => artistItem.name).join(', ')
-  : 'Unknown Artist'
+  ? release.artists.map((artistItem: { name: string }) => artistItem.name).join(', ')
+  : explorerT.client.unknownArtist
 
 // Redirection vers l’URL canonique (slug lisible) si l’URL était uniquement l’id
 const canonicalSlug = buildExplorerSlug(artist, title, release.year ?? null, discogsId)
@@ -102,7 +108,7 @@ const coverUrl = release.cover_image || release.thumb || null
       class="inline-flex items-center gap-2 text-muted transition-colors hover:text-primary"
     >
       <ArrowLeft size={18} />
-      <span>Back to explorer</span>
+      <span>{explorerT.release.backToExplorer}</span>
     </a>
 
     <!-- Header avec cover et infos principales -->
@@ -176,7 +182,7 @@ const coverUrl = release.cover_image || release.thumb || null
               data-redirect-on-success="true"
             >
               <Plus size={20} />
-              <span>Add to collection</span>
+              <span>{explorerT.release.addToCollectionButton}</span>
             </button>
           </div>
         </div>
@@ -188,9 +194,9 @@ const coverUrl = release.cover_image || release.thumb || null
       <div class="glass-card rounded-2xl p-4 md:p-6">
         <div class="mb-4 flex items-center gap-2">
           <Music size={20} class="text-primary" />
-          <h2 class="text-xl font-bold text-neutral">Tracklist</h2>
+          <h2 class="text-xl font-bold text-neutral">{explorerT.release.tracklistTitle}</h2>
           <span class="ml-auto text-sm text-muted">
-            {tracklist.length} {tracklist.length === 1 ? 'titre' : 'titres'}
+            {tracklist.length} {tracklist.length === 1 ? explorerT.release.trackCountOne : explorerT.release.trackCountOther}
           </span>
         </div>
         <div class="space-y-2">
@@ -215,10 +221,10 @@ const coverUrl = release.cover_image || release.thumb || null
           <Info size={20} class="text-primary shrink-0 mt-0.5" />
           <div class="flex-1">
             <p class="text-sm font-medium text-primary mb-1">
-              Listen to previews
+              {explorerT.release.listenPreviews}
             </p>
             <p class="text-xs text-muted">
-              Add this album to your collection to listen to 30-second previews for each track via Spotify.
+              {explorerT.release.listenPreviewsHint}
             </p>
           </div>
         </div>
@@ -230,11 +236,11 @@ const coverUrl = release.cover_image || release.thumb || null
       <div class="grid gap-6 md:grid-cols-2">
         <!-- Details section -->
         <div class="glass-card rounded-2xl p-4 md:p-6">
-          <h2 class="mb-4 text-xl font-bold text-neutral">Details</h2>
+          <h2 class="mb-4 text-xl font-bold text-neutral">{explorerT.release.details}</h2>
           <div class="space-y-3 text-sm">
             {discogsDetails.released && (
               <div>
-                <span class="font-medium text-muted">Date de sortie :</span>
+                <span class="font-medium text-muted">{explorerT.release.labels.releaseDate}</span>
                 <span class="ml-2 text-neutral">
                   {discogsDetails.releasedFormatted || discogsDetails.released}
                 </span>
@@ -242,13 +248,13 @@ const coverUrl = release.cover_image || release.thumb || null
             )}
             {discogsDetails.country && (
               <div>
-                <span class="font-medium text-muted">Pays :</span>
+                <span class="font-medium text-muted">{explorerT.release.labels.country}</span>
                 <span class="ml-2 text-neutral">{discogsDetails.country}</span>
               </div>
             )}
             {discogsDetails.labels.length > 0 && (
               <div>
-                <span class="font-medium text-muted">Label(s) :</span>
+                <span class="font-medium text-muted">{explorerT.release.labels.labels}</span>
                 <span class="ml-2 text-neutral">
                   {discogsDetails.labels.map((label) => label.name).join(', ')}
                 </span>
@@ -256,7 +262,7 @@ const coverUrl = release.cover_image || release.thumb || null
             )}
             {discogsDetails.genres.length > 0 && (
               <div>
-                <span class="font-medium text-muted">Genres :</span>
+                <span class="font-medium text-muted">{explorerT.release.labels.genres}</span>
                 <span class="ml-2 text-neutral">
                   {discogsDetails.genres.join(', ')}
                 </span>
@@ -264,7 +270,7 @@ const coverUrl = release.cover_image || release.thumb || null
             )}
             {discogsDetails.styles.length > 0 && (
               <div>
-                <span class="font-medium text-muted">Styles :</span>
+                <span class="font-medium text-muted">{explorerT.release.labels.styles}</span>
                 <span class="ml-2 text-neutral">
                   {discogsDetails.styles.join(', ')}
                 </span>
@@ -272,7 +278,7 @@ const coverUrl = release.cover_image || release.thumb || null
             )}
             {discogsDetails.identifiers.length > 0 && (
               <div>
-                <span class="font-medium text-muted">Identifiants :</span>
+                <span class="font-medium text-muted">{explorerT.release.labels.identifiers}</span>
                 <div class="mt-1 space-y-1">
                   {discogsDetails.identifiers.map((id) => (
                     <div class="text-neutral">
@@ -287,11 +293,11 @@ const coverUrl = release.cover_image || release.thumb || null
 
         <!-- Format et communauté -->
         <div class="glass-card rounded-2xl p-4 md:p-6">
-          <h2 class="mb-4 text-xl font-bold text-neutral">Format & Community</h2>
+          <h2 class="mb-4 text-xl font-bold text-neutral">{explorerT.release.formatAndCommunity}</h2>
           <div class="space-y-3 text-sm">
             {discogsDetails.formats.length > 0 && (
               <div>
-                <span class="font-medium text-muted">Format(s) :</span>
+                <span class="font-medium text-muted">{explorerT.release.labels.formats}</span>
                 <div class="mt-1 space-y-1">
                   {discogsDetails.formats.map((format) => (
                     <div class="text-neutral">
@@ -304,25 +310,25 @@ const coverUrl = release.cover_image || release.thumb || null
             {discogsDetails.community && (
               <div class="space-y-2">
                 <div>
-                  <span class="font-medium text-muted">Note moyenne :</span>
+                  <span class="font-medium text-muted">{explorerT.release.labels.averageRating}</span>
                   <span class="ml-2 text-neutral">
                     {discogsDetails.community.rating.average > 0
                       ? `${discogsDetails.community.rating.average.toFixed(1)} / 5`
-                      : 'Not rated'}
+                      : explorerT.release.labels.notRated}
                     {discogsDetails.community.rating.count > 0 &&
-                      ` (${discogsDetails.community.rating.count} avis)`}
+                      ` ${explorerT.release.labels.ratingsCount.replace('{count}', String(discogsDetails.community.rating.count))}`}
                   </span>
                 </div>
                 <div>
-                  <span class="font-medium text-muted">Collectionneurs :</span>
+                  <span class="font-medium text-muted">{explorerT.release.labels.collectors}</span>
                   <span class="ml-2 text-neutral">
-                    {discogsDetails.community.have} ont cet album
+                    {discogsDetails.community.have} {explorerT.release.labels.collectorsHave}
                   </span>
                 </div>
                 <div>
-                  <span class="font-medium text-muted">Wanted by:</span>
+                  <span class="font-medium text-muted">{explorerT.release.labels.wantedBy}</span>
                   <span class="ml-2 text-neutral">
-                    {discogsDetails.community.want} personnes
+                    {discogsDetails.community.want} {explorerT.release.labels.people}
                   </span>
                 </div>
               </div>
@@ -335,13 +341,13 @@ const coverUrl = release.cover_image || release.thumb || null
     <!-- Notes Discogs -->
     {discogsDetails?.notes && (
       <div class="glass-card rounded-2xl p-4 md:p-6">
-        <h2 class="mb-4 text-xl font-bold text-neutral">Notes</h2>
+        <h2 class="mb-4 text-xl font-bold text-neutral">{explorerT.release.notes}</h2>
         <p class="whitespace-pre-wrap text-muted">{discogsDetails.notes}</p>
       </div>
     )}
   </div>
 
-  <AddToCollectionModal collections={userCollections} />
+  <AddToCollectionModal collections={userCollections} addToCollection={explorerT.addToCollection} client={explorerT.client} />
 </DashboardLayout>
 
 <script>

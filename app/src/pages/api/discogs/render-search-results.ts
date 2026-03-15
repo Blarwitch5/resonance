@@ -4,7 +4,8 @@ import SearchResultsGrid from '../../../components/explorer/SearchResultsGrid.as
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const { results } = await request.json()
+    const body = await request.json()
+    const { results, resultsCountLabel, noImageLabel, unknownArtistLabel, addToCollectionAria, addToWishlistAria, scriptLabels } = body ?? {}
 
     if (!results || !Array.isArray(results)) {
       return new Response(JSON.stringify({ error: 'Invalid results format' }), {
@@ -13,10 +14,18 @@ export const POST: APIRoute = async ({ request }) => {
       })
     }
 
-    // Créer un container Astro et rendre le composant en HTML
+    // Créer un container Astro et rendre le composant en HTML (labels optionnels pour i18n)
     const container = await AstroContainer.create()
     const html = await container.renderToString(SearchResultsGrid, {
-      props: { results },
+      props: {
+        results,
+        resultsCountLabel: resultsCountLabel ?? undefined,
+        noImageLabel: noImageLabel ?? undefined,
+        unknownArtistLabel: unknownArtistLabel ?? undefined,
+        addToCollectionAria: addToCollectionAria ?? undefined,
+        addToWishlistAria: addToWishlistAria ?? undefined,
+        scriptLabels: scriptLabels ?? undefined,
+      },
     })
 
     return new Response(html, {

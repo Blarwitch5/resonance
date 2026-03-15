@@ -7,9 +7,24 @@ type PaginationProps = {
   totalPages: number
   baseUrl: string
   queryParams?: Record<string, string>
+  previousPage?: string
+  nextPage?: string
+  previousPageAria?: string
+  nextPageAria?: string
+  paginationAria?: string
 }
 
-const { currentPage, totalPages, baseUrl, queryParams = {} } = Astro.props as PaginationProps
+const {
+  currentPage,
+  totalPages,
+  baseUrl,
+  queryParams = {},
+  previousPage = 'Previous',
+  nextPage = 'Next',
+  previousPageAria = 'Previous page',
+  nextPageAria = 'Next page',
+  paginationAria = 'Pagination',
+} = Astro.props as PaginationProps
 
 if (totalPages <= 1) {
   return null
@@ -67,7 +82,7 @@ const getPageNumbers = () => {
 const pageNumbers = getPageNumbers()
 ---
 
-<nav aria-label="Pagination" class="flex items-center justify-center gap-2">
+<nav aria-label={paginationAria} class="flex items-center justify-center gap-2">
   <!-- Previous button -->
   <a
     href={buildUrl(currentPage - 1)}
@@ -76,11 +91,11 @@ const pageNumbers = getPageNumbers()
         ? 'pointer-events-none opacity-50 cursor-not-allowed bg-surface text-muted'
         : 'bg-surface text-neutral hover:bg-surface-elevated'
     }`}
-    aria-label="Previous page"
+    aria-label={previousPageAria}
     aria-disabled={currentPage === 1}
   >
     <ChevronLeft size={18} />
-    <span class="hidden sm:inline">Previous</span>
+    <span class="hidden sm:inline">{previousPage}</span>
   </a>
 
   <!-- Page numbers -->
@@ -123,10 +138,10 @@ const pageNumbers = getPageNumbers()
         ? 'pointer-events-none opacity-50 cursor-not-allowed bg-surface text-muted'
         : 'bg-surface text-neutral hover:bg-surface-elevated'
     }`}
-    aria-label="Next page"
+    aria-label={nextPageAria}
     aria-disabled={currentPage === totalPages}
   >
-    <span class="hidden sm:inline">Next</span>
+    <span class="hidden sm:inline">{nextPage}</span>
     <ChevronRight size={18} />
   </a>
 </nav>

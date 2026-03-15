@@ -6,16 +6,53 @@ import Trash2 from '@lucide/astro/icons/trash-2'
 import EllipsisVertical from '@lucide/astro/icons/ellipsis-vertical'
 import type { Collection } from '@prisma/client'
 
+type ActionLabels = {
+  favorite: string
+  addToFavorites: string
+  moreActions: string
+  removeFromCollection: string
+  removeFromLibrary: string
+}
+
+type ToastMessages = {
+  addedToFavorites: string
+  removedFromFavorites: string
+  updateError: string
+  removeFromCollectionConfirm: string
+  removedFromCollection: string
+  deleteConfirm: string
+  deleted: string
+}
+
 type ItemActionsMenuProps = {
   itemId: string
   itemTitle: string
   currentCollection: Collection | null
   collections: Collection[]
   isFavorite: boolean
+  actionLabels?: ActionLabels
+  toastMessages?: ToastMessages
 }
 
-const { itemId, itemTitle, currentCollection, collections, isFavorite } =
+const { itemId, itemTitle, currentCollection, collections, isFavorite, actionLabels, toastMessages } =
   Astro.props as ItemActionsMenuProps
+
+const actions = actionLabels ?? {
+  favorite: 'Favorite',
+  addToFavorites: 'Add to favorites',
+  moreActions: 'More actions',
+  removeFromCollection: 'Remove from collection',
+  removeFromLibrary: 'Remove from library',
+}
+const toasts = toastMessages ?? {
+  addedToFavorites: 'Added to favorites',
+  removedFromFavorites: 'Removed from favorites',
+  updateError: 'Error while updating',
+  removeFromCollectionConfirm: 'Remove this album from the collection?',
+  removedFromCollection: 'Album removed from collection',
+  deleteConfirm: 'Delete this album?',
+  deleted: 'Album removed from library',
+}
 ---
 
 <div class="item-actions-menu">
@@ -50,7 +87,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
         aria-hidden="true"
       />
       <span class:list={[isFavorite ? 'text-primary' : 'text-muted']} data-favorite-label>
-        {isFavorite ? 'Favorite' : 'Add to favorites'}
+        {isFavorite ? actions.favorite : actions.addToFavorites}
       </span>
     </button>
 
@@ -60,7 +97,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
         type="button"
         class="menu-trigger flex items-center justify-center rounded-xl border border-border bg-surface p-2 text-muted transition-all hover:bg-surface-elevated hover:text-neutral md:p-2.5"
         data-menu-trigger
-        aria-label="More actions"
+        aria-label={actions.moreActions}
       >
         <EllipsisVertical size={18} class="fill-none stroke-2" />
       </button>
@@ -78,7 +115,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
               data-action="remove-from-collection"
             >
               <Package size={16} class="fill-none stroke-2 text-muted stroke-muted transition-colors group-hover:text-primary group-hover:stroke-primary" />
-              <span>Remove from collection</span>
+              <span>{actions.removeFromCollection}</span>
             </button>
           )}
           <button
@@ -87,7 +124,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
             data-action="delete"
           >
             <Trash2 size={16} class="fill-none stroke-2 transition-colors group-hover:stroke-red-600" />
-            <span>Remove from library</span>
+            <span>{actions.removeFromLibrary}</span>
           </button>
         </div>
       </div>
@@ -95,14 +132,14 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
   </div>
 </div>
 
-<script>
+<script define:vars={{ labelFavorite: actions.favorite, labelAddToFavorites: actions.addToFavorites, toastAdded: toasts.addedToFavorites, toastRemoved: toasts.removedFromFavorites, toastUpdateError: toasts.updateError, confirmRemoveCollection: toasts.removeFromCollectionConfirm, toastRemovedFromCollection: toasts.removedFromCollection }}>
   (function() {
-    const menuWrapper = document.querySelector('.item-actions-menu') as HTMLElement | null
+    const menuWrapper = document.querySelector('.item-actions-menu')
     if (!menuWrapper) return
 
     const menuTrigger = menuWrapper.querySelector('[data-menu-trigger]')
     const menuDropdown = menuWrapper.querySelector('[data-menu-dropdown]')
-    const favoriteBtn = menuWrapper.querySelector('.favorite-btn') as HTMLButtonElement | null
+    const favoriteBtn = menuWrapper.querySelector('.favorite-btn')
     const removeFromCollectionBtn = menuWrapper.querySelector(
       '[data-action="remove-from-collection"]'
     )
@@ -157,18 +194,18 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
           })
           const label = favoriteBtn.querySelector('[data-favorite-label]')
           if (label) {
-            label.textContent = newIsFavorite ? 'Favorite' : 'Add to favorites'
+            label.textContent = newIsFavorite ? labelFavorite : labelAddToFavorites
             label.classList.toggle('text-primary', newIsFavorite)
             label.classList.toggle('text-muted', !newIsFavorite)
           }
 
           if (window.toast) {
-            window.toast.success(newIsFavorite ? 'Added to favorites' : 'Removed from favorites')
+            window.toast.success(newIsFavorite ? toastAdded : toastRemoved)
           }
         } catch (error) {
           console.error('Error toggling favorite:', error)
           if (window.toast) {
-            window.toast.error('Error while updating')
+            window.toast.error(toastUpdateError)
           }
         }
       })
@@ -177,7 +214,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
     // Retirer de la collection
     if (removeFromCollectionBtn) {
       removeFromCollectionBtn.addEventListener('click', async () => {
-        if (!confirm('Remove this album from the collection?')) return
+        if (!confirm(confirmRemoveCollection)) return
 
         try {
           const response = await fetch(`/api/items/${itemId}/remove-from-collection`, {
@@ -194,7 +231,7 @@ const { itemId, itemTitle, currentCollection, collections, isFavorite } =
           const data = await response.json()
 
           if (window.toast) {
-            window.toast.success('Album removed from collection')
+            window.toast.success(toastRemovedFromCollection)
           }
 
           // Recharger la page

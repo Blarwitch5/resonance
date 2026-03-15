@@ -7,6 +7,7 @@ type LogoProps = {
   noHover?: boolean
   className?: string
   href?: string
+  backToHomeAria?: string
 }
 
 const props = Astro.props as LogoProps
@@ -17,6 +18,7 @@ const showSlogan = props.showSlogan ?? false
 const noHover = props.noHover ?? false
 const className = props.className ?? ''
 const href = props.href ?? '/'
+const backToHomeAria = props.backToHomeAria ?? 'Back to home'
 
 const sizeClasses = {
   sm: 'h-6 w-6',
@@ -46,7 +48,7 @@ const hoverClass = noHover ? '' : 'hover:scale-105'
 <a
   href={href}
   class={`flex ${directionClass} items-center gap-3 transition-all duration-200 ${hoverClass} ${className}`}
-  aria-label="Back to home"
+  aria-label={backToHomeAria}
 >
   <img
     src="/uploads/logo.svg"
