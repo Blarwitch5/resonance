@@ -1,11 +1,18 @@
 ---
 // Composant pour gérer les raccourcis clavier
 // Visible uniquement sur desktop (lg+)
+type KeyboardShortcutsProps = {
+  shortcutsHint?: string
+}
+const { shortcutsHint = 'Shortcuts: ⌘K (Search), ⌘N (New), Esc (Close), →/← (Navigate)' } = Astro.props as KeyboardShortcutsProps
 ---
 
 <div class="hidden lg:block">
+  <script type="application/json" id="keyboard-shortcuts-hint" set:html={JSON.stringify({ shortcutsHint })}></script>
   <script>
     (function () {
+      var hintsEl = document.getElementById('keyboard-shortcuts-hint')
+      var shortcutsHint = (hintsEl && JSON.parse(hintsEl.textContent || '{}')).shortcutsHint || 'Shortcuts: ⌘K (Search), ⌘N (New), Esc (Close), →/← (Navigate)'
       const shortcuts = new Map()
 
       function isEditableTarget(target) {
@@ -118,10 +125,7 @@
           event.preventDefault()
           // Afficher une modal avec les raccourcis disponibles
           if (window.toast) {
-            window.toast.info(
-              'Shortcuts: ⌘K (Search), ⌘N (New), Esc (Close), →/← (Navigate)',
-              5000
-            )
+            window.toast.info(shortcutsHint, 5000)
           }
         }
       })

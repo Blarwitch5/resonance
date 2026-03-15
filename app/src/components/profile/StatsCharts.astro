@@ -1,11 +1,41 @@
 ---
 import { statsService } from '../../services/stats-service'
 
-type StatsChartsProps = {
-  userId: string
+type ChartsLabels = {
+  noData: string
+  noDataHint: string
+  noDataDevHint: string
+  formatBreakdown: string
+  formatBreakdownDescription: string
+  albumsLabel: string
+  topGenres: string
+  collectionByDecade: string
+  formatBreakdownAria: string
+  topGenresAria: string
+  collectionByDecadeAria: string
 }
 
-const { userId } = Astro.props as StatsChartsProps
+const defaultChartsLabels: ChartsLabels = {
+  noData: 'No data yet',
+  noDataHint: 'Add some items to your collection to see statistics and charts.',
+  noDataDevHint: 'Or use the "Seed Test Data" button above to add sample data.',
+  formatBreakdown: 'Format Breakdown',
+  formatBreakdownDescription: 'Your collection by format: Vinyl, CD, and Cassette.',
+  albumsLabel: 'Albums',
+  topGenres: 'Top Genres',
+  collectionByDecade: 'Collection by Decade',
+  formatBreakdownAria: 'Pie chart showing the share of your collection by format: Vinyl, CD, and Cassette.',
+  topGenresAria: 'Bar chart showing the most represented genres in your recent collection.',
+  collectionByDecadeAria: 'Bar chart showing how many albums you have for each decade.',
+}
+
+type StatsChartsProps = {
+  userId: string
+  chartsLabels?: ChartsLabels
+}
+
+const { userId, chartsLabels = defaultChartsLabels } = Astro.props as StatsChartsProps
+const charts = chartsLabels
 
 // Récupérer les données pour les graphiques
 const formatDistribution = await statsService.getFormatDistribution(userId)
@@ -42,7 +72,7 @@ const decadesChartData = {
 
 <div class="space-y-8">
   <!-- Message si pas de données -->
-  {!formatData.data.some((count) => count > 0) && genreData.labels.length === 0 && decadesChartData.labels.length === 0 && (
+  {!formatData.data.some((count: number) => count > 0) && genreData.labels.length === 0 && decadesChartData.labels.length === 0 && (
     <div class="glass-card min-w-0 rounded-xl p-6 text-center sm:p-8">
       <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface-elevated">
         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted">
@@ -52,24 +82,24 @@ const decadesChartData = {
           <path d="M7 16h10"></path>
         </svg>
       </div>
-      <h3 class="mb-2 text-lg font-semibold text-neutral">No data yet</h3>
+      <h3 class="mb-2 text-lg font-semibold text-neutral">{charts.noData}</h3>
       <p class="text-muted mb-4">
-        Add some items to your collection to see statistics and charts.
+        {charts.noDataHint}
       </p>
       {import.meta.env.DEV && (
         <p class="text-sm text-muted">
-          Or use the "Seed Test Data" button above to add sample data.
+          {charts.noDataDevHint}
         </p>
       )}
     </div>
   )}
 
   <!-- Format Breakdown (Pie Chart) -->
-  {formatData.data.some((count) => count > 0) && (
+  {formatData.data.some((count: number) => count > 0) && (
     <div class="glass-card min-w-0 rounded-xl p-4 sm:p-6">
-      <h3 class="mb-2 text-lg font-semibold text-neutral">Format Breakdown</h3>
+      <h3 class="mb-2 text-lg font-semibold text-neutral">{charts.formatBreakdown}</h3>
       <p class="mb-4 text-xs text-muted">
-        Your collection by format: Vinyl, CD, and Cassette.
+        {charts.formatBreakdownDescription}
       </p>
       <div class="relative max-w-full overflow-hidden">
         <div class="flex min-h-[200px] items-center justify-center sm:min-h-[256px]">
@@ -78,7 +108,7 @@ const decadesChartData = {
             class="max-h-64 w-full max-w-full"
             data-chart={JSON.stringify(formatData)}
             role="img"
-            aria-label="Pie chart showing the share of your collection by format: Vinyl, CD, and Cassette."
+            aria-label={charts.formatBreakdownAria}
           ></canvas>
         </div>
       </div>
@@ -88,7 +118,7 @@ const decadesChartData = {
   <!-- Genre Distribution (Bar Chart) -->
   {genreData.labels.length > 0 && (
     <div class="glass-card min-w-0 rounded-xl p-4 sm:p-6">
-      <h3 class="mb-2 text-lg font-semibold text-neutral">Top Genres</h3>
+      <h3 class="mb-2 text-lg font-semibold text-neutral">{charts.topGenres}</h3>
       <p class="mb-4 text-xs text-muted">
         Your most represented genres based on the last 100 items added.
       </p>
@@ -99,7 +129,7 @@ const decadesChartData = {
             class="max-h-64 w-full max-w-full"
             data-chart={JSON.stringify(genreData)}
             role="img"
-            aria-label="Bar chart showing the most represented genres in your recent collection."
+            aria-label={charts.topGenresAria}
           ></canvas>
         </div>
       </div>
@@ -109,7 +139,7 @@ const decadesChartData = {
   <!-- Decades Distribution (Bar Chart) -->
   {decadesChartData.labels.length > 0 && (
     <div class="glass-card min-w-0 rounded-xl p-4 sm:p-6">
-      <h3 class="mb-2 text-lg font-semibold text-neutral">Collection by Decade</h3>
+      <h3 class="mb-2 text-lg font-semibold text-neutral">{charts.collectionByDecade}</h3>
       <p class="mb-4 text-xs text-muted">
         How your albums are distributed across decades.
       </p>
@@ -120,7 +150,7 @@ const decadesChartData = {
             class="max-h-64 w-full max-w-full"
             data-chart={JSON.stringify(decadesChartData)}
             role="img"
-            aria-label="Bar chart showing how many albums you have for each decade."
+            aria-label={charts.collectionByDecadeAria}
           ></canvas>
         </div>
       </div>
@@ -128,18 +158,22 @@ const decadesChartData = {
   )}
 </div>
 
+<script type="application/json" id="stats-charts-labels" set:html={JSON.stringify({ albumsLabel: charts.albumsLabel })}></script>
+
 <!-- Load Chart.js and initialize charts -->
 <script>
   const chartInstances = new Map()
+  const labelsEl = document.getElementById('stats-charts-labels')
+  const chartsLabels = labelsEl ? JSON.parse(labelsEl.textContent || '{}') : {}
+  const albumsLabel = chartsLabels.albumsLabel || 'Albums'
 
-  // Load Chart.js dynamically
   async function loadCharts() {
     try {
       // Import Chart.js/auto which auto-registers all components
       const { Chart } = await import('chart.js/auto')
 
       // Format Pie Chart
-      const formatCanvas = document.getElementById('format-chart')
+      const formatCanvas = document.querySelector<HTMLCanvasElement>('#format-chart')
       if (formatCanvas) {
         // Destroy existing chart if it exists
         if (chartInstances.has('format-chart')) {
@@ -148,7 +182,7 @@ const decadesChartData = {
         }
 
         const formatData = JSON.parse(formatCanvas.getAttribute('data-chart') || '{}')
-        if (formatData && formatData.data && formatData.data.some((count) => count > 0)) {
+        if (formatData && formatData.data && formatData.data.some((count: number) => count > 0)) {
           const chart = new Chart(formatCanvas, {
             type: 'pie',
             data: {
@@ -188,7 +222,7 @@ const decadesChartData = {
       }
 
       // Genre Bar Chart
-      const genreCanvas = document.getElementById('genre-chart')
+      const genreCanvas = document.querySelector<HTMLCanvasElement>('#genre-chart')
       if (genreCanvas) {
         // Destroy existing chart if it exists
         if (chartInstances.has('genre-chart')) {
@@ -204,7 +238,7 @@ const decadesChartData = {
               labels: genreData.labels || [],
               datasets: [
                 {
-                  label: 'Albums',
+                  label: albumsLabel,
                   data: genreData.data || [],
                   backgroundColor: 'rgba(234, 88, 12, 0.6)',
                   borderColor: 'rgb(234, 88, 12)',
@@ -249,7 +283,7 @@ const decadesChartData = {
       }
 
       // Decades Bar Chart
-      const decadesCanvas = document.getElementById('decades-chart')
+      const decadesCanvas = document.querySelector<HTMLCanvasElement>('#decades-chart')
       if (decadesCanvas) {
         // Destroy existing chart if it exists
         if (chartInstances.has('decades-chart')) {
@@ -265,7 +299,7 @@ const decadesChartData = {
               labels: decadesData.labels || [],
               datasets: [
                 {
-                  label: 'Albums',
+                  label: albumsLabel,
                   data: decadesData.data || [],
                   backgroundColor: 'rgba(16, 185, 129, 0.6)',
                   borderColor: 'rgb(16, 185, 129)',
@@ -311,14 +345,27 @@ const decadesChartData = {
     }
   }
 
-  // Initialize when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadCharts)
-  } else {
-    loadCharts()
+  function scheduleLoadCharts() {
+    requestAnimationFrame(() => {
+      setTimeout(loadCharts, 50)
+    })
   }
 
-  // Also initialize when tab becomes visible (for Astro client-side navigation)
-  document.addEventListener('astro:page-load', loadCharts)
+  document.addEventListener('profile-tab-statistics-visible', scheduleLoadCharts)
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('tab') === 'statistics') scheduleLoadCharts()
+    })
+  } else {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('tab') === 'statistics') scheduleLoadCharts()
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('tab') === 'statistics') scheduleLoadCharts()
+  })
 </script>
 

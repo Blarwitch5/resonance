@@ -2,6 +2,12 @@
 import X from '@lucide/astro/icons/x'
 import Camera from '@lucide/astro/icons/camera'
 import Pencil from '@lucide/astro/icons/pencil'
+import { getLayoutMessages } from '../../i18n/layout'
+
+type BarcodeMessages = ReturnType<typeof getLayoutMessages>['barcodeScanner']
+type Props = { barcodeMessages?: BarcodeMessages }
+const defaultMessages = getLayoutMessages('en').barcodeScanner
+const msg = (Astro.props as Props).barcodeMessages ?? defaultMessages
 ---
 
 <!-- Barcode Scanner Button/Modal (mobile + desktop) -->
@@ -11,7 +17,7 @@ import Pencil from '@lucide/astro/icons/pencil'
     id="barcode-scanner-btn"
     type="button"
     class="barcode-fab bg-gradient-resonance hover:bg-gradient-resonance-hover flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-300 hover:scale-110 md:h-12 md:w-12"
-    aria-label="Scan a barcode"
+    aria-label={msg.scanAria}
   >
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-white stroke-white md:h-5 md:w-5" aria-hidden="true">
       <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
@@ -35,8 +41,8 @@ import Pencil from '@lucide/astro/icons/pencil'
   aria-modal="true"
 >
   <div class="w-full max-w-sm rounded-2xl border border-border/30 bg-surface-elevated p-6 shadow-xl">
-    <h2 id="barcode-choice-title" class="text-lg font-semibold text-neutral mb-2">Search by barcode</h2>
-    <p class="text-sm text-muted mb-6">Use the camera or type the code manually.</p>
+    <h2 id="barcode-choice-title" class="text-lg font-semibold text-neutral mb-2">{msg.choiceTitle}</h2>
+    <p class="text-sm text-muted mb-6">{msg.choiceDescription}</p>
     <div class="flex flex-col gap-3">
       <button
         type="button"
@@ -47,7 +53,7 @@ import Pencil from '@lucide/astro/icons/pencil'
           size={18}
           class="fill-none stroke-2 text-white stroke-white group-hover:text-neutral group-hover:stroke-neutral"
         />
-        <span class="text-white group-hover:text-neutral">Use camera</span>
+        <span class="text-white group-hover:text-neutral">{msg.useCamera}</span>
       </button>
       <button
         type="button"
@@ -55,16 +61,16 @@ import Pencil from '@lucide/astro/icons/pencil'
         class="btn-secondary-surface w-full rounded-xl py-3 flex items-center justify-center gap-2"
       >
         <Pencil size={18} class="fill-none stroke-2" />
-        <span>Enter manually</span>
+        <span>{msg.enterManually}</span>
       </button>
     </div>
     <button
       type="button"
       id="barcode-choice-close"
       class="mt-4 w-full text-sm text-muted hover:text-neutral transition-colors"
-      aria-label="Close"
+      aria-label={msg.closeAria}
     >
-      Cancel
+      {msg.cancel}
     </button>
   </div>
 </div>
@@ -79,24 +85,24 @@ import Pencil from '@lucide/astro/icons/pencil'
   aria-modal="true"
 >
   <div class="w-full max-w-sm rounded-2xl border border-border/30 bg-surface-elevated p-6 shadow-xl">
-    <h2 id="barcode-manual-title" class="text-lg font-semibold text-neutral mb-2">Barcode</h2>
-    <p class="text-sm text-muted mb-4">Enter the barcode (EAN-13, UPC, etc.)</p>
+    <h2 id="barcode-manual-title" class="text-lg font-semibold text-neutral mb-2">{msg.manualTitle}</h2>
+    <p class="text-sm text-muted mb-4">{msg.manualHint}</p>
     <input
       type="text"
       id="barcode-manual-input"
       class="input w-full rounded-xl border border-border bg-background px-4 py-3 text-neutral placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-      placeholder="e.g. 3700604706593"
+      placeholder={msg.manualPlaceholder}
       inputmode="numeric"
       autocomplete="off"
-      aria-label="Barcode"
+      aria-label={msg.manualAria}
     />
     <p id="barcode-manual-error" class="mt-2 text-sm text-error hidden" role="alert"></p>
     <div class="mt-6 flex gap-3">
       <button type="button" id="barcode-manual-cancel" class="btn-secondary-surface flex-1 rounded-xl py-3">
-        Cancel
+        {msg.cancel}
       </button>
       <button type="button" id="barcode-manual-submit" class="btn-primary flex-1 rounded-xl py-3">
-        Search
+        {msg.search}
       </button>
     </div>
   </div>
@@ -116,14 +122,14 @@ import Pencil from '@lucide/astro/icons/pencil'
     type="button"
     id="close-scanner"
     class="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-3 text-white backdrop-blur-sm transition-all hover:bg-white/20"
-    aria-label="Close scanner"
+    aria-label={msg.closeScannerAria}
   >
     <X size={24} />
   </button>
 
   <!-- Scanner View -->
   <div class="relative w-full max-w-md md:max-w-lg">
-    <h2 id="barcode-scanner-title" class="sr-only">Barcode scanner</h2>
+    <h2 id="barcode-scanner-title" class="sr-only">{msg.scannerTitle}</h2>
     <!-- Video Container -->
     <div id="scanner-video-container" class="relative aspect-square overflow-hidden rounded-2xl">
       <video
@@ -147,25 +153,35 @@ import Pencil from '@lucide/astro/icons/pencil'
       </div>
       <!-- Instructions -->
       <div class="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-white">
-        <p class="text-sm font-medium">Place the barcode inside the frame</p>
+        <p class="text-sm font-medium">{msg.placeInFrame}</p>
       </div>
     </div>
 
     <!-- Result Display -->
     <div id="scanner-result" class="mt-4 hidden">
       <div class="glass-card rounded-xl p-4">
-        <p class="text-sm text-muted">Detected barcode:</p>
+        <p class="text-sm text-muted">{msg.detectedBarcode}</p>
         <p id="scanned-barcode" class="mt-1 text-lg font-bold text-neutral"></p>
       </div>
     </div>
   </div>
 </div>
 
+<script type="application/json" id="barcode-scanner-messages" set:html={JSON.stringify(msg)}></script>
 <script>
-  interface BarcodeDetectorLike {
-    detect(element: HTMLVideoElement): Promise<Array<{ rawValue: string }>>
+  const barcodeMsgEl = document.getElementById('barcode-scanner-messages')
+  const parsed = (barcodeMsgEl && JSON.parse(barcodeMsgEl.textContent || '{}')) || {}
+  const barcodeMsg = {
+    noSupport: parsed.noSupport || 'Your browser does not support automatic scanning. Manual input is available.',
+    cameraDenied: parsed.cameraDenied || 'Camera access denied.',
+    cameraError: parsed.cameraError || 'Cannot access the camera.',
+    albumFound: parsed.albumFound || 'Album found!',
+    albumNotFound: parsed.albumNotFound || 'Album not found. Redirecting to explorer...',
+    searchError: parsed.searchError || 'Search failed.',
+    enterBarcode: parsed.enterBarcode || 'Please enter a barcode.',
+    ...parsed,
   }
-  let BarcodeDetector: BarcodeDetectorLike | null = null
+  let BarcodeDetector: unknown = null
   let stream: MediaStream | null = null
   let lastActiveElement: HTMLElement | null = null
 
@@ -213,19 +229,19 @@ import Pencil from '@lucide/astro/icons/pencil'
       return
     }
 
-    const firstElement = focusable[0]
-    const lastElement = focusable[focusable.length - 1]
+    const firstElement = focusable[0] as HTMLElement
+    const lastElement = focusable[focusable.length - 1] as HTMLElement
     const current = document.activeElement
 
     if (event.shiftKey) {
       if (current === firstElement || !modalElement.contains(current)) {
         event.preventDefault()
-        ;(lastElement as HTMLElement).focus()
+        lastElement.focus()
       }
     } else {
       if (current === lastElement || !modalElement.contains(current)) {
         event.preventDefault()
-        ;(firstElement as HTMLElement).focus()
+        firstElement.focus()
       }
     }
   }
@@ -235,7 +251,7 @@ import Pencil from '@lucide/astro/icons/pencil'
     rememberLastActiveElement()
     choiceModal?.setAttribute('data-open', 'true')
     choiceModal?.setAttribute('aria-hidden', 'false')
-    const primaryButton = document.getElementById('barcode-choice-camera') as HTMLButtonElement | null
+    const primaryButton = document.getElementById('barcode-choice-camera')
     if (primaryButton && typeof primaryButton.focus === 'function') {
       primaryButton.focus()
     }
@@ -265,10 +281,10 @@ import Pencil from '@lucide/astro/icons/pencil'
       stream.getTracks().forEach((track: MediaStreamTrack) => track.stop())
       stream = null
     }
-    const video = document.getElementById('scanner-video')
+    const video = document.getElementById('scanner-video') as HTMLVideoElement | null
     const scannerModal = document.getElementById('barcode-scanner-modal')
     const scannerResult = document.getElementById('scanner-result')
-    if (video) (video as HTMLVideoElement).srcObject = null
+    if (video) video.srcObject = null
     scannerModal?.setAttribute('data-open', 'false')
     scannerModal?.setAttribute('aria-hidden', 'true')
     scannerResult?.classList.add('hidden')
@@ -284,7 +300,7 @@ import Pencil from '@lucide/astro/icons/pencil'
         { video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } },
         { video: { width: { ideal: 1280 }, height: { ideal: 720 } } },
       ]
-      let lastError: unknown = null
+      let lastError = null
       for (const constraints of tryConstraints) {
         try {
           stream = await navigator.mediaDevices.getUserMedia(constraints)
@@ -296,25 +312,23 @@ import Pencil from '@lucide/astro/icons/pencil'
       scannerModal.setAttribute('data-open', 'true')
       scannerModal.setAttribute('aria-hidden', 'false')
       rememberLastActiveElement()
-      const closeButton = document.getElementById('close-scanner') as HTMLButtonElement | null
+      const closeButton = document.getElementById('close-scanner')
       if (closeButton && typeof closeButton.focus === 'function') {
         closeButton.focus()
       }
       if (hasNativeBarcodeDetector) {
-        const BD = (window as unknown as { BarcodeDetector: new (opts: { formats: string[] }) => BarcodeDetectorLike }).BarcodeDetector
-        BarcodeDetector = new BD({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'] })
+        const BD = (window as Window & { BarcodeDetector?: new (opts: { formats: string[] }) => unknown }).BarcodeDetector
+        if (BD) BarcodeDetector = new BD({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'] })
         startNativeDetection(video)
       } else {
-        if (window.toast) window.toast.info('Your browser does not support automatic scanning. Manual input is available.')
+        if (window.toast) window.toast.info(barcodeMsg.noSupport)
         closeScanner()
         openManualModal()
       }
-    } catch (error) {
-      const err = error as { name?: string; message?: string }
-      const isDenied = err?.name === 'NotAllowedError' || err?.message?.includes('Permission denied')
-      const toastMessage = isDenied
-        ? 'Camera access denied. Click the lock icon in the address bar to allow access.'
-        : 'Cannot access the camera. Make sure the site is using https or localhost.'
+    } catch (error: unknown) {
+      const err = error as { name?: string; message?: string } | undefined
+      const isDenied = err?.name === 'NotAllowedError' || (typeof err?.message === 'string' && err.message.includes('Permission denied'))
+      const toastMessage = isDenied ? barcodeMsg.cameraDenied : barcodeMsg.cameraError
       if (window.toast) window.toast.error(toastMessage)
       console.error('Error accessing camera:', err)
       openManualModal()
@@ -323,10 +337,11 @@ import Pencil from '@lucide/astro/icons/pencil'
 
   function startNativeDetection(videoEl: HTMLVideoElement) {
     if (!BarcodeDetector) return
+    const detector = BarcodeDetector as { detect: (el: HTMLVideoElement) => Promise<Array<{ rawValue: string }>> }
     const detectBarcode = async () => {
       try {
-        if (!BarcodeDetector || !videoEl) return
-        const barcodes = await BarcodeDetector.detect(videoEl)
+        if (!detector || !videoEl) return
+        const barcodes = await detector.detect(videoEl)
         if (barcodes.length > 0) {
           handleBarcodeDetected(barcodes[0].rawValue)
         }
@@ -354,13 +369,13 @@ import Pencil from '@lucide/astro/icons/pencil'
             modal.setAttribute('data-discogs-id', data.result.id.toString())
             modal.classList.remove('hidden')
             closeScanner()
-            if (window.toast) window.toast.success('Album found!')
+            if (window.toast) window.toast.success(barcodeMsg.albumFound)
           } else {
             closeScanner()
             window.location.href = `/explorer?discogs=${data.result.id}`
           }
         } else {
-          if (window.toast) window.toast.info('Album not found. Redirecting to explorer...')
+          if (window.toast) window.toast.info(barcodeMsg.albumNotFound)
           setTimeout(() => {
             window.location.href = `/explorer?barcode=${encodeURIComponent(barcodeValue)}`
             closeScanner()
@@ -369,7 +384,7 @@ import Pencil from '@lucide/astro/icons/pencil'
       }
     } catch (error) {
       console.error('Error searching for barcode:', error)
-      if (window.toast) window.toast.error('Error while searching for the album')
+      if (window.toast) window.toast.error(barcodeMsg.searchError)
       setTimeout(() => {
         window.location.href = `/explorer?barcode=${encodeURIComponent(barcodeValue)}`
         closeScanner()
@@ -377,8 +392,8 @@ import Pencil from '@lucide/astro/icons/pencil'
     }
   }
 
-  document.addEventListener('click', async (event: MouseEvent) => {
-    const target = event.target as Element | null
+  document.addEventListener('click', async function(event: MouseEvent) {
+    const target = event.target instanceof HTMLElement ? event.target : null
     if (!target) return
     if (target.closest('#barcode-scanner-btn')) {
       event.preventDefault()
@@ -397,19 +412,19 @@ import Pencil from '@lucide/astro/icons/pencil'
       openManualModal()
       return
     }
-    if (target.closest('#barcode-choice-close') || (target.id === 'barcode-choice-modal')) {
+    if (target.closest('#barcode-choice-close') || target.id === 'barcode-choice-modal') {
       event.preventDefault()
       closeChoiceModal()
       return
     }
     if (target.closest('#barcode-manual-submit')) {
       event.preventDefault()
-      const manualInput = document.getElementById('barcode-manual-input') as HTMLInputElement | null
+      const manualInput = document.getElementById('barcode-manual-input')
       const manualError = document.getElementById('barcode-manual-error')
-      const value = manualInput?.value?.trim()
+      const value = (manualInput instanceof HTMLInputElement ? manualInput.value : '').trim()
       if (!value) {
         if (manualError) {
-          manualError.textContent = 'Please enter a barcode.'
+          manualError.textContent = barcodeMsg.enterBarcode
           manualError.classList.remove('hidden')
         }
         return
@@ -429,8 +444,8 @@ import Pencil from '@lucide/astro/icons/pencil'
     }
   })
 
-  document.addEventListener('keydown', (event: KeyboardEvent) => {
-    const target = event.target as Element | null
+  document.addEventListener('keydown', function(event: KeyboardEvent) {
+    const target = event.target instanceof HTMLElement ? event.target : null
     if (target?.id === 'barcode-manual-input' && event.key === 'Enter') {
       event.preventDefault()
       document.getElementById('barcode-manual-submit')?.click()

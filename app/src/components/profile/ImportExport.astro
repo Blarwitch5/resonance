@@ -1,17 +1,49 @@
 ---
 // Composant pour l'import/export de collections
+type ImportExportLabels = {
+  title: string
+  description: string
+  exportButton: string
+  importButton: string
+  exporting: string
+  exportSuccess: string
+  exportError: string
+  importing: string
+  importSuccess: string
+  importError: string
+}
+
+const defaultLabels: ImportExportLabels = {
+  title: 'Import / Export',
+  description: 'Export your collections and items as JSON, or import them from a backup file.',
+  exportButton: 'Export Collections',
+  importButton: 'Import Collections',
+  exporting: 'Exporting...',
+  exportSuccess: 'Collections exported successfully!',
+  exportError: 'Failed to export collections',
+  importing: 'Importing collections...',
+  importSuccess: 'Import completed! {collectionsCreated} collections created, {itemsCreated} items imported, {itemsSkipped} items skipped.',
+  importError: 'Failed to import collections',
+}
+
+type ImportExportProps = {
+  labels?: ImportExportLabels
+}
+
+const { labels = defaultLabels } = Astro.props as ImportExportProps
 ---
 
 <div class="glass-card min-w-0 rounded-xl p-4 sm:p-6 border-2 border-emerald-500/20">
-  <h3 class="mb-4 text-lg font-semibold text-neutral">Import / Export</h3>
+  <h3 class="mb-4 text-lg font-semibold text-neutral">{labels.title}</h3>
   <p class="mb-6 text-sm text-muted">
-    Export your collections and items as JSON, or import them from a backup file.
+    {labels.description}
   </p>
 
   <div class="flex flex-col gap-4 sm:flex-row">
-    <!-- Export Button -->
+    <!-- Export : icône upload (flèche haut), pas de fill blanc -->
     <button
       id="export-btn"
+      type="button"
       class="btn-primary-gradient flex-1 py-3 px-4 rounded-lg flex items-center justify-center gap-2"
     >
       <svg
@@ -24,18 +56,20 @@
         stroke-width="2"
         stroke-linecap="round"
         stroke-linejoin="round"
+        class="shrink-0 fill-none stroke-currentColor"
+        aria-hidden="true"
       >
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-        <polyline points="7 10 12 15 17 10"></polyline>
-        <line x1="12" y1="15" x2="12" y2="3"></line>
+        <polyline points="17 8 12 3 7 8"></polyline>
+        <line x1="12" y1="3" x2="12" y2="15"></line>
       </svg>
-      Export Collections
+      {labels.exportButton}
     </button>
 
-    <!-- Import Button -->
+    <!-- Import : icône download (flèche bas) -->
     <label
       for="import-file"
-      class="btn-secondary-surface flex-1 py-3 px-4 rounded-lg flex items-center justify-center gap-2"
+      class="btn-secondary-surface flex-1 py-3 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -47,12 +81,14 @@
         stroke-width="2"
         stroke-linecap="round"
         stroke-linejoin="round"
+        class="shrink-0"
+        aria-hidden="true"
       >
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-        <polyline points="17 8 12 3 7 8"></polyline>
-        <line x1="12" y1="3" x2="12" y2="15"></line>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
       </svg>
-      Import Collections
+      {labels.importButton}
       <input
         type="file"
         id="import-file"
@@ -63,18 +99,28 @@
   </div>
 </div>
 
+<script type="application/json" id="import-export-messages" set:html={JSON.stringify({
+  exporting: labels.exporting,
+  exportSuccess: labels.exportSuccess,
+  exportError: labels.exportError,
+  importing: labels.importing,
+  importSuccess: labels.importSuccess,
+  importError: labels.importError,
+})}></script>
+
 <script>
-  // TypeScript fonctionne nativement dans les scripts Astro !
   (function() {
+    const messagesEl = document.getElementById('import-export-messages')
+    const messages = messagesEl ? JSON.parse(messagesEl.textContent || '{}') : {}
+
     function initImportExport() {
       const exportBtn = document.getElementById('export-btn')
       const importFile = document.getElementById('import-file')
 
-      // Export
       if (exportBtn) {
         exportBtn.addEventListener('click', async function() {
           const button = exportBtn
-          if (window.setButtonLoading) window.setButtonLoading(button, true, 'Exporting...')
+          if (window.setButtonLoading) window.setButtonLoading(button, true, messages.exporting)
 
           try {
             const response = await fetch('/api/collections/export')
@@ -93,12 +139,12 @@
             window.URL.revokeObjectURL(url)
 
             if (window.toast) {
-              window.toast.success('Collections exported successfully!')
+              window.toast.success(messages.exportSuccess)
             }
           } catch (error) {
             console.error('Export error:', error)
             if (window.toast) {
-              window.toast.error('Failed to export collections')
+              window.toast.error(messages.exportError)
             }
           } finally {
             if (window.setButtonLoading) window.setButtonLoading(button, false)
@@ -108,18 +154,18 @@
 
       // Import
       if (importFile) {
-        importFile.addEventListener('change', async function(event: Event) {
-          const target = event.target
+        importFile.addEventListener('change', async function(event) {
+          const target = event.target as HTMLInputElement | null
           if (!target || target.nodeName !== 'INPUT') return
           const input = target
-          const file = input.files && input.files[0]
+          const file = input.files?.[0]
           if (!file) return
 
           const formData = new FormData()
           formData.append('file', file)
 
           if (window.toast) {
-            window.toast.info('Importing collections...', 5000)
+            window.toast.info(messages.importing, 5000)
           }
 
           try {
@@ -131,11 +177,10 @@
             const data = await response.json()
 
             if (response.ok) {
-              const message = 'Import completed! ' +
-                data.stats.collectionsCreated + ' collections created, ' +
-                data.stats.itemsCreated + ' items imported, ' +
-                data.stats.itemsSkipped + ' items skipped.'
-              
+              const message = (messages.importSuccess || '')
+                .replace('{collectionsCreated}', String(data.stats.collectionsCreated))
+                .replace('{itemsCreated}', String(data.stats.itemsCreated))
+                .replace('{itemsSkipped}', String(data.stats.itemsSkipped))
               if (window.toast) {
                 window.toast.success(message, 8000)
               }
@@ -146,16 +191,15 @@
               }, 1000)
             } else {
               if (window.toast) {
-                window.toast.error(data.error || 'Failed to import collections')
+                window.toast.error(data.error || messages.importError)
               }
             }
           } catch (error) {
             console.error('Import error:', error)
             if (window.toast) {
-              window.toast.error('Failed to import collections')
+              window.toast.error(messages.importError)
             }
           } finally {
-            // Reset file input
             if (input) {
               input.value = ''
             }

@@ -9,15 +9,25 @@
     background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
     color: white !important;
     font-weight: 500;
+    cursor: pointer;
     transition: all var(--transition-base);
   }
 
   .btn-primary-gradient,
   .btn-primary-gradient *,
-  .btn-primary-gradient svg,
   .btn-primary-gradient span {
     color: white !important;
+  }
+
+  .btn-primary-gradient svg {
+    color: white !important;
     fill: white !important;
+  }
+
+  /* Icônes stroke-only (fill="none") : pas de fill, garder le trait blanc */
+  .btn-primary-gradient svg[fill='none'] {
+    fill: none !important;
+    stroke: white !important;
   }
 
   .btn-primary-gradient:hover:not(:disabled) {
@@ -29,10 +39,18 @@
 
   .btn-primary-gradient:hover:not(:disabled),
   .btn-primary-gradient:hover:not(:disabled) *,
-  .btn-primary-gradient:hover:not(:disabled) svg,
   .btn-primary-gradient:hover:not(:disabled) span {
     color: white !important;
+  }
+
+  .btn-primary-gradient:hover:not(:disabled) svg {
+    color: white !important;
     fill: white !important;
+  }
+
+  .btn-primary-gradient:hover:not(:disabled) svg[fill='none'] {
+    fill: none !important;
+    stroke: white !important;
   }
 
   .btn-primary-gradient:disabled {
@@ -46,6 +64,7 @@
     color: var(--color-neutral);
     border: 1px solid var(--color-border);
     font-weight: 500;
+    cursor: pointer;
     transition: all var(--transition-base);
   }
 
@@ -71,6 +90,7 @@
     background-color: #dc2626; /* red-600 */
     color: white !important;
     font-weight: 500;
+    cursor: pointer;
     transition: all var(--transition-base);
   }
 
@@ -106,6 +126,7 @@
     color: var(--color-neutral);
     border: 1px solid var(--color-border);
     font-weight: 500;
+    cursor: pointer;
     transition: all var(--transition-base);
   }
 
@@ -123,6 +144,7 @@
   .btn-icon {
     background-color: rgba(255, 255, 255, 0.9);
     color: #374151; /* gray-700 */
+    cursor: pointer;
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
     transition: all var(--transition-base);
@@ -147,6 +169,7 @@
   .btn-icon-colored {
     background-color: rgba(236, 72, 153, 0.9); /* pink-500/90 */
     color: white !important;
+    cursor: pointer;
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
     transition: all var(--transition-base);
