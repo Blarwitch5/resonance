@@ -14,27 +14,46 @@ type ResultCardProps = {
     format?: string[]
     slug?: string
   }
+  addToCollectionAria?: string
+  addToWishlistAria?: string
+  unknownArtistLabel?: string
+  scriptLabels?: {
+    unknownArtist: string
+    addedToWishlistToast: string
+    failedToAddToWishlist: string
+    fetchReleaseError: string
+    genericError: string
+  }
 }
 
-const { result } = Astro.props as ResultCardProps
+const defaultScriptLabels = {
+  unknownArtist: 'Unknown Artist',
+  addedToWishlistToast: 'Album successfully added to wishlist!',
+  failedToAddToWishlist: 'Failed to add to wishlist',
+  fetchReleaseError: 'Failed to fetch release details',
+  genericError: 'An error occurred',
+}
+
+const { result, addToCollectionAria = 'Add to collection', addToWishlistAria = 'Add to wishlist', unknownArtistLabel = 'Unknown', scriptLabels = defaultScriptLabels } = Astro.props as ResultCardProps
+const scriptL = scriptLabels
 
 // Fonction pour extraire les formats affichables
-function extractDisplayFormats(formats) {
+function extractDisplayFormats(formats: string[] | undefined): string[] {
   if (!formats || formats.length === 0) return []
-  
-  const displayFormats = []
-  const normalized = formats.map(format => format.toUpperCase())
-  
-  if (normalized.some(format => format.includes('VINYL') || format.includes('LP') || format.includes('12"') || format.includes('7"') || format.includes('45') || format.includes('33'))) {
+
+  const displayFormats: string[] = []
+  const normalized = formats.map((format: string) => format.toUpperCase())
+
+  if (normalized.some((format: string) => format.includes('VINYL') || format.includes('LP') || format.includes('12"') || format.includes('7"') || format.includes('45') || format.includes('33'))) {
     displayFormats.push('Vinyl')
   }
-  if (normalized.some(format => format.includes('CD') || format.includes('COMPACT DISC'))) {
+  if (normalized.some((format: string) => format.includes('CD') || format.includes('COMPACT DISC'))) {
     displayFormats.push('CD')
   }
-  if (normalized.some(format => format.includes('CASSETTE') || format.includes('TAPE'))) {
+  if (normalized.some((format: string) => format.includes('CASSETTE') || format.includes('TAPE'))) {
     displayFormats.push('Cassette')
   }
-  
+
   return displayFormats
 }
 
@@ -66,7 +85,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
   <!-- Info -->
   <div class="p-3">
     <h3 class="truncate font-medium text-neutral">{albumTitle}</h3>
-    <p class="truncate text-sm text-muted">{artist}</p>
+    <p class="truncate text-sm text-muted">{artist || unknownArtistLabel}</p>
     {formatsText && (
       <p class="mt-1 text-xs font-medium text-primary">{formatsText}</p>
     )}
@@ -80,7 +99,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
     <button
       type="button"
       class="btn-icon rounded-full p-2 shadow-lg"
-      aria-label="Add to collection"
+      aria-label={addToCollectionAria}
       data-discogs-id={result.id}
       data-action="collection"
       onclick="event.preventDefault(); event.stopPropagation();"
@@ -90,7 +109,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
     <button
       type="button"
       class="btn-icon-colored rounded-full p-2 shadow-lg"
-      aria-label="Add to wishlist"
+      aria-label={addToWishlistAria}
       data-discogs-id={result.id}
       data-action="wishlist"
       onclick="event.preventDefault(); event.stopPropagation();"
@@ -100,7 +119,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
   </div>
 </a>
 
-<script>
+<script define:vars={{ scriptUnknownArtist: scriptL.unknownArtist, scriptAddedToast: scriptL.addedToWishlistToast, scriptFailedWishlist: scriptL.failedToAddToWishlist, scriptFetchReleaseError: scriptL.fetchReleaseError, scriptGenericError: scriptL.genericError }}>
   document.addEventListener('click', async (event) => {
     const target = event.target
     const button = target.closest('button[data-discogs-id]')
@@ -133,7 +152,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
       // Récupérer les détails de la release
       const releaseResponse = await fetch(`/api/discogs/release/${discogsId}`)
       if (!releaseResponse.ok) {
-        throw new Error('Failed to fetch release details')
+        throw new Error(scriptFetchReleaseError)
       }
 
       const release = await releaseResponse.json()
@@ -147,7 +166,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
         format = 'CASSETTE'
       }
 
-      const primaryArtist = release.artists?.[0]?.name || 'Unknown Artist'
+      const primaryArtist = release.artists?.[0]?.name || scriptUnknownArtist
       const year = release.year || parseInt(release.released || '0') || null
 
       // Extraire la meilleure cover
@@ -178,18 +197,16 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
 
       if (!wishlistResponse.ok) {
         const error = await wishlistResponse.json()
-        throw new Error(error.error || 'Failed to add to wishlist')
+        throw new Error(error.error || scriptFailedWishlist)
       }
 
-      // @ts-ignore - toast is available globally
       if (window.toast) {
-        window.toast.success('Album successfully added to wishlist!')
+        window.toast.success(scriptAddedToast)
       }
     } catch (error) {
       console.error('Error adding to wishlist:', error)
-      // @ts-ignore - toast is available globally
       if (window.toast) {
-        window.toast.error(`Error: ${error instanceof Error ? error.message : 'An error occurred'}`)
+        window.toast.error(`Error: ${error instanceof Error ? error.message : scriptGenericError}`)
       }
     }
   }

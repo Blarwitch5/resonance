@@ -1,11 +1,33 @@
 ---
 import Search from '@lucide/astro/icons/search'
 import X from '@lucide/astro/icons/x'
+
+type CollectionSearchLabels = {
+  label: string
+  placeholder: string
+  clearAria: string
+  noResults: string
+  noResultsForQuery: string
+}
+
+const defaultLabels: CollectionSearchLabels = {
+  label: 'Search your collection (title, artist, genre)',
+  placeholder: 'Search by title, artist, genre...',
+  clearAria: 'Clear search',
+  noResults: 'No results',
+  noResultsForQuery: 'No album matches "{query}"',
+}
+
+type CollectionSearchProps = {
+  labels?: CollectionSearchLabels
+}
+
+const { labels = defaultLabels } = Astro.props as CollectionSearchProps
 ---
 
 <div class="relative">
   <label for="collection-search" class="sr-only">
-    Search your collection (title, artist, genre)
+    {labels.label}
   </label>
   <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
     <Search size={20} class="fill-none stroke-2 text-muted stroke-muted" />
@@ -13,7 +35,7 @@ import X from '@lucide/astro/icons/x'
   <input
     type="text"
     id="collection-search"
-    placeholder="Search by title, artist, genre..."
+    placeholder={labels.placeholder}
     class="w-full rounded-xl border border-border bg-surface pl-12 pr-12 py-3 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
     autocomplete="off"
   />
@@ -21,13 +43,13 @@ import X from '@lucide/astro/icons/x'
     type="button"
     id="clear-search"
     class="absolute inset-y-0 right-0 hidden items-center pr-4 text-muted hover:text-neutral transition-colors"
-    aria-label="Clear search"
+    aria-label={labels.clearAria}
   >
     <X size={20} />
   </button>
 </div>
 
-<script type="text/javascript">
+<script type="text/javascript" define:vars={{ noResultsLabel: labels.noResults, noResultsForQueryTemplate: labels.noResultsForQuery }}>
   document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('collection-search')
     const clearButton = document.getElementById('clear-search')
@@ -105,11 +127,11 @@ import X from '@lucide/astro/icons/x'
           message.appendChild(iconWrap)
           const heading = document.createElement('h3')
           heading.className = 'font-display mb-2 text-xl font-semibold text-neutral'
-          heading.textContent = 'No results'
+          heading.textContent = noResultsLabel
           message.appendChild(heading)
           const para = document.createElement('p')
           para.className = 'text-muted'
-          para.textContent = 'No album matches "' + query + '"'
+          para.textContent = noResultsForQueryTemplate.replace('{query}', query)
           message.appendChild(para)
           const container = document.querySelector('[data-items-container]')
           if (container) {

@@ -2,6 +2,26 @@
 import Turntable from '@lucide/astro/icons/turntable'
 import CassetteTape from '@lucide/astro/icons/cassette-tape'
 import Disc from '@lucide/astro/icons/disc'
+
+type FormatFilterLabels = {
+  all: string
+  vinyl: string
+  cassette: string
+  cd: string
+}
+
+const defaultFormats: FormatFilterLabels = {
+  all: 'All',
+  vinyl: 'Vinyl',
+  cassette: 'Cassette',
+  cd: 'CD',
+}
+
+type FormatFilterProps = {
+  formats?: FormatFilterLabels
+}
+
+const { formats = defaultFormats } = Astro.props as FormatFilterProps
 ---
 
 <div class="flex flex-wrap gap-3">
@@ -9,39 +29,39 @@ import Disc from '@lucide/astro/icons/disc'
     type="button"
     data-format=""
     class="format-filter-btn rounded-xl border-2 border-border bg-surface px-4 py-2 font-medium transition-all active"
-    aria-label="All formats"
+    aria-label={formats.all}
   >
-    All
+    {formats.all}
   </button>
 
   <button
     type="button"
     data-format="VINYL"
     class="format-filter-btn rounded-xl border-2 border-border bg-surface px-4 py-2 font-medium transition-all flex items-center gap-2"
-    aria-label="Vinyl"
+    aria-label={formats.vinyl}
   >
     <Turntable size={18} />
-    <span>Vinyl</span>
+    <span>{formats.vinyl}</span>
   </button>
 
   <button
     type="button"
     data-format="CASSETTE"
     class="format-filter-btn rounded-xl border-2 border-border bg-surface px-4 py-2 font-medium transition-all flex items-center gap-2"
-    aria-label="Cassette"
+    aria-label={formats.cassette}
   >
     <CassetteTape size={18} />
-    <span>Cassette</span>
+    <span>{formats.cassette}</span>
   </button>
 
   <button
     type="button"
     data-format="CD"
     class="format-filter-btn rounded-xl border-2 border-border bg-surface px-4 py-2 font-medium transition-all flex items-center gap-2"
-    aria-label="CD"
+    aria-label={formats.cd}
   >
     <Disc size={18} />
-    <span>CD</span>
+    <span>{formats.cd}</span>
   </button>
 </div>
 

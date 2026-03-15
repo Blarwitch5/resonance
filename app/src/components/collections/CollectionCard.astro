@@ -1,6 +1,10 @@
 ---
 import Folder from '@lucide/astro/icons/folder'
+import Disc3 from '@lucide/astro/icons/disc-3'
+import Disc2 from '@lucide/astro/icons/disc-2'
+import CassetteTape from '@lucide/astro/icons/cassette-tape'
 import type { Collection } from '@prisma/client'
+import type { CollectionsMessages } from '../../i18n/collections'
 import OptimizedImage from '../ui/OptimizedImage.astro'
 
 type CollectionCardProps = {
@@ -12,10 +16,22 @@ type CollectionCardProps = {
     favoriteCount?: number
     coverImage?: string | null
   }
+  cardLabels?: CollectionsMessages['card']
 }
 
-const { collection } = Astro.props as CollectionCardProps
-const totalItems = collection.itemCount || 0
+const defaultCardLabels = {
+  album: 'album',
+  albums: 'albums',
+  vinylTitle: 'Vinyl',
+  cdTitle: 'CD',
+  cassetteTitle: 'Cassette',
+} as const
+
+const { collection, cardLabels = defaultCardLabels } = Astro.props as CollectionCardProps
+const card = cardLabels
+const totalItems =
+  collection.itemCount ??
+  (collection.vinylCount ?? 0) + (collection.cdCount ?? 0) + (collection.cassetteCount ?? 0)
 ---
 
 <a
@@ -49,28 +65,23 @@ const totalItems = collection.itemCount || 0
     )}
 
     <!-- Stats -->
-    <div class="flex flex-wrap gap-3 text-sm">
+    <div class="flex flex-wrap items-center gap-3 text-sm">
       <span class="font-medium text-neutral">
-        {totalItems} {totalItems === 1 ? 'album' : 'albums'}
+        {totalItems} {totalItems === 1 ? card.album : card.albums}
       </span>
-      {collection.vinylCount && collection.vinylCount > 0 && (
-        <>
-          <span class="text-muted">•</span>
-          <span class="text-muted">{collection.vinylCount} vinyls</span>
-        </>
-      )}
-      {collection.cdCount && collection.cdCount > 0 && (
-        <>
-          <span class="text-muted">•</span>
-          <span class="text-muted">{collection.cdCount} CDs</span>
-        </>
-      )}
-      {collection.cassetteCount && collection.cassetteCount > 0 && (
-        <>
-          <span class="text-muted">•</span>
-          <span class="text-muted">{collection.cassetteCount} cassettes</span>
-        </>
-      )}
+      <span class="text-muted">•</span>
+      <span class="flex items-center gap-1" title={card.vinylTitle}>
+        <Disc3 size={16} class="fill-none stroke-2 text-format-vinyl stroke-format-vinyl" aria-hidden="true" />
+        <span class="text-muted">{collection.vinylCount ?? 0}</span>
+      </span>
+      <span class="flex items-center gap-1" title={card.cdTitle}>
+        <Disc2 size={16} class="fill-none stroke-2 text-format-cd stroke-format-cd" aria-hidden="true" />
+        <span class="text-muted">{collection.cdCount ?? 0}</span>
+      </span>
+      <span class="flex items-center gap-1" title={card.cassetteTitle}>
+        <CassetteTape size={16} class="fill-none stroke-2 text-format-cassette stroke-format-cassette" aria-hidden="true" />
+        <span class="text-muted">{collection.cassetteCount ?? 0}</span>
+      </span>
     </div>
   </div>
 </a>

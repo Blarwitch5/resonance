@@ -4,6 +4,8 @@ import Folder from '@lucide/astro/icons/folder'
 import Plus from '@lucide/astro/icons/plus'
 import { collectionRepository } from '../../repositories/collection-repository'
 import EmptyState from '../../components/ui/EmptyState.astro'
+import { getCollectionsMessages } from '../../i18n/collections'
+import { normalizeLocale } from '../../i18n/config'
 import AlertCircle from '@lucide/astro/icons/circle-alert'
 
 export const prerender = false
@@ -11,6 +13,9 @@ export const prerender = false
 // Utiliser la session depuis le middleware (Astro.locals)
 const session = Astro.locals.session
 if (!session) return Astro.redirect('/login')
+
+const locale = normalizeLocale(Astro.locals.userPreferences?.locale ?? Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const collectionT = getCollectionsMessages(locale)
 
 const MAX_COLLECTIONS = 2
 const collectionsCount = await collectionRepository.countByUserId(Astro.locals.user!.id)
@@ -22,17 +27,17 @@ if (!canCreateNewCollection) {
 }
 ---
 
-<DashboardLayout title="New Collection - Resonance">
+<DashboardLayout title={collectionT.meta.newTitle}>
   <div class="mx-auto max-w-2xl">
     <div class="mb-8">
-      <h1 class="text-2xl font-bold">Create a collection</h1>
-      <p class="text-muted">Organize your albums into custom collections</p>
+      <h1 class="text-2xl font-bold">{collectionT.new.title}</h1>
+      <p class="text-muted">{collectionT.new.subtitle}</p>
     </div>
 
     <form class="glass-card space-y-6 rounded-2xl p-8" id="create-collection-form">
       <div>
         <label for="name" class="mb-2 block text-sm font-medium text-neutral">
-          Collection name *
+          {collectionT.new.form.nameLabel}
         </label>
         <input
           type="text"
@@ -40,20 +45,20 @@ if (!canCreateNewCollection) {
           name="name"
           required
           class="w-full rounded-xl border border-border bg-surface p-3 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
-          placeholder="E.g. Jazz Legends, 80s..."
+          placeholder={collectionT.new.form.namePlaceholder}
         />
       </div>
 
       <div>
         <label for="description" class="mb-2 block text-sm font-medium text-neutral">
-          Description (optional)
+          {collectionT.new.form.descriptionLabel}
         </label>
         <textarea
           id="description"
           name="description"
           rows={4}
           class="w-full rounded-xl border border-border bg-surface p-3 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
-          placeholder="Describe your collection..."
+          placeholder={collectionT.new.form.descriptionPlaceholder}
         ></textarea>
       </div>
 
@@ -65,7 +70,7 @@ if (!canCreateNewCollection) {
           class="h-5 w-5 rounded border-border text-primary focus:ring-2 focus:ring-primary"
         />
         <label for="isPublic" class="text-sm text-neutral">
-          Make this collection public
+          {collectionT.new.form.isPublicLabel}
         </label>
       </div>
 
@@ -82,23 +87,44 @@ if (!canCreateNewCollection) {
           class="btn-primary-gradient flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3"
         >
           <Plus size={20} />
-          <span>Create collection</span>
+          <span>{collectionT.new.form.submit}</span>
         </button>
         <a
           href="/collections"
           class="flex items-center justify-center rounded-xl border border-border bg-surface px-6 py-3 font-medium text-neutral transition-colors hover:bg-surface-elevated"
         >
-          Cancel
+          {collectionT.new.form.cancel}
         </a>
       </div>
     </form>
   </div>
-</DashboardLayout>
+  <!-- Messages en script text/plain pour éviter tout problème de guillemets/attribut (= en base64, apostrophes) -->
+  <script type="text/plain" id="collection-new-messages" data-encoding="base64">
+    {Buffer.from(JSON.stringify({
+      provideName: collectionT.new.errors.provideName,
+      creating: collectionT.new.creating,
+      submit: collectionT.new.form.submit,
+      success: collectionT.new.success,
+      createError: collectionT.new.errors.createError,
+      createErrorGeneric: collectionT.new.errors.createErrorGeneric,
+    }), 'utf8').toString('base64')}
+  </script>
 
 <script is:inline>
   (function() {
   const form = document.getElementById('create-collection-form')
   if (!form) return
+
+  const messagesEl = document.getElementById('collection-new-messages')
+  let messages = { provideName: '', creating: '', submit: '', success: '', createError: '', createErrorGeneric: '' }
+  try {
+    if (messagesEl && messagesEl.textContent) {
+      const raw = messagesEl.textContent.trim()
+      if (raw) messages = JSON.parse(atob(raw))
+    }
+  } catch (e) {
+    console.warn('Could not parse collection-new-messages', e)
+  }
 
   const errorBox = document.getElementById('create-collection-error')
   const nameInput = document.getElementById('name')
@@ -128,7 +154,7 @@ if (!canCreateNewCollection) {
 
     if (!name || String(name).trim().length === 0) {
       if (errorBox) {
-        errorBox.textContent = 'Please provide a name for your collection.'
+        errorBox.textContent = messages.provideName
         errorBox.classList.remove('hidden')
       }
       setFieldError(nameInput, true)
@@ -136,22 +162,22 @@ if (!canCreateNewCollection) {
         nameInput.focus()
       }
       if (window.toast) {
-        window.toast.error('Please provide a name for your collection')
+        window.toast.error(messages.provideName)
       }
       return
     }
 
     const collectionData = {
-      name,
+      name: name,
       description: formData.get('description'),
       isPublic: formData.get('isPublic') === 'on',
     }
 
     const submitButton = form.querySelector('button[type="submit"]')
-    const originalButtonText = submitButton ? (submitButton.textContent || '') : 'Create collection'
+    const originalButtonText = submitButton ? (submitButton.textContent || '') : messages.submit
     if (submitButton) {
       submitButton.disabled = true
-      submitButton.textContent = 'Creating...'
+      submitButton.textContent = messages.creating
     }
 
     try {
@@ -167,11 +193,11 @@ if (!canCreateNewCollection) {
 
         if (response.ok) {
           if (window.toast) {
-            window.toast.success('Collection created successfully!')
+            window.toast.success(messages.success)
           }
           document.location.href = '/collections/' + responseData.slug
         } else {
-          const message = responseData.error || 'Error while creating collection'
+          const message = responseData.error || messages.createError
 
           if (errorBox) {
             errorBox.textContent = message
@@ -185,7 +211,6 @@ if (!canCreateNewCollection) {
             window.toast.error(message)
           }
 
-          // If the limit is reached, redirect after 3 seconds
           if (responseData.maxCollections && responseData.currentCount >= responseData.maxCollections) {
             setTimeout(function() {
               window.location.href = '/collections'
@@ -195,10 +220,10 @@ if (!canCreateNewCollection) {
       } catch (error) {
         console.error('Error creating collection:', error)
         if (window.toast) {
-          window.toast.error('An error occurred while creating the collection')
+          window.toast.error(messages.createErrorGeneric)
         }
         if (errorBox) {
-          errorBox.textContent = 'An error occurred while creating the collection'
+          errorBox.textContent = messages.createErrorGeneric
           errorBox.classList.remove('hidden')
         }
         setFieldError(nameInput, true)
@@ -207,7 +232,7 @@ if (!canCreateNewCollection) {
       const submitButton = form.querySelector('button[type="submit"]')
       if (submitButton) {
         submitButton.disabled = false
-        submitButton.textContent = originalButtonText || 'Create collection'
+        submitButton.textContent = originalButtonText || messages.submit
       }
     }
   })

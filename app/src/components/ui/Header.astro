@@ -5,9 +5,11 @@ import ThemeSwitcher from './ThemeSwitcher.astro'
 type HeaderProps = {
   sectionTitle: string
   sectionDescription: string
+  searchAria?: string
 }
 
-const props = Astro.props as HeaderProps
+const { sectionTitle, sectionDescription, searchAria = 'Search' } = Astro.props as HeaderProps
+const props = { sectionTitle, sectionDescription }
 ---
 
 <header
@@ -40,7 +42,7 @@ const props = Astro.props as HeaderProps
         <div class="md:hidden">
           <button
             type="button"
-            aria-label="Search"
+            aria-label={searchAria}
             class="rounded-lg bg-muted/10 p-2 text-muted transition-colors hover:bg-muted/20"
           >
             <svg

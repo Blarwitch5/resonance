@@ -2,6 +2,11 @@
 import Logo from './Logo.astro'
 import ThemeSwitcher from './ThemeSwitcher.astro'
 
+type FooterProps = {
+  navAria?: string
+}
+
+const { navAria = 'Footer navigation' } = Astro.props as FooterProps
 const currentYear = new Date().getFullYear()
 ---
 
@@ -17,7 +22,7 @@ const currentYear = new Date().getFullYear()
       <!-- Links and theme -->
       <nav
         class="flex items-center gap-6 text-sm text-muted transition-colors duration-200"
-        aria-label="Footer navigation"
+        aria-label={navAria}
       >
         <a
           href="/about"

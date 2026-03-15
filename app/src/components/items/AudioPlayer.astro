@@ -4,6 +4,20 @@ import Pause from '@lucide/astro/icons/pause'
 import Volume2 from '@lucide/astro/icons/volume-2'
 import VolumeX from '@lucide/astro/icons/volume-x'
 
+type AudioPlayerLabels = {
+  playPreview: string
+  mute: string
+  unmute: string
+  noPreview: string
+}
+
+const defaultAudioLabels: AudioPlayerLabels = {
+  playPreview: 'Play preview of {name}',
+  mute: 'Mute',
+  unmute: 'Unmute',
+  noPreview: 'No preview available',
+}
+
 type AudioPlayerProps = {
   trackId: string
   trackName: string
@@ -12,6 +26,7 @@ type AudioPlayerProps = {
   coverUrl?: string | null
   autoPlay?: boolean
   compact?: boolean
+  audioLabels?: AudioPlayerLabels
 }
 
 const {
@@ -22,7 +37,9 @@ const {
   coverUrl,
   autoPlay = false,
   compact = false,
+  audioLabels = defaultAudioLabels,
 } = Astro.props as AudioPlayerProps
+const audio = audioLabels
 
 const playerId = `audio-player-${trackId}`
 const isAvailable = previewUrl !== null && previewUrl !== ''
@@ -52,7 +69,7 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
               type="button"
               class="audio-play-btn flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white transition-all hover:bg-primary/90"
               data-action="play-pause"
-              aria-label={`Play preview of ${trackName}`}
+              aria-label={audio.playPreview.replace('{name}', trackName)}
               aria-pressed="false"
             >
               <Play size={20} class="audio-play-icon fill-none stroke-2" />
@@ -73,7 +90,7 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
               type="button"
               class="audio-volume-btn flex h-10 w-10 items-center justify-center rounded-full text-muted transition-colors hover:text-neutral"
               data-action="toggle-volume"
-              aria-label="Mute"
+              aria-label={audio.mute}
               aria-pressed="false"
             >
               <Volume2 size={18} class="audio-volume-icon" />
@@ -81,7 +98,7 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
             </button>
           </>
         ) : (
-          <p class="text-sm text-muted">No preview available</p>
+          <p class="text-sm text-muted">{audio.noPreview}</p>
         )}
       </div>
       <audio
@@ -111,7 +128,7 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
           type="button"
           class="audio-play-btn flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white transition-all hover:bg-primary/90"
           data-action="play-pause"
-          aria-label={`Play preview of ${trackName}`}
+          aria-label={audio.playPreview.replace('{name}', trackName)}
           aria-pressed="false"
         >
           <Play size={14} class="audio-play-icon fill-none stroke-2" />
@@ -131,21 +148,21 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
 
 <script>
   (function() {
-    const playerElement = document.querySelector('.audio-player[data-player-id]') as HTMLElement | null
+    const playerElement = document.querySelector('.audio-player[data-player-id]')
     if (!playerElement) return
 
     const playerIdAttr = playerElement.getAttribute('data-player-id')
     if (!playerIdAttr) return
 
-    const audio = document.getElementById(playerIdAttr) as HTMLAudioElement | null
+    const audio = document.getElementById(playerIdAttr)
     if (!audio) return
 
-    const playBtn = playerElement.querySelector('[data-action="play-pause"]') as HTMLButtonElement | null
-    const playIcon = playerElement.querySelector('.audio-play-icon') as HTMLElement | null
-    const pauseIcon = playerElement.querySelector('.audio-pause-icon') as HTMLElement | null
-    const progressBar = playerElement.querySelector('.audio-progress-fill') as HTMLElement | null
-    const currentTimeEl = playerElement.querySelector('.audio-current-time') as HTMLElement | null
-    const volumeBtn = playerElement.querySelector('[data-action="toggle-volume"]') as HTMLButtonElement | null
+    const playBtn = playerElement.querySelector('[data-action="play-pause"]')
+    const playIcon = playerElement.querySelector('.audio-play-icon')
+    const pauseIcon = playerElement.querySelector('.audio-pause-icon')
+    const progressBar = playerElement.querySelector('.audio-progress-fill')
+    const currentTimeEl = playerElement.querySelector('.audio-current-time')
+    const volumeBtn = playerElement.querySelector('[data-action="toggle-volume"]')
     const volumeIcon = playerElement.querySelector('.audio-volume-icon')
     const volumeMutedIcon = playerElement.querySelector('.audio-volume-muted-icon')
 
@@ -157,9 +174,9 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
     let currentTrackId = null
 
     // Arrêter les autres players quand celui-ci démarre
-    function stopOtherPlayers(): void {
-      const allPlayers = document.querySelectorAll('audio') as NodeListOf<HTMLAudioElement>
-      allPlayers.forEach((otherAudio: HTMLAudioElement) => {
+    function stopOtherPlayers() {
+      const allPlayers = document.querySelectorAll('audio')
+      allPlayers.forEach(function(otherAudio) {
         if (otherAudio !== audio && !otherAudio.paused) {
           otherAudio.pause()
           otherAudio.currentTime = 0
@@ -177,7 +194,7 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
     }
 
     // Mettre à jour la barre de progression
-    function updateProgress(): void {
+    function updateProgress() {
       if (!audio || !audio.duration) return
 
       const progress = (audio.currentTime / audio.duration) * 100
@@ -193,7 +210,7 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
     }
 
     // Formater la durée
-    function formatDuration(seconds: number): string {
+    function formatDuration(seconds) {
       const mins = Math.floor(seconds / 60)
       const secs = Math.floor(seconds % 60)
       return `${mins}:${secs.toString().padStart(2, '0')}`
@@ -204,8 +221,8 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
     audio.volume = 1.0
 
     // Événements audio
-    audio.addEventListener('loadedmetadata', () => {
-      const durationEl = playerElement.querySelector('.audio-duration') as HTMLElement | null
+    audio.addEventListener('loadedmetadata', function() {
+      const durationEl = playerElement.querySelector('.audio-duration')
       if (durationEl) {
         durationEl.textContent = formatDuration(audio.duration)
       }
@@ -213,7 +230,7 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
 
     audio.addEventListener('timeupdate', updateProgress)
 
-    audio.addEventListener('ended', () => {
+    audio.addEventListener('ended', function() {
       isPlaying = false
       audio.currentTime = 0
       if (playIcon) playIcon.classList.remove('hidden')
@@ -223,8 +240,11 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
     })
 
     // Play/Pause
+    const trackNameEl = playerElement.querySelector('.truncate.text-sm')
+    const trackName = trackNameEl ? trackNameEl.textContent || 'Track' : 'Track'
+
     if (playBtn) {
-      playBtn.addEventListener('click', () => {
+      playBtn.addEventListener('click', function() {
         stopOtherPlayers()
 
         if (isPlaying) {
@@ -234,10 +254,10 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
           if (pauseIcon) pauseIcon.classList.add('hidden')
           if (playBtn) {
             playBtn.setAttribute('aria-pressed', 'false')
-            playBtn.setAttribute('aria-label', `Play preview of ${trackName}`)
+            playBtn.setAttribute('aria-label', 'Play preview of ' + trackName)
           }
         } else {
-          audio.play().catch((error) => {
+          audio.play().catch(function(error) {
             console.error('Error playing audio:', error)
             if (window.toast) {
               window.toast.error('Error while playing audio')
@@ -248,7 +268,7 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
           if (pauseIcon) pauseIcon.classList.remove('hidden')
           if (playBtn) {
             playBtn.setAttribute('aria-pressed', 'true')
-            playBtn.setAttribute('aria-label', `Pause preview of ${trackName}`)
+            playBtn.setAttribute('aria-label', 'Pause preview of ' + trackName)
           }
         }
       })
@@ -256,7 +276,7 @@ const isAvailable = previewUrl !== null && previewUrl !== ''
 
     // Volume toggle
     if (volumeBtn) {
-      volumeBtn.addEventListener('click', () => {
+      volumeBtn.addEventListener('click', function() {
         isMuted = !isMuted
         audio.muted = isMuted
         if (isMuted) {

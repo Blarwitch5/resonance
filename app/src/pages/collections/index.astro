@@ -3,6 +3,8 @@ import { collectionRepository } from '../../repositories/collection-repository'
 import DashboardLayout from '../../components/layouts/DashboardLayout.astro'
 import CollectionCard from '../../components/collections/CollectionCard.astro'
 import EmptyState from '../../components/ui/EmptyState.astro'
+import { getCollectionsMessages } from '../../i18n/collections'
+import { normalizeLocale } from '../../i18n/config'
 import Plus from '@lucide/astro/icons/plus'
 import FolderOpen from '@lucide/astro/icons/folder-open'
 
@@ -12,18 +14,21 @@ export const prerender = false
 const session = Astro.locals.session
 if (!session) return Astro.redirect('/login')
 
+const locale = normalizeLocale(Astro.locals.userPreferences?.locale ?? Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const collectionT = getCollectionsMessages(locale)
+
 const MAX_COLLECTIONS = 2
 const collections = await collectionRepository.findByUserIdWithStats(Astro.locals.user!.id)
 const canCreateNewCollection = collections.length < MAX_COLLECTIONS
 ---
 
-<DashboardLayout title="Collections - Resonance">
+<DashboardLayout title={collectionT.meta.title}>
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold">Collections</h1>
+        <h1 class="text-2xl font-bold">{collectionT.index.title}</h1>
         <p class="text-muted">
-          {collections.length} {collections.length === 1 ? 'collection' : 'collections'} / {MAX_COLLECTIONS} maximum
+          {collections.length === 1 ? collectionT.index.count.replace('{count}', String(collections.length)) : collectionT.index.countPlural.replace('{count}', String(collections.length))} / {MAX_COLLECTIONS} {collectionT.index.max}
         </p>
       </div>
       {canCreateNewCollection ? (
@@ -32,7 +37,7 @@ const canCreateNewCollection = collections.length < MAX_COLLECTIONS
           class="btn-primary-gradient flex items-center gap-2 rounded-xl px-4 py-2"
         >
           <Plus size={20} />
-          <span class="hidden sm:inline">New collection</span>
+          <span class="hidden sm:inline">{collectionT.index.newCollection}</span>
         </a>
       ) : (
         <a
@@ -41,25 +46,25 @@ const canCreateNewCollection = collections.length < MAX_COLLECTIONS
           aria-disabled="true"
         >
           <Plus size={20} />
-          <span class="hidden sm:inline">Limit reached ({MAX_COLLECTIONS})</span>
+          <span class="hidden sm:inline">{collectionT.index.limitReached.replace('{max}', String(MAX_COLLECTIONS))}</span>
         </a>
       )}
     </div>
 
     {collections.length === 0 ? (
       <EmptyState
-        title="Create your first collection"
-        description="Organize your albums by theme, genre or era. Create custom collections to better manage and explore your music."
+        title={collectionT.index.empty.title}
+        description={collectionT.index.empty.description}
         icon={FolderOpen}
         action={{
-          label: 'Create a collection',
+          label: collectionT.index.empty.action,
           href: '/collections/new',
         }}
       />
     ) : (
       <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {collections.map((collection) => (
-          <CollectionCard collection={collection} />
+          <CollectionCard collection={collection} cardLabels={collectionT.card} />
         ))}
       </div>
     )}

@@ -6,16 +6,24 @@ import CollectionHeader from '../../components/collections/CollectionHeader.astr
 import ItemGrid from '../../components/items/ItemGrid.astro'
 import Pagination from '../../components/ui/Pagination.astro'
 import EmptyState from '../../components/ui/EmptyState.astro'
+import { getCollectionsMessages } from '../../i18n/collections'
+import { getLayoutMessages } from '../../i18n/layout'
+import { getItemMessages } from '../../i18n/item'
+import { normalizeLocale } from '../../i18n/config'
 import Plus from '@lucide/astro/icons/plus'
 
 export const prerender = false
 
-// Utiliser la session depuis le middleware (Astro.locals)
 const session = Astro.locals.session
 if (!session) return Astro.redirect('/login')
 
 const slug = Astro.params.slug
 if (!slug) return Astro.redirect('/collections')
+
+const locale = normalizeLocale(Astro.locals.userPreferences?.locale ?? Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const collectionT = getCollectionsMessages(locale)
+const layoutT = getLayoutMessages(locale)
+const itemT = getItemMessages(locale)
 
 const collection = await collectionRepository.findBySlug(slug, Astro.locals.user!.id)
 
@@ -23,35 +31,32 @@ if (!collection) {
   return Astro.redirect('/collections')
 }
 
-// Get pagination params
 const page = Number.parseInt(Astro.url.searchParams.get('page') || '1')
 const perPage = 24
-
-// Get items with pagination
 const paginatedResult = await itemRepository.findByCollectionIdPaginated(collection.id, page, perPage)
 ---
 
 <DashboardLayout title={`${collection.name} - Resonance`}>
   <div class="space-y-6">
-    <CollectionHeader collection={collection} />
+    <CollectionHeader collection={collection} collectionT={collectionT} />
 
     <div class="flex items-center justify-between">
-      <h2 class="text-xl font-bold">Albums in this collection</h2>
+      <h2 class="text-xl font-bold">{collectionT.slug.albumsInCollection}</h2>
     </div>
 
     {paginatedResult.pagination.total === 0 ? (
       <EmptyState
-        title={`The collection "${collection.name}" is waiting for you`}
-        description="Add your first albums to this collection to start organizing and exploring your favorite music."
+        title={collectionT.slug.empty.title.replace('{name}', collection.name)}
+        description={collectionT.slug.empty.description}
         icon={Plus}
         action={{
-          label: 'Add albums',
+          label: collectionT.slug.empty.action,
           href: '/explorer',
         }}
       />
     ) : (
       <>
-        <ItemGrid items={paginatedResult.items} columns={6} />
+        <ItemGrid items={paginatedResult.items} columns={6} actionLabels={itemT.actions} />
 
         <!-- Pagination -->
         {paginatedResult.pagination.totalPages > 1 && (
@@ -60,6 +65,11 @@ const paginatedResult = await itemRepository.findByCollectionIdPaginated(collect
               currentPage={paginatedResult.pagination.page}
               totalPages={paginatedResult.pagination.totalPages}
               baseUrl={`/collections/${slug}`}
+              previousPage={layoutT.common.previousPage}
+              nextPage={layoutT.common.nextPage}
+              previousPageAria={layoutT.common.previousPageAria}
+              nextPageAria={layoutT.common.nextPageAria}
+              paginationAria={layoutT.common.paginationAria}
             />
           </div>
         )}

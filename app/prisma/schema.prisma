@@ -32,6 +32,8 @@ model User {
   phoneNumber     String?
   privateMetadata String?
   publicMetadata  String?
+  preferredTheme  String?      // 'light' | 'dark'
+  preferredLocale String?      // 'en' | 'fr'
   collections     Collection[]
   items           Item[]
   wishlist        Wishlist[]

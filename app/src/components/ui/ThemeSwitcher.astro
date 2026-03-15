@@ -6,9 +6,11 @@ type ThemeSwitcherProps = {
   showLabel?: boolean
   size?: 'sm' | 'md' | 'lg'
   variant?: 'icon-only' | 'with-label'
+  ariaLabel?: string
+  themeLabel?: string
 }
 
-const { showLabel = false, size = 'md', variant = 'icon-only' } = Astro.props as ThemeSwitcherProps
+const { showLabel = false, size = 'md', variant = 'icon-only', ariaLabel = 'Change theme', themeLabel = 'Theme' } = Astro.props as ThemeSwitcherProps
 
 const sizeClasses = {
   sm: 'h-8 w-8',
@@ -26,7 +28,7 @@ const iconSizes = {
 <button
   type="button"
   class="theme-toggle-btn group relative flex items-center justify-center gap-2 rounded-xl border border-border bg-surface text-neutral shadow-sm backdrop-blur-sm transition-all duration-200 ease-out hover:border-primary/50 hover:bg-primary/10 hover:text-primary hover:shadow-md focus-visible:border-primary/70 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-none"
-  aria-label="Change theme"
+  aria-label={ariaLabel}
   data-theme-toggle
 >
   <div class={`relative ${sizeClasses[size]}`}>
@@ -43,7 +45,7 @@ const iconSizes = {
   </div>
   
   {variant === 'with-label' && (
-    <span class="text-sm font-medium hidden sm:inline">Theme</span>
+    <span class="text-sm font-medium hidden sm:inline">{themeLabel}</span>
   )}
 
   <!-- Effet de glow au hover -->
@@ -124,18 +126,20 @@ const iconSizes = {
           // Mettre à jour toutes les icônes
           updateAllIcons()
 
-          // Déclencher un événement de changement de thème
+          // Déclencher un événement de changement de thème (la page settings peut afficher un toast traduit)
           document.dispatchEvent(
             new CustomEvent('themeChanged', {
               detail: { theme: localStorage.theme },
             })
           )
 
-          // Notification dans la page des paramètres
-          if (window.location.pathname === '/settings' && window.toast) {
-            const themeLabel = localStorage.theme === 'dark' ? 'Dark mode' : 'Light mode'
-            window.toast.success(`${themeLabel} enabled`)
-          }
+          // Persister le thème pour l'utilisateur connecté
+          fetch('/api/profile/preferences', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ theme: localStorage.theme }),
+          }).catch(function() { /* ignore */ })
         })
       })
       

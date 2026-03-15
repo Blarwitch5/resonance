@@ -8,12 +8,17 @@ import ArrowLeft from '@lucide/astro/icons/arrow-left'
 import Eye from '@lucide/astro/icons/eye'
 import EyeOff from '@lucide/astro/icons/eye-off'
 import OAuthButtons from '../components/auth/OAuthButtons.astro'
+import { getSignupMessages } from '../i18n/signup'
+import { normalizeLocale } from '../i18n/config'
 
 export const prerender = false
+
+const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const t = getSignupMessages(locale)
 ---
 
 <Layout
-  title="Sign Up - Resonance"
+  title={t.meta.title}
   showDashboardHeader={false}
   showBottomBar={false}
   showFooter={false}
@@ -32,14 +37,14 @@ export const prerender = false
           class="inline-flex items-center gap-2 text-muted no-underline transition-colors hover:text-primary"
         >
           <ArrowLeft size={18} />
-          <span class="text-sm">Back to home</span>
+          <span class="text-sm">{t.backToHome}</span>
         </a>
       </div>
 
       <form class="glass-card space-y-6 rounded-2xl p-8" novalidate>
         <div>
           <label for="name" class="mb-2 block text-sm font-medium text-neutral">
-            Full Name
+            {t.form.nameLabel}
           </label>
           <div class="relative">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -52,7 +57,7 @@ export const prerender = false
               autocomplete="name"
               required
               class="w-full rounded-xl border border-border bg-surface py-3 pr-4 pl-10 text-neutral placeholder-muted transition-colors focus:border-primary focus:ring-2 focus:ring-primary/50 focus:outline-none"
-              placeholder="John Doe"
+              placeholder={t.form.namePlaceholder}
             />
           </div>
         </div>
@@ -72,14 +77,14 @@ export const prerender = false
               autocomplete="email"
               required
               class="w-full rounded-xl border border-border bg-surface py-3 pr-4 pl-10 text-neutral placeholder-muted transition-colors focus:border-primary focus:ring-2 focus:ring-primary/50 focus:outline-none"
-              placeholder="you@example.com"
+              placeholder={t.form.emailPlaceholder}
             />
           </div>
         </div>
 
         <div>
           <label for="password" class="mb-2 block text-sm font-medium text-neutral">
-            Password
+            {t.form.passwordLabel}
           </label>
           <div class="relative">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -93,19 +98,19 @@ export const prerender = false
               required
               minlength="8"
               class="w-full rounded-xl border border-border bg-surface py-3 pr-12 pl-10 text-neutral placeholder-muted transition-colors focus:border-primary focus:ring-2 focus:ring-primary/50 focus:outline-none"
-              placeholder="••••••••"
+              placeholder={t.form.passwordPlaceholder}
             />
             <button
               type="button"
               id="toggle-password"
               class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted transition-colors hover:text-neutral"
-              aria-label="Show password"
+              aria-label={t.form.showPassword}
             >
               <Eye id="eye-icon" size={20} class="hidden" />
               <EyeOff id="eye-off-icon" size={20} />
             </button>
           </div>
-          <p class="mt-1 text-xs text-muted">Minimum 8 characters</p>
+          <p class="mt-1 text-xs text-muted">{t.form.passwordHint}</p>
         </div>
 
         <div
@@ -119,18 +124,18 @@ export const prerender = false
           type="submit"
           class="bg-gradient-resonance hover:bg-gradient-resonance-hover flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium text-white transition-all duration-300"
         >
-          Create Account
+          {t.form.submit}
         </button>
 
         <OAuthButtons mode="signup" />
 
         <div class="text-center text-sm text-muted">
-          Already have an account?{' '}
+          {t.form.hasAccountPrefix}{' '}
           <a
             href="/login"
             class="font-medium text-primary no-underline hover:text-primary-hover"
           >
-            Sign In
+            {t.form.signIn}
           </a>
         </div>
       </form>
@@ -138,7 +143,7 @@ export const prerender = false
   </div>
 </Layout>
 
-<script>
+<script define:vars={{ showPasswordLabel: t.form.showPassword, hidePasswordLabel: t.form.hidePassword, fillRequiredError: t.errors.fillRequired, createAccountError: t.errors.createAccountError, genericError: t.errors.generic, submitButtonLabel: t.form.submit, creatingLabel: t.form.creating }}>
   // Toggle password visibility
   const togglePasswordButton = document.getElementById('toggle-password')
   const passwordInput = document.getElementById('password') as HTMLInputElement | null
@@ -154,11 +159,11 @@ export const prerender = false
       if (isPassword) {
         eyeIcon.classList.remove('hidden')
         eyeOffIcon.classList.add('hidden')
-        togglePasswordButton.setAttribute('aria-label', 'Hide password')
+        togglePasswordButton.setAttribute('aria-label', hidePasswordLabel)
       } else {
         eyeIcon.classList.add('hidden')
         eyeOffIcon.classList.remove('hidden')
-        togglePasswordButton.setAttribute('aria-label', 'Show password')
+        togglePasswordButton.setAttribute('aria-label', showPasswordLabel)
       }
     }
   })
@@ -196,9 +201,8 @@ export const prerender = false
     setFieldError(passwordInput, false)
 
       if (!email || !password) {
-      const message = 'Please fill in all required fields.'
       if (errorBox) {
-        errorBox.textContent = message
+        errorBox.textContent = fillRequiredError
         errorBox.classList.remove('hidden')
       }
       setFieldError(emailInput, !email)
@@ -209,7 +213,7 @@ export const prerender = false
         passwordInput.focus()
       }
       if (window.toast) {
-        window.toast.error('Please fill in all required fields')
+        window.toast.error(fillRequiredError)
       }
       return
     }
@@ -220,7 +224,7 @@ export const prerender = false
     try {
       if (submitButton) {
         submitButton.disabled = true
-        submitButton.textContent = 'Creating account...'
+        submitButton.textContent = creatingLabel
       }
 
       // Create account with better-auth using the client
@@ -233,7 +237,7 @@ export const prerender = false
       })
 
       if (result.error) {
-        const message = result.error.message || 'Error while creating account'
+        const message = result.error.message || createAccountError
         if (errorBox) {
           errorBox.textContent = message
           errorBox.classList.remove('hidden')
@@ -279,7 +283,7 @@ export const prerender = false
       document.location.href = redirectTarget
     } catch (error) {
       console.error('Error signing up:', error)
-      const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+      const errorMessage = error instanceof Error ? error.message : genericError
       if (errorBox) {
         errorBox.textContent = errorMessage
         errorBox.classList.remove('hidden')
@@ -290,7 +294,7 @@ export const prerender = false
     } finally {
       if (submitButton) {
         submitButton.disabled = false
-        submitButton.textContent = originalButtonText || 'Create Account'
+        submitButton.textContent = originalButtonText || submitButtonLabel
       }
     }
   })

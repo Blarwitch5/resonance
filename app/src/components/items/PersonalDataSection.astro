@@ -4,20 +4,83 @@ import Star from '@lucide/astro/icons/star'
 import FileText from '@lucide/astro/icons/file-text'
 import type { ItemMetadata } from '@prisma/client'
 
+type PersonalDataLabels = {
+  sectionTitle: string
+  editLabel: string
+  editAria: string
+  emptyHint: string
+  notes: string
+  notesPlaceholder?: string
+  purchaseDate: string
+  purchasePrice: string
+  purchaseLocation: string
+  purchaseLocationPlaceholder?: string
+  condition: string
+  myRating: string
+  tags: string
+  tagsPlaceholder?: string
+  tagHint: string
+  dataSaved: string
+  saving?: string
+  saveLabel?: string
+  removeTagAria?: string
+  errorSaving?: string
+  errorGeneric?: string
+  cancel?: string
+  conditionMint: string
+  conditionNearMint: string
+  conditionVeryGood: string
+  conditionGood: string
+  conditionFair: string
+  conditionPoor: string
+}
+
 type PersonalDataSectionProps = {
   itemId: string
   metadata: ItemMetadata | null
+  personalDataT?: PersonalDataLabels
 }
 
-const { itemId, metadata } = Astro.props as PersonalDataSectionProps
+const { itemId, metadata, personalDataT } = Astro.props as PersonalDataSectionProps
+
+const t = personalDataT ?? {
+  sectionTitle: 'Personal data',
+  editLabel: 'Edit',
+  editAria: 'Edit',
+  emptyHint: 'No personal data yet. Click "Edit" to add some.',
+  notes: 'Notes',
+  notesPlaceholder: 'Anecdotes, memories...',
+  purchaseDate: 'Purchase date',
+  purchasePrice: 'Purchase price (€)',
+  purchaseLocation: 'Purchase location',
+  purchaseLocationPlaceholder: 'Record store, flea market...',
+  condition: 'Condition',
+  myRating: 'My rating (1–5)',
+  tags: 'Custom tags',
+  tagsPlaceholder: 'E.g. vinyl, limited edition, 2024',
+  tagHint: 'Type a tag then press Enter or , to add it.',
+  dataSaved: 'Data saved',
+  saving: 'Saving...',
+  saveLabel: 'Save',
+  removeTagAria: 'Remove tag "{tag}"',
+  errorSaving: 'Error while saving',
+  errorGeneric: 'Error',
+  cancel: 'Cancel',
+  conditionMint: 'Mint',
+  conditionNearMint: 'Near mint',
+  conditionVeryGood: 'Very good',
+  conditionGood: 'Good',
+  conditionFair: 'Fair',
+  conditionPoor: 'Poor',
+}
 
 const CONDITION_LABELS: Record<string, string> = {
-  MINT: 'Mint',
-  NEAR_MINT: 'Near mint',
-  VERY_GOOD: 'Very good',
-  GOOD: 'Good',
-  FAIR: 'Fair',
-  POOR: 'Poor',
+  MINT: t.conditionMint,
+  NEAR_MINT: t.conditionNearMint,
+  VERY_GOOD: t.conditionVeryGood,
+  GOOD: t.conditionGood,
+  FAIR: t.conditionFair,
+  POOR: t.conditionPoor,
 }
 
 const tags: string[] = metadata?.customTags
@@ -32,6 +95,12 @@ const tags: string[] = metadata?.customTags
       : [])
   : []
 
+const scriptSaving = t.saving ?? 'Saving...'
+const scriptSaveLabel = t.saveLabel ?? 'Save'
+const scriptRemoveTagAria = t.removeTagAria ?? 'Remove tag "{tag}"'
+const scriptErrorSaving = t.errorSaving ?? 'Error while saving'
+const scriptErrorGeneric = t.errorGeneric ?? 'Error'
+
 const acquisitionDateStr =
   metadata?.acquisitionDate instanceof Date
     ? metadata.acquisitionDate.toISOString().slice(0, 10)
@@ -40,33 +109,33 @@ const acquisitionDateStr =
       : ''
 ---
 
-<section class="personal-data-section glass-card rounded-2xl p-4 md:p-6" data-item-id={itemId}>
+<section class="personal-data-section glass-card rounded-2xl p-4 md:p-6" data-item-id={itemId} data-data-saved={t.dataSaved}>
   <div class="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
     <h2 class="flex items-center gap-2 text-lg md:text-xl font-bold text-neutral">
       <FileText size={20} class="fill-none stroke-2 text-primary stroke-primary" />
-        Personal data
+      {t.sectionTitle}
     </h2>
     <button
       type="button"
       class="edit-toggle inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-elevated hover:text-primary"
       data-action="toggle-edit"
-      aria-label="Edit"
+      aria-label={t.editAria}
     >
       <Pencil size={16} />
-      <span class="hidden sm:inline">Edit</span>
+      <span class="hidden sm:inline">{t.editLabel}</span>
     </button>
   </div>
 
   <div class="view-mode space-y-4" data-mode="view">
     {!metadata ? (
       <p class="text-sm text-muted">
-        No personal data yet. Click “Edit” to add some.
+        {t.emptyHint}
       </p>
     ) : (
       <div class="grid gap-4 sm:grid-cols-2">
         {metadata.personalNotes && (
           <div>
-            <span class="text-sm font-medium text-muted">Notes</span>
+            <span class="text-sm font-medium text-muted">{t.notes}</span>
             <p class="mt-1 whitespace-pre-wrap text-neutral">
               {metadata.personalNotes}
             </p>
@@ -74,7 +143,7 @@ const acquisitionDateStr =
         )}
         {metadata.acquisitionDate && (
           <div>
-            <span class="text-sm font-medium text-muted">Purchase date</span>
+            <span class="text-sm font-medium text-muted">{t.purchaseDate}</span>
             <p class="mt-1 text-neutral">
               {new Date(metadata.acquisitionDate).toLocaleDateString('fr-FR', {
                 day: 'numeric',
@@ -86,7 +155,7 @@ const acquisitionDateStr =
         )}
         {metadata.purchasePrice != null && (
           <div>
-            <span class="text-sm font-medium text-muted">Purchase price</span>
+            <span class="text-sm font-medium text-muted">{t.purchasePrice}</span>
             <p class="mt-1 text-neutral">
               {Number(metadata.purchasePrice).toFixed(2)} €
             </p>
@@ -94,7 +163,7 @@ const acquisitionDateStr =
         )}
         {metadata.condition && (
           <div>
-            <span class="text-sm font-medium text-muted">Condition</span>
+            <span class="text-sm font-medium text-muted">{t.condition}</span>
             <p class="mt-1 text-neutral">
               {CONDITION_LABELS[metadata.condition] ?? metadata.condition}
             </p>
@@ -102,13 +171,13 @@ const acquisitionDateStr =
         )}
         {metadata.purchaseLocation && (
           <div>
-            <span class="text-sm font-medium text-muted">Purchase location</span>
+            <span class="text-sm font-medium text-muted">{t.purchaseLocation}</span>
             <p class="mt-1 text-neutral">{metadata.purchaseLocation}</p>
           </div>
         )}
         {metadata.personalRating != null && (
           <div>
-            <span class="text-sm font-medium text-muted">My rating</span>
+            <span class="text-sm font-medium text-muted">{t.myRating}</span>
             <p class="mt-1 flex items-center gap-1 text-neutral">
               {[1, 2, 3, 4, 5].map((ratingValue) => (
                 <Star
@@ -124,7 +193,7 @@ const acquisitionDateStr =
         )}
         {tags.length > 0 && (
           <div class="sm:col-span-2">
-            <span class="text-sm font-medium text-muted">Tags</span>
+            <span class="text-sm font-medium text-muted">{t.tags}</span>
             <div class="mt-2 flex flex-wrap gap-2">
               {tags.map((tag) => (
                 <span
@@ -143,14 +212,14 @@ const acquisitionDateStr =
   <form class="edit-mode hidden space-y-4" data-mode="edit">
     <div>
       <label for="personal-notes" class="mb-2 block text-sm font-medium text-neutral">
-        Personal notes
+        {t.notes}
       </label>
       <textarea
         id="personal-notes"
         name="personalNotes"
         rows="3"
         class="w-full rounded-xl border border-border bg-surface px-4 py-3 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
-        placeholder="Anecdotes, memories..."
+        placeholder={t.notesPlaceholder ?? 'Anecdotes, memories...'}
       >
         {metadata?.personalNotes ?? ''}
       </textarea>
@@ -159,7 +228,7 @@ const acquisitionDateStr =
     <div class="grid gap-4 sm:grid-cols-2">
       <div>
         <label for="acquisition-date" class="mb-2 block text-sm font-medium text-neutral">
-          Purchase date
+          {t.purchaseDate}
         </label>
         <input
           type="date"
@@ -171,7 +240,7 @@ const acquisitionDateStr =
       </div>
       <div>
         <label for="purchase-price" class="mb-2 block text-sm font-medium text-neutral">
-          Purchase price (€)
+          {t.purchasePrice}
         </label>
         <input
           type="number"
@@ -188,7 +257,7 @@ const acquisitionDateStr =
     <div class="grid gap-4 sm:grid-cols-2">
       <div>
         <label for="condition" class="mb-2 block text-sm font-medium text-neutral">
-          Condition
+          {t.condition}
         </label>
         <select
           id="condition"
@@ -205,14 +274,14 @@ const acquisitionDateStr =
       </div>
       <div>
         <label for="purchase-location" class="mb-2 block text-sm font-medium text-neutral">
-          Purchase location
+          {t.purchaseLocation}
         </label>
         <input
           type="text"
           id="purchase-location"
           name="purchaseLocation"
           value={metadata?.purchaseLocation ?? ''}
-          placeholder="Record store, flea market..."
+          placeholder={t.purchaseLocationPlaceholder ?? 'Record store, flea market...'}
           class="w-full rounded-xl border border-border bg-surface px-4 py-3 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
         />
       </div>
@@ -220,7 +289,7 @@ const acquisitionDateStr =
 
     <div>
       <label class="mb-2 block text-sm font-medium text-neutral">
-        My rating (1–5)
+        {t.myRating}
       </label>
       <div class="star-rating-container flex items-center gap-1" data-star-rating>
         {[1, 2, 3, 4, 5].map((ratingValue) => (
@@ -239,10 +308,10 @@ const acquisitionDateStr =
 
     <div>
       <label for="tags-input" class="mb-2 block text-sm font-medium text-neutral">
-        Custom tags
+        {t.tags}
       </label>
       <p class="mb-2 text-xs text-muted">
-        Type a tag then press <kbd class="rounded border border-border bg-surface-elevated px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd> or <kbd class="rounded border border-border bg-surface-elevated px-1.5 py-0.5 font-mono text-[10px]">,</kbd> to add it. You can add several at once by separating them with commas (max 10 tags, 50 characters each).
+        {t.tagHint}
       </p>
       <div class="tags-container flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface p-3 min-h-[44px]">
         <div class="tags-badges-container flex flex-wrap gap-2 empty:hidden" data-tags-badges-container></div>
@@ -250,7 +319,7 @@ const acquisitionDateStr =
           type="text"
           id="tags-input"
           class="min-w-[140px] flex-1 rounded-lg border-0 bg-transparent px-2 py-1.5 text-sm text-neutral placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary/50"
-          placeholder="E.g. vinyl, limited edition, 2024"
+          placeholder={t.tagsPlaceholder ?? 'E.g. vinyl, limited edition, 2024'}
           maxlength="50"
           data-tags-input
           autocomplete="off"
@@ -264,20 +333,20 @@ const acquisitionDateStr =
         type="submit"
         class="bg-gradient-resonance hover:bg-gradient-resonance-hover rounded-xl px-4 py-2.5 text-sm font-medium text-white transition-all"
       >
-        Save
+        {t.saveLabel ?? 'Save'}
       </button>
       <button
         type="button"
         class="cancel-edit rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-medium text-neutral transition-colors hover:bg-surface-elevated"
         data-action="cancel-edit"
       >
-        Cancel
+        {t.cancel ?? 'Cancel'}
       </button>
     </div>
   </form>
 </section>
 
-<script type="text/javascript">
+<script type="text/javascript" define:vars={{ scriptSaving, scriptSaveLabel, scriptRemoveTagAria, scriptErrorSaving, scriptErrorGeneric }}>
   function initPersonalDataSection() {
     const section = document.querySelector('.personal-data-section')
     if (!section) return
@@ -402,7 +471,7 @@ const acquisitionDateStr =
           var removeBtn = document.createElement('button')
           removeBtn.type = 'button'
           removeBtn.className = 'tag-remove -mr-0.5 flex h-5 w-5 items-center justify-center rounded-full text-muted transition-colors hover:bg-primary/25 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/50'
-          removeBtn.setAttribute('aria-label', 'Remove tag "' + tag + '"')
+          removeBtn.setAttribute('aria-label', scriptRemoveTagAria.replace('{tag}', tag))
           removeBtn.innerHTML =
             '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
           removeBtn.addEventListener('click', function() {
@@ -452,7 +521,7 @@ const acquisitionDateStr =
         var submitBtn = form.querySelector('button[type="submit"]')
         if (submitBtn) {
           submitBtn.disabled = true
-          submitBtn.textContent = 'Enregistrement...'
+          submitBtn.textContent = scriptSaving
         }
 
         try {
@@ -464,17 +533,19 @@ const acquisitionDateStr =
 
           if (!response.ok) {
             var err = await response.json()
-            throw new Error(err.error || 'Error while saving')
+            throw new Error(err.error || scriptErrorSaving)
           }
 
+          const section = document.querySelector('.personal-data-section')
+          const dataSavedMsg = section?.dataset?.dataSaved || 'Data saved'
           if (window.toast) {
-            window.toast.success('Data saved')
+            window.toast.success(dataSavedMsg)
           } else {
-            console.log('Data saved')
+            console.log(dataSavedMsg)
           }
           window.location.reload()
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Error'
+          const errorMessage = error instanceof Error ? error.message : scriptErrorGeneric
           if (window.toast) {
             window.toast.error(errorMessage)
           } else {
@@ -483,7 +554,7 @@ const acquisitionDateStr =
         } finally {
           if (submitBtn) {
             submitBtn.disabled = false
-            submitBtn.textContent = 'Save'
+            submitBtn.textContent = scriptSaveLabel
           }
         }
       })

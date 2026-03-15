@@ -11,12 +11,17 @@ import LogOut from '@lucide/astro/icons/log-out'
 import DashboardLayout from '../components/layouts/DashboardLayout.astro'
 import { statsService } from '../services/stats-service'
 import { itemRepository } from '../repositories/item-repository'
+import { getHomeMessages } from '../i18n/home'
+import { normalizeLocale } from '../i18n/config'
+
 export const prerender = false
 
 // Utiliser la session depuis le middleware (Astro.locals)
 const session = Astro.locals.session
 const isLoggedIn = !!session
 const user = Astro.locals.user
+const locale = normalizeLocale(Astro.locals.userPreferences?.locale ?? Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const t = getHomeMessages(locale)
 
 // Récupérer les vraies statistiques depuis la base de données
 let stats = {
@@ -51,7 +56,7 @@ if (isLoggedIn && user?.id) {
 }
 ---
 
-<DashboardLayout title="Resonance - Where your music resonates">
+<DashboardLayout title={t.meta.title}>
   <div class="space-y-8">
     <!-- Hero Section -->
     <div class="py-12 text-center">
@@ -60,10 +65,10 @@ if (isLoggedIn && user?.id) {
           <span class="text-gradient-resonance">Resonance</span>
         </h1>
         <p class="text-muted mb-8 text-xl leading-relaxed md:text-2xl">
-          Where your music resonates
+          {t.tagline}
         </p>
         <p class="text-muted mx-auto max-w-2xl text-lg">
-          Manage your multi-format music collection with elegance. Vinyl, CD, Cassette - all in one place, with style.
+          {t.subtitle}
         </p>
       </div>
     </div>
@@ -74,7 +79,7 @@ if (isLoggedIn && user?.id) {
       <a
         href={isLoggedIn ? '/library' : '/login?redirectTo=/library'}
         class="group glass-card hover-resonance rounded-2xl p-8 transition-all duration-300"
-        aria-label={isLoggedIn ? 'Go to your library' : 'Sign in to access your library'}
+        aria-label={isLoggedIn ? t.quickNav.libraryAria : t.quickNav.libraryAriaGuest}
       >
         <div class="text-center">
           <div
@@ -83,10 +88,10 @@ if (isLoggedIn && user?.id) {
             <Disc3 size={32} class="text-white" />
           </div>
           <h2 class="font-display text-neutral mb-2 text-xl font-semibold">
-            My Library
+            {t.quickNav.library}
           </h2>
           <p class="text-muted text-sm">
-            {isLoggedIn ? 'Albums that resonate with you' : 'Sign in to see your collection'}
+            {isLoggedIn ? t.quickNav.libraryDescription : t.quickNav.libraryDescriptionGuest}
           </p>
         </div>
       </a>
@@ -98,7 +103,7 @@ if (isLoggedIn && user?.id) {
       <a
         href={isLoggedIn ? '/explorer' : '/login?redirectTo=/explorer'}
         class="group glass-card hover-resonance flex items-center gap-4 rounded-2xl p-6 transition-all duration-300"
-        aria-label={isLoggedIn ? 'Explore the collection' : 'Sign in to explore albums'}
+        aria-label={isLoggedIn ? t.quickNav.exploreAria : t.quickNav.exploreAriaGuest}
       >
         <div
           class="from-accent to-accent/80 group-hover:animate-resonance-vibrato flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br"
@@ -106,9 +111,9 @@ if (isLoggedIn && user?.id) {
           <Search size={24} class="text-white" />
         </div>
         <div>
-          <h2 class="font-display text-neutral font-semibold">Explore</h2>
+          <h2 class="font-display text-neutral font-semibold">{t.quickNav.explore}</h2>
           <p class="text-muted text-sm">
-            {isLoggedIn ? 'Discover new albums' : 'Sign in to discover albums'}
+            {isLoggedIn ? t.quickNav.exploreDescription : t.quickNav.exploreDescriptionGuest}
           </p>
         </div>
       </a>
@@ -117,7 +122,7 @@ if (isLoggedIn && user?.id) {
       <a
         href={isLoggedIn ? '/profile' : '/login?redirectTo=/profile'}
         class="group glass-card hover-resonance flex items-center gap-4 rounded-2xl p-6 transition-all duration-300"
-        aria-label={isLoggedIn ? 'View your profile' : 'Sign in to view your profile'}
+        aria-label={isLoggedIn ? t.quickNav.profileAria : t.quickNav.profileAriaGuest}
       >
         <div
           class="from-accent to-accent/80 group-hover:animate-resonance-vibrato flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br"
@@ -125,11 +130,9 @@ if (isLoggedIn && user?.id) {
           <User size={24} class="text-white" />
         </div>
         <div>
-          <h2 class="font-display text-neutral font-semibold">Profile</h2>
+          <h2 class="font-display text-neutral font-semibold">{t.quickNav.profile}</h2>
           <p class="text-muted text-sm">
-            {isLoggedIn
-              ? 'Favorites, wishlist, and statistics'
-              : 'Sign in to see your favorites and statistics'}
+            {isLoggedIn ? t.quickNav.profileDescription : t.quickNav.profileDescriptionGuest}
           </p>
         </div>
       </a>
@@ -141,15 +144,15 @@ if (isLoggedIn && user?.id) {
         <div class="flex items-center justify-between mb-4">
           <div>
         <h2 class="font-display text-neutral text-xl font-semibold mb-1">
-              Welcome, {user?.name || user?.email}!
+              {t.welcome.title.replace('{name}', user?.name || user?.email || '')}
         </h2>
-            <p class="text-muted text-sm">Your collection awaits</p>
+            <p class="text-muted text-sm">{t.welcome.subtitle}</p>
           </div>
           <button
             type="button"
             id="sign-out-btn"
             class="p-2 rounded-lg hover:bg-surface transition-colors"
-            aria-label="Sign out"
+            aria-label={t.welcome.signOutAria}
           >
             <LogOut size={20} class="text-muted" />
           </button>
@@ -161,26 +164,26 @@ if (isLoggedIn && user?.id) {
       <!-- Quick stats -->
       <div class="glass-card rounded-2xl p-6">
         <h2 class="font-display text-neutral mb-4 text-lg font-semibold">
-          Your Collection
+          {t.stats.yourCollection}
         </h2>
         <div class="grid grid-cols-3 gap-4 text-center">
           <div>
             <div class="text-format-vinyl text-2xl font-bold">
               {stats.vinyls}
             </div>
-            <div class="text-muted text-sm">Vinyl</div>
+            <div class="text-muted text-sm">{t.stats.vinyl}</div>
           </div>
           <div>
             <div class="text-format-cassette text-2xl font-bold">
               {stats.cassettes}
             </div>
-            <div class="text-muted text-sm">Cassette</div>
+            <div class="text-muted text-sm">{t.stats.cassette}</div>
           </div>
           <div>
             <div class="text-format-cd text-2xl font-bold">
               {stats.cds}
             </div>
-            <div class="text-muted text-sm">CD</div>
+            <div class="text-muted text-sm">{t.stats.cd}</div>
           </div>
         </div>
       </div>
@@ -190,7 +193,7 @@ if (isLoggedIn && user?.id) {
       <!-- Recent Albums -->
       <div class="glass-card rounded-2xl p-6">
         <h2 class="font-display text-neutral mb-4 text-lg font-semibold">
-          Recent Albums
+          {t.recentAlbums}
         </h2>
         <div class="space-y-3">
           {recentItems.map((item) => (
@@ -224,20 +227,20 @@ if (isLoggedIn && user?.id) {
     <div class="flex flex-col gap-4 sm:flex-row">
       <a
         href={isLoggedIn ? '/explorer' : '/login?redirectTo=/explorer'}
-        aria-label={isLoggedIn ? 'Add an album' : 'Sign in to add an album'}
+        aria-label={isLoggedIn ? t.actions.addAlbumAria : t.actions.addAlbumAriaGuest}
         class="btn-primary-gradient flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3"
       >
         <Plus size={20} />
-        <span>{isLoggedIn ? 'Add Album' : 'Sign in to add an album'}</span>
+        <span>{isLoggedIn ? t.actions.addAlbum : t.actions.addAlbumGuest}</span>
       </a>
 
       <a
         href={isLoggedIn ? '/profile?tab=statistics' : '/login?redirectTo=/profile?tab=statistics'}
-        aria-label={isLoggedIn ? 'View your statistics' : 'Sign in to view your statistics'}
+        aria-label={isLoggedIn ? t.actions.viewStatisticsAria : t.actions.viewStatisticsAriaGuest}
         class="btn-secondary-surface flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3"
       >
         <BarChart3 size={20} />
-        <span>{isLoggedIn ? 'View Statistics' : 'Sign in to view your statistics'}</span>
+        <span>{isLoggedIn ? t.actions.viewStatistics : t.actions.viewStatisticsGuest}</span>
       </a>
     </div>
 
@@ -246,14 +249,14 @@ if (isLoggedIn && user?.id) {
       <div class="py-8 text-center">
         <div class="text-muted inline-flex items-center gap-2">
           <Heart size={20} class="fill-none stroke-2 text-primary stroke-primary" />
-          <span class="text-sm italic">Welcome to your musical universe</span>
+          <span class="text-sm italic">{t.guest.message}</span>
         </div>
         <div class="mt-4">
           <a
             href="/login"
             class="btn-primary-gradient inline-block py-2 px-6 rounded-xl"
           >
-            Sign In
+            {t.guest.signIn}
           </a>
         </div>
       </div>
@@ -294,37 +297,33 @@ if (isLoggedIn && user?.id) {
   }
 </style>
 
-<script>
+<script define:vars={{ homeToasts: t.toasts }}>
   import { signOut } from '../lib/auth-client'
 
   document.addEventListener('DOMContentLoaded', function() {
+    const toasts = homeToasts
     // Check for welcome toast (after login/signup)
     const showWelcomeToast = sessionStorage.getItem('showWelcomeToast')
     const isNewUser = sessionStorage.getItem('isNewUser')
     
     if (showWelcomeToast && window.toast) {
-      // Get user name from the welcome message if available
-      const welcomeH3 = document.querySelector('h3.font-display')
+      const welcomeH3 = document.querySelector('h2.font-display')
       let userName = ''
       if (welcomeH3) {
         const welcomeText = welcomeH3.textContent || ''
-        const match = welcomeText.match(/Welcome, (.+?)!/)
+        const match = welcomeText.match(/[\s\S]+?([^!]+)!?$/)
         userName = match ? match[1].trim() : ''
       }
       
       if (isNewUser) {
         window.toast.success(
-          userName 
-            ? `Welcome ${userName}! Your account has been created successfully.` 
-            : 'Welcome! Your account has been created successfully.',
+          userName ? toasts.welcomeNew.replace('{name}', userName) : toasts.welcomeNewNoName,
           5000
         )
         sessionStorage.removeItem('isNewUser')
       } else {
         window.toast.success(
-          userName 
-            ? `Welcome back ${userName}! You are signed in.` 
-            : 'Welcome back! You are signed in.',
+          userName ? toasts.welcomeBack.replace('{name}', userName) : toasts.welcomeBackNoName,
           4000
         )
       }
@@ -336,26 +335,19 @@ if (isLoggedIn && user?.id) {
     if (signOutBtn) {
       signOutBtn.addEventListener('click', async function() {
         try {
-          // Show confirmation toast before signing out
           if (window.toast) {
-            window.toast.info('Signing out...', 2000)
+            window.toast.info(toasts.signingOut, 2000)
           }
-          
           await signOut()
-          
-          // Store logout success for toast on login page
           sessionStorage.setItem('showLogoutToast', 'true')
-          
-          // Small delay to show the toast before redirect
           setTimeout(() => {
             window.location.href = '/login'
           }, 500)
         } catch (error) {
           console.error('Error signing out:', error)
           if (window.toast) {
-            window.toast.error('Error while signing out')
+            window.toast.error(toasts.signOutError)
           }
-          // Fallback: redirect anyway after a delay
           setTimeout(() => {
             window.location.href = '/login'
           }, 1000)

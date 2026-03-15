@@ -94,6 +94,10 @@ export class CollectionRepository {
     return {
       ...collection,
       coverImage: generatedCover,
+      itemCount: collection.items.length,
+      vinylCount: collection.items.filter((item) => item.format === 'VINYL').length,
+      cdCount: collection.items.filter((item) => item.format === 'CD').length,
+      cassetteCount: collection.items.filter((item) => item.format === 'CASSETTE').length,
     }
   }
 

@@ -1,19 +1,28 @@
 ---
 import ChevronDown from '@lucide/astro/icons/chevron-down'
 import type { Collection } from '@prisma/client'
+import { getItemMessages } from '../../i18n/item'
+
+type CollectionSelectorLabels = {
+  label: string
+  uncategorized: string
+  hint: string
+}
 
 type CollectionSelectorProps = {
   itemId: string
   currentCollection: Collection | null
   collections: Collection[]
+  labels?: CollectionSelectorLabels
 }
 
-const { itemId, currentCollection, collections } = Astro.props as CollectionSelectorProps
+const defaultLabels = getItemMessages('en').collectionSelector
+const { itemId, currentCollection, collections, labels = defaultLabels } = Astro.props as CollectionSelectorProps
 ---
 
 <div class="collection-selector-wrapper">
   <label class="mb-2 block text-sm font-medium text-neutral">
-    Collection
+    {labels.label}
   </label>
   <div class="relative">
     <select
@@ -22,7 +31,7 @@ const { itemId, currentCollection, collections } = Astro.props as CollectionSele
       class="w-full appearance-none rounded-xl border border-border bg-surface px-4 py-3 pr-10 text-neutral transition-colors focus:border-primary focus:ring-2 focus:ring-primary/50 focus:outline-none"
     >
       <option value="" {currentCollection === null ? 'selected' : ''}>
-        Uncategorized
+        {labels.uncategorized}
       </option>
       {collections.map((collection) => (
         <option
@@ -38,7 +47,7 @@ const { itemId, currentCollection, collections } = Astro.props as CollectionSele
     </div>
   </div>
   <p class="mt-1 text-xs text-muted">
-    Changer la collection de cet album
+    {labels.hint}
   </p>
 </div>
 
