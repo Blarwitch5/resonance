@@ -1,0 +1,107 @@
+---
+import type { Locale } from '../../i18n/config'
+import { locales } from '../../i18n/config'
+import { localeLabels } from '../../data/locale-labels'
+import FlagLocale from './flags/FlagLocale.astro'
+
+type Props = {
+  currentLocale: Locale
+  variant: 'sidebar' | 'navbar' | 'settings'
+  languageLabel?: string
+}
+
+const { currentLocale, variant, languageLabel = 'Language' } = Astro.props as Props
+const flagSize = variant === 'settings' ? 22 : 18
+---
+
+{variant === 'settings' && (
+  <div class="flex items-center gap-3">
+    <FlagLocale locale={currentLocale} size={flagSize} />
+    <select
+      id="settings-locale-select"
+      class="locale-select flex-1 rounded-lg border border-border bg-surface px-4 py-2 text-neutral focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 min-w-40"
+      aria-label={languageLabel}
+    >
+      {locales.map((loc) => (
+        <option value={loc} selected={loc === currentLocale}>
+          {localeLabels[loc]}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
+
+{(variant === 'sidebar' || variant === 'navbar') && (
+  <div class="language-switcher-compact flex items-center gap-2" data-current-locale={currentLocale}>
+    <FlagLocale locale={currentLocale} size={flagSize} />
+    <span class="locale-label text-sm font-medium text-neutral truncate max-w-24">
+      {localeLabels[currentLocale]}
+    </span>
+    <select
+      aria-label={languageLabel}
+      class="locale-select-compact absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+      data-current={currentLocale}
+    >
+      {locales.map((loc) => (
+        <option value={loc} selected={loc === currentLocale}>
+          {localeLabels[loc]}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
+
+<style>
+  .language-switcher-compact {
+    position: relative;
+    min-height: 2rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .language-switcher-compact:hover {
+    border-color: oklch(from var(--color-primary) l c h / 0.5);
+    background: oklch(from var(--color-primary) l c h / 0.08);
+  }
+  .locale-select-compact {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1;
+  }
+</style>
+
+<script>
+  (function() {
+    function setLocaleCookie(value: string) {
+      document.cookie = 'locale=' + value + '; path=/; max-age=' + (60 * 60 * 24 * 365) + '; SameSite=Lax'
+    }
+    function handleLocaleChange(select: HTMLSelectElement) {
+      const value = select.value
+      if (!value) return
+      fetch('/api/profile/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ locale: value }),
+      })
+        .then(function(response) {
+          if (response.ok || response.status === 401) {
+            setLocaleCookie(value)
+            setTimeout(function() {
+              window.location.reload()
+            }, 0)
+          }
+        })
+        .catch(function() {})
+    }
+    document.addEventListener('change', function(event) {
+      const target = event.target
+      if (target instanceof HTMLSelectElement && (target.classList.contains('locale-select') || target.classList.contains('locale-select-compact'))) {
+        handleLocaleChange(target)
+      }
+    })
+  })()
+</script>

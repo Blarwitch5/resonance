@@ -1,0 +1,59 @@
+---
+import type { Locale } from '../../../i18n/config'
+
+type Props = {
+  locale: Locale
+  size?: number
+  class?: string
+}
+
+const { locale, size = 20, class: className = '' } = Astro.props as Props
+const s = size
+const r = s / 2
+const viewBox = `0 0 ${s} ${s}`
+---
+
+{locale === 'fr' && (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox={viewBox}
+    width={s}
+    height={s}
+    class={`rounded-full overflow-hidden shrink-0 ${className}`}
+    aria-hidden="true"
+  >
+    <defs>
+      <clipPath id="circle-fr">
+        <circle cx={r} cy={r} r={r} />
+      </clipPath>
+    </defs>
+    <g clip-path="url(#circle-fr)">
+      <rect x="0" y="0" width={s / 3} height={s} fill="#002395" />
+      <rect x={s / 3} y="0" width={s / 3} height={s} fill="#fff" />
+      <rect x={(2 * s) / 3} y="0" width={s / 3} height={s} fill="#ED2939" />
+    </g>
+  </svg>
+)}
+{locale === 'en' && (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox={viewBox}
+    width={s}
+    height={s}
+    class={`rounded-full overflow-hidden shrink-0 ${className}`}
+    aria-hidden="true"
+  >
+    <defs>
+      <clipPath id="circle-en">
+        <circle cx={r} cy={r} r={r} />
+      </clipPath>
+    </defs>
+    <g clip-path="url(#circle-en)">
+      <rect x="0" y="0" width={s} height={s} fill="#012169" />
+      <rect x="0" y={r - s * 0.1} width={s} height={s * 0.2} fill="#fff" />
+      <rect x={r - s * 0.1} y="0" width={s * 0.2} height={s} fill="#fff" />
+      <rect x="0" y={r - s * 0.06} width={s} height={s * 0.12} fill="#C8102E" />
+      <rect x={r - s * 0.06} y="0" width={s * 0.12} height={s} fill="#C8102E" />
+    </g>
+  </svg>
+)}
