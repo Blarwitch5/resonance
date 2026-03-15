@@ -260,6 +260,7 @@ const msg = (Astro.props as Props).barcodeMessages ?? defaultMessages
     const choiceModal = document.getElementById('barcode-choice-modal')
     choiceModal?.setAttribute('data-open', 'false')
     choiceModal?.setAttribute('aria-hidden', 'true')
+    restoreLastActiveElement()
   }
   function openManualModal() {
     const manualModal = document.getElementById('barcode-manual-modal')
@@ -275,6 +276,7 @@ const msg = (Astro.props as Props).barcodeMessages ?? defaultMessages
     const manualModal = document.getElementById('barcode-manual-modal')
     manualModal?.setAttribute('data-open', 'false')
     manualModal?.setAttribute('aria-hidden', 'true')
+    restoreLastActiveElement()
   }
   function closeScanner() {
     if (stream) {
@@ -288,6 +290,7 @@ const msg = (Astro.props as Props).barcodeMessages ?? defaultMessages
     scannerModal?.setAttribute('data-open', 'false')
     scannerModal?.setAttribute('aria-hidden', 'true')
     scannerResult?.classList.add('hidden')
+    restoreLastActiveElement()
   }
 
   async function runCameraFlow() {
@@ -450,6 +453,21 @@ const msg = (Astro.props as Props).barcodeMessages ?? defaultMessages
       event.preventDefault()
       document.getElementById('barcode-manual-submit')?.click()
     }
+    const choiceModal = document.getElementById('barcode-choice-modal')
+    const manualModal = document.getElementById('barcode-manual-modal')
+    const scannerModal = document.getElementById('barcode-scanner-modal')
+    const openModal =
+      choiceModal?.getAttribute('data-open') === 'true' ? choiceModal :
+      manualModal?.getAttribute('data-open') === 'true' ? manualModal :
+      scannerModal?.getAttribute('data-open') === 'true' ? scannerModal : null
+    if (event.key === 'Escape' && openModal) {
+      event.preventDefault()
+      if (openModal === choiceModal) closeChoiceModal()
+      else if (openModal === manualModal) closeManualModal()
+      else if (openModal === scannerModal) closeScanner()
+      return
+    }
+    if (openModal instanceof HTMLElement) trapFocusInModal(openModal, event)
   })
 </script>
 
