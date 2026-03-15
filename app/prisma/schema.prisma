@@ -31,11 +31,10 @@ model User {
   lastActiveAt    DateTime?
   locked          Boolean      @default(false)
   phoneNumber     String?
-  preferredLocale String?      @default("en") // en, fr — used for UI language when user is logged in
+  preferredLocale String?      @default("en") // 'en' | 'fr' — UI language when logged in
+  preferredTheme  String?      // 'light' | 'dark'
   privateMetadata String?
   publicMetadata  String?
-  preferredTheme  String?      // 'light' | 'dark'
-  preferredLocale String?      // 'en' | 'fr'
   collections     Collection[]
   items           Item[]
   wishlist        Wishlist[]
