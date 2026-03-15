@@ -7,7 +7,7 @@
     "postinstall": "prisma generate",
     "dev": "astro dev",
     "dev:clean": "pkill -f 'astro dev' || true && rm -rf .astro node_modules/.astro node_modules/.vite .vite dist && pnpm dev",
-    "build": "astro build",
+    "build": "prisma generate && prisma migrate deploy && astro build",
     "preview": "astro preview",
     "astro": "astro",
     "format": "prettier --write . --ignore-path .prettierignore",
