@@ -38,16 +38,15 @@ Workflow suggéré :
 
 ### 2.1. Répertoire et framework
 
-Ton repo ressemble à ceci (à adapter si besoin) :
+Le repo est maintenant centré sur **une seule app Astro à la racine** :
 
-- `app/` → app principale Astro
-- `landing/` → éventuellement une landing Astro séparée
-- `packages/` → libs partagées
-- `pnpm-workspace.yaml` à la racine
+- `src/` → app principale Astro
+- `prisma/` → schéma et migrations
+- `public/` → assets statiques
 
 Tu veux déployer **l’app principale** :
 
-- Dans Vercel, choisis **“Monorepo → app/”** comme **Root Directory** si besoin.
+- Dans Vercel, laisse le **Root Directory** sur la **racine du repo** (`/`).
 - Framework détecté : **Astro** (Vercel devrait le voir automatiquement).
 
 ### 2.2. Commande de build et dossier de sortie
@@ -60,20 +59,20 @@ Dans la section “Build & Output Settings” du projet :
   pnpm install
   ```
 
-- **Build Command** (dans le répertoire `app/`) :
+- **Build Command** (à la racine) :
 
   ```bash
   pnpm build
   ```
 
-- **Output Directory** (dans `app/`) :
-  - `dist`
+- **Output Directory** :
+  - Laisser la configuration gérée par `@astrojs/vercel` (build type `server`, `.vercel/output`).
 
 ---
 
 ## 3. Variables d’environnement
 
-Tu as déjà un `app/.env` local. L’idée :
+Tu as déjà un `.env` local à la racine. L’idée :
 
 - **Ne jamais committer tes vrais secrets.**
 - Créer un fichier `app/.env.example` (sans valeurs) pour documenter.

@@ -1,0 +1,35 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
+  },
+  "eslint.validate": ["javascript", "typescript", "astro"],
+  "prettier.requireConfig": true,
+  "tailwindCSS.includeLanguages": {
+    "astro": "html"
+  },
+  "tailwindCSS.experimental.classRegex": [
+    ["class:list\\s*=\\s*\\{([^}]*)\\}", "([\"'`][^\"'`]*.*?[\"'`])"],
+    ["class\\s*=\\s*[\"'`]([^\"'`]*)[\"'`]", "([\"'`][^\"'`]*.*?[\"'`])"]
+  ],
+  "files.associations": {
+    "*.astro": "astro"
+  },
+  "emmet.includeLanguages": {
+    "astro": "html"
+  },
+  "[astro]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}

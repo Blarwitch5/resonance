@@ -4,10 +4,11 @@ dist/
 .env
 .env.local
 .env.production
+.env.development
+*.min.js
+*.min.css
 pnpm-lock.yaml
 package-lock.json
-*.log
-# Fichiers avec des problèmes de parsing spécifiques
-src/pages/collection/
-src/pages/dashboard.astro
-src/pages/search.astro
+src/components/SidebarMenu.astro
+src/pages/explorer.astro
+*.astro
