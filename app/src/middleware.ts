@@ -11,17 +11,30 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return next()
   }
 
-  const isAuthed = await auth.api.getSession({
-    headers: context.request.headers,
-  })
+  let isAuthed: Awaited<ReturnType<typeof auth.api.getSession>> = null
+  try {
+    isAuthed = await auth.api.getSession({
+      headers: context.request.headers,
+    })
+  } catch {
+    context.locals.user = null
+    context.locals.session = null
+    context.locals.userPreferences = undefined
+    return next()
+  }
 
   if (isAuthed) {
     context.locals.user = isAuthed.user
     context.locals.session = isAuthed.session
-    const prefs = await db.user.findUnique({
-      where: { id: isAuthed.user.id },
-      select: { preferredTheme: true, preferredLocale: true },
-    })
+    let prefs: { preferredTheme: string | null; preferredLocale: string | null } | null = null
+    try {
+      prefs = await db.user.findUnique({
+        where: { id: isAuthed.user.id },
+        select: { preferredTheme: true, preferredLocale: true },
+      })
+    } catch {
+      // Colonnes preferredLocale/preferredTheme absentes en prod (migration non appliquée) : on continue sans préférences
+    }
     const cookieLocale = context.cookies.get('locale')?.value
     const locale = prefs?.preferredLocale ?? cookieLocale ?? undefined
     const theme = prefs?.preferredTheme ?? undefined

@@ -297,62 +297,7 @@ if (isLoggedIn && user?.id) {
   }
 </style>
 
-<script define:vars={{ homeToasts: t.toasts }}>
-  import { signOut } from '../lib/auth-client'
-
-  document.addEventListener('DOMContentLoaded', function() {
-    const toasts = homeToasts
-    // Check for welcome toast (after login/signup)
-    const showWelcomeToast = sessionStorage.getItem('showWelcomeToast')
-    const isNewUser = sessionStorage.getItem('isNewUser')
-    
-    if (showWelcomeToast && window.toast) {
-      const welcomeH3 = document.querySelector('h2.font-display')
-      let userName = ''
-      if (welcomeH3) {
-        const welcomeText = welcomeH3.textContent || ''
-        const match = welcomeText.match(/[\s\S]+?([^!]+)!?$/)
-        userName = match ? match[1].trim() : ''
-      }
-      
-      if (isNewUser) {
-        window.toast.success(
-          userName ? toasts.welcomeNew.replace('{name}', userName) : toasts.welcomeNewNoName,
-          5000
-        )
-        sessionStorage.removeItem('isNewUser')
-      } else {
-        window.toast.success(
-          userName ? toasts.welcomeBack.replace('{name}', userName) : toasts.welcomeBackNoName,
-          4000
-        )
-      }
-      sessionStorage.removeItem('showWelcomeToast')
-    }
-
-    // Sign out button handler
-    const signOutBtn = document.getElementById('sign-out-btn')
-    if (signOutBtn) {
-      signOutBtn.addEventListener('click', async function() {
-        try {
-          if (window.toast) {
-            window.toast.info(toasts.signingOut, 2000)
-          }
-          await signOut()
-          sessionStorage.setItem('showLogoutToast', 'true')
-          setTimeout(() => {
-            window.location.href = '/login'
-          }, 500)
-        } catch (error) {
-          console.error('Error signing out:', error)
-          if (window.toast) {
-            window.toast.error(toasts.signOutError)
-          }
-          setTimeout(() => {
-            window.location.href = '/login'
-          }, 1000)
-        }
-      })
-    }
-  })
+<script type="text/plain" id="index-toasts-messages" data-encoding="base64" set:html={Buffer.from(JSON.stringify(t.toasts), 'utf8').toString('base64')}></script>
+<script>
+  import './Index.client'
 </script>

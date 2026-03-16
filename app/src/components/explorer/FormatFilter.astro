@@ -82,6 +82,8 @@ const { formats = defaultFormats } = Astro.props as FormatFilterProps
     
     button.classList.add('active', 'border-primary', 'bg-primary/10')
     button.classList.remove('border-border', 'bg-surface')
+
+    window.dispatchEvent(new CustomEvent('explorer-format-change'))
   })
 </script>
 
