@@ -1,90 +1,43 @@
-# Cursor Rules
+# Cursor Rules for Resonance
 
-- Develop TypeScript, Astro, and TailwindCSS applications following provided conventions and guidelines.
+## Astro Files - NO Auto-formatting
 
-## Code Style and Structure
-
-- Write concise, technical TypeScript code using functional and declarative programming patterns.
-- Avoid classes; prefer iteration and modularization over code duplication.
-- Use descriptive variable names with auxiliary verbs (e.g., `isLoading`, `hasError`).
-- Structure files into: exported component, subcomponents, helpers, static content, and types.
-- don't use any, use type instead.
-- don't use abrevations, use the full word instead (e.g. `e` -> `event` )
-- colors:
-  - dark:
-    - background: slate-950 # Fond principal
-    - text: zinc-100 # Texte principal
-    - textSecondary: zinc-400 # Texte secondaire
-    - accent1: orange-500 # Accent 1 (UI)
-    - accent2: emerald-400 # Accent 2 (UI)
-    - surface: slate-800 # Surfaces
-  - light:
-    - background: zinc-50 # Fond principal
-    - text: zinc-900 # Texte principal
-    - textSecondary: zinc-500 # Texte secondaire
-    - accent1: orange-600 # Accent 1 (UI)
-    - accent2: emerald-600 # Accent 2 (UI)
-      surface: zinc-200 # Surfaces
-
-## Naming Conventions
-
-- Use lowercase with dashes for directories (e.g., `components/auth-wizard`).
-- Favor named exports for components.
-
-## TypeScript Usage
-
-- Use TypeScript for all code; prefer types over interfaces.
-- Avoid enums; use maps instead.
-- Use functional components with TypeScript types.
-
-## Syntax and Formatting
-
-- Avoid unnecessary curly braces in conditionals; use concise syntax for simple statements.
-- Write declarative JSX.
-
-## UI and Styling
-
-- Use Tailwind for components and styling.
-- Implement responsive design with Tailwind CSS using a mobile-first approach.
-
-## Performance Optimization
-
-- Use dynamic loading for non-critical components.
-- Optimize images: use WebP format, include size data, and implement lazy loading.
-
-## CRITICAL: No HTML/JSX in JavaScript
-
-**NEVER create HTML markup directly in JavaScript code. Always use Astro components instead.**
-
-### ❌ FORBIDDEN:
-
-```javascript
-// Don't do this
-element.innerHTML = '<div class="bg-red-500">Error message</div>'
-document.createElement('div')
-modal.innerHTML = `<div>...</div>`
-```
-
-### ✅ CORRECT APPROACH:
-
-```astro
-<!-- Create dedicated Astro components -->
-<ErrorMessage message={error} />
-<Modal id="my-modal" />
-<Notification type="success" />
-```
+**CRITICAL**: Never auto-format Astro files. The Cursor Astro plugin corrupts imports.
 
 ### Rules:
+- Do NOT format `.astro` files on save
+- Do NOT organize imports in `.astro` files
+- Do NOT modify import statements in `.astro` files
+- Preserve exact import syntax as written
 
-1. **Create dedicated Astro components** for any UI elements that need to be rendered
-2. **Use client-side scripts only for logic**, not for creating DOM elements
-3. **Pass data as props** to components instead of manipulating innerHTML
-4. **Use Astro's client directives** (`client:load`, `client:visible`) when needed
-5. **Separate concerns**: Keep HTML in `.astro` files, logic in scripts
+### File Protection:
+All `.astro` files are protected from formatting:
+- `.prettierignore` includes `*.astro`
+- `.vscode/settings.json` disables formatting for Astro
+- `.cursor/settings.json` disables formatting for Astro
 
-### Examples of refactoring:
+### If imports are corrupted:
+1. Restore from git if possible
+2. Manually fix imports (do not use auto-format)
+3. Check Cursor extensions and disable Astro formatter if present
 
-- Modal creation → `<Modal />` component
-- Toast notifications → `<Toast />` component
-- Dynamic lists → `<DynamicList items={data} />` component
-- Form elements → `<FormField />` component
+## Variable Naming - No Single Letter Variables
+
+**CRITICAL**: Avoid single-letter variable names. Use descriptive, full-word names instead.
+
+### Rules:
+- NEVER use single-letter variables (e.g., `a`, `f`, `l`, `n`, `s`, `v`)
+- Use descriptive names that clearly indicate the variable's purpose
+- Examples:
+  - ❌ `a` → ✅ `artistItem`, `artist`
+  - ❌ `f` → ✅ `format`, `formatItem`, `formatName`
+  - ❌ `l` → ✅ `label`, `labelItem`
+  - ❌ `n` → ✅ `ratingValue`, `number`, `index`
+  - ❌ `s` → ✅ `statePart`, `stringValue`
+  - ❌ `v` → ✅ `value`, `validFormat`
+  - ❌ `e` → ✅ `event` (acceptable only in event handlers if context is clear)
+  - ❌ `vf` → ✅ `validFormat`
+
+### Exceptions:
+- Loop counters in simple iterations: `i`, `j`, `k` (only when context is extremely clear)
+- Mathematical formulas where single letters are standard (e.g., `x`, `y` in coordinate calculations)

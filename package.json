@@ -1,50 +1,48 @@
 {
-  "name": "resonance-monorepo",
-  "version": "1.0.0",
-  "description": "Monorepo Resonance - Where your music resonates. Landing Marketing + Application Gestion Collection Multi-Formats",
-  "private": true,
-  "engines": {
-    "node": "22.12.0"
-  },
+  "name": "resonance-app",
+  "type": "module",
+  "version": "0.0.1",
+  "packageManager": "pnpm@10.11.0",
   "scripts": {
-    "dev": "concurrently \"npm run dev:landing\" \"npm run dev:app\" --kill-others-on-fail",
-    "dev:landing": "cd landing && npm run dev",
-    "dev:app": "cd app && npm run dev",
-    "build": "npm run build:landing && npm run build:app",
-    "build:landing": "cd landing && npm run build",
-    "build:app": "cd app && npm run build",
-    "preview": "npm run preview:landing && npm run preview:app",
-    "preview:landing": "cd landing && npm run preview",
-    "preview:app": "cd app && npm run preview",
-    "a11y": "cd app && pnpm a11y",
-    "install:all": "npm install && npm install --workspace=landing && npm install --workspace=app",
-    "check:landing": "cd landing && npm run check",
-    "check:app": "cd app && npm run check",
-    "clean": "rm -rf landing/node_modules app/node_modules node_modules",
-    "prepare": "husky install"
+    "postinstall": "prisma generate",
+    "dev": "astro dev",
+    "dev:clean": "pkill -f 'astro dev' || true && rm -rf .astro node_modules/.astro node_modules/.vite .vite dist && pnpm dev",
+    "build": " astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "format": "prettier --write . --ignore-path .prettierignore",
+    "format:check": "prettier --check . --ignore-path .prettierignore",
+    "a11y": "playwright test --config playwright.config.cjs",
+    "covers:update": "tsx scripts/update-covers-hq.ts",
+    "covers:clean": "tsx scripts/clean-covers.ts",
+    "seed:test": "tsx scripts/seed-test-data.ts",
+    "clean:cache": "pkill -f 'astro dev' || true && rm -rf .astro node_modules/.astro node_modules/.vite .vite dist"
+  },
+  "dependencies": {
+    "@astrojs/node": "^10.0.0",
+    "@astrojs/vercel": "^10.0.0",
+    "@lucide/astro": "^0.562.0",
+    "@prisma/client": "^6.19.2",
+    "@vercel/blob": "^0.26.0",
+    "astro": "^6.0.0",
+    "better-auth": "^1.4.19",
+    "chart.js": "^4.5.1",
+    "chartjs-adapter-date-fns": "^3.0.0",
+    "date-fns": "^4.1.0",
+    "piccolore": "^0.1.3",
+    "pnpm": "^10.30.2",
+    "sharp": "^0.34.5",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
-    "husky": "^9.1.7"
-  },
-  "keywords": [
-    "monorepo",
-    "resonance",
-    "music",
-    "collection",
-    "vinyl",
-    "cd",
-    "cassette",
-    "landing",
-    "astro",
-    "tailwindcss"
-  ],
-  "license": "MIT",
-  "dependencies": {
-    "@lucide/astro": "^0.544.0",
-    "@tailwindcss/vite": "^4.1.14",
-    "flowbite": "^3.1.2",
-    "pnpm": "^10.18.2",
-    "tailwindcss": "^4.1.14"
+    "@axe-core/playwright": "^4.11.1",
+    "@playwright/test": "^1.58.2",
+    "@tailwindcss/postcss": "^4.2.1",
+    "@tailwindcss/vite": "^4.2.1",
+    "prettier": "latest",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "prisma": "^6.19.2",
+    "tailwindcss": "^4.2.1",
+    "tsx": "latest"
   }
 }
