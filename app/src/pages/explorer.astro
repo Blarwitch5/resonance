@@ -45,6 +45,16 @@ if (topGenres.length > 0) {
     client: explorerT.client,
     addToCollection: explorerT.addToCollection,
   }).replace(/<\/script/gi, '<\\/script')}></script>
+  <script type="text/plain" id="search-result-card-messages" data-encoding="base64" set:html={Buffer.from(JSON.stringify({
+    unknownArtist: explorerT.client.unknownArtist,
+    addedToWishlistToast: explorerT.addToCollection.addedToWishlistToast,
+    failedToAddToWishlist: explorerT.addToCollection.failedToAddToWishlist,
+    fetchReleaseError: explorerT.addToCollection.fetchReleaseError,
+    genericError: explorerT.client.genericError,
+  }), 'utf8').toString('base64')}></script>
+  <script>
+    import '../components/explorer/SearchResultCard.client'
+  </script>
   <div class="space-y-8">
     <section>
       <h2 class="mb-4 text-xl font-bold">{explorerT.search.title}</h2>

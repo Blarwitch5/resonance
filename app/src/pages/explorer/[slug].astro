@@ -348,6 +348,16 @@ const coverUrl = release.cover_image || release.thumb || null
   </div>
 
   <AddToCollectionModal collections={userCollections} addToCollection={explorerT.addToCollection} client={explorerT.client} />
+  <script type="text/plain" id="search-result-card-messages" data-encoding="base64" set:html={Buffer.from(JSON.stringify({
+    unknownArtist: explorerT.client.unknownArtist,
+    addedToWishlistToast: explorerT.addToCollection.addedToWishlistToast,
+    failedToAddToWishlist: explorerT.addToCollection.failedToAddToWishlist,
+    fetchReleaseError: explorerT.addToCollection.fetchReleaseError,
+    genericError: explorerT.client.genericError,
+  }), 'utf8').toString('base64')}></script>
+  <script>
+    import '../../components/explorer/SearchResultCard.client'
+  </script>
 </DashboardLayout>
 
 <script>

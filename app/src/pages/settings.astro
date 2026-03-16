@@ -76,14 +76,6 @@ const userImage = (user as UserWithImageUrl).image ?? (user as UserWithImageUrl)
       </div>
     </section>
 
-    <!-- Language section -->
-    <section id="language" class="glass-card rounded-2xl p-6" aria-labelledby="language-heading">
-      <h2 id="language-heading" class="text-xl font-semibold text-neutral mb-4">Language</h2>
-      <div class="space-y-4">
-        <LanguageSwitcher variant="settings" currentLocale={Astro.locals.locale} />
-      </div>
-    </section>
-
     <!-- Account section -->
     <section class="glass-card rounded-2xl p-6">
       <h2 class="text-xl font-semibold text-neutral mb-4">{t.account.title}</h2>
