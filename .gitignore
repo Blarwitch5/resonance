@@ -4,6 +4,8 @@ dist/
 .astro/
 # vite cache
 .vite/
+# vercel local build artifacts
+.vercel/
 
 # dependencies
 node_modules/
@@ -21,6 +23,9 @@ pnpm-debug.log*
 
 # macOS-specific files
 .DS_Store
+
+# local user uploads (not committed)
+public/uploads/avatars/
 
 # jetbrains setting folder
 .idea/
