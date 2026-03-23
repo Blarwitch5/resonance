@@ -554,7 +554,7 @@ Sidebar Structure:
 
 ### Prerequisites
 
-- **Node.js** 18+ (recommended: 20+)
+- **Node.js** 22.12.0+ (required by Astro 6)
 - **pnpm** 10.11.0+ (or npm/yarn)
 - **PostgreSQL** (Neon)
 - **Discogs API Keys** ([get them here](https://www.discogs.com/settings/developers))
