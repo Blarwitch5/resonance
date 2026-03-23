@@ -2,6 +2,7 @@
 import Library from '@lucide/astro/icons/library'
 import Search from '@lucide/astro/icons/scan-search'
 import User from '@lucide/astro/icons/user'
+import Avatar from './Avatar.astro'
 
 type TabItem = {
   id: string
@@ -34,9 +35,22 @@ type BottomBarProps = {
   libraryLabel?: string
   exploreLabel?: string
   profileLabel?: string
+  userName?: string | null
+  userEmail?: string | null
+  userImageUrl?: string | null
 }
 
-const { mainNavAria = 'Main navigation', libraryLabel = 'Library', exploreLabel = 'Explore', profileLabel = 'Profile' } = Astro.props as BottomBarProps
+const {
+  mainNavAria = 'Main navigation',
+  libraryLabel = 'Library',
+  exploreLabel = 'Explore',
+  profileLabel = 'Profile',
+  userName = null,
+  userEmail = null,
+  userImageUrl = null,
+} = Astro.props as BottomBarProps
+
+const hasUser = Boolean((userName && userName.trim().length > 0) || (userEmail && userEmail.trim().length > 0))
 
 const tabs: TabItem[] = [
   {
@@ -63,20 +77,21 @@ const tabs: TabItem[] = [
 <!-- Barre flottante style Floating Bottom Navigation (mobile uniquement) -->
 <nav
   aria-label={mainNavAria}
-  class="bottom-bar fixed bottom-6 left-4 right-4 z-50 mx-auto max-w-sm rounded-[1.75rem] md:hidden"
+  class="bottom-bar fixed bottom-3 left-4 right-4 z-50 mx-auto max-w-sm rounded-2xl pb-[max(env(safe-area-inset-bottom),0px)] md:hidden"
 >
   <div
-    class="flex items-center justify-between gap-1 rounded-[1.75rem] border border-border/30 bg-surface-elevated/95 px-2 py-2.5 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] backdrop-blur-md transition-colors duration-200 dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.06)_inset]"
+    class="flex items-center justify-between gap-1 rounded-2xl border border-border/40 bg-surface-elevated/95 px-1.5 py-1.5 shadow-[0_6px_24px_-10px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.04)_inset] backdrop-blur-md transition-colors duration-200 dark:shadow-[0_8px_28px_-12px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.05)_inset]"
   >
     {
       tabs.map((tab: TabItem) => {
         const IconComponent = tab.icon
         const isActive = activeTab === tab.id
+        const tabHref = tab.id === 'profile' ? (hasUser ? '/profile' : '/login') : tab.href
 
         return (
           <a
-            href={tab.href}
-            class={`group relative flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-2xl px-3 py-3 transition-all duration-200 ${
+            href={tabHref}
+            class={`bottom-bar-link group relative flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl px-2 py-1.5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated ${
               isActive
                 ? 'bg-primary/12 text-primary shadow-sm'
                 : 'text-neutral hover:bg-primary/10 hover:text-primary active:scale-[0.98]'
@@ -84,11 +99,41 @@ const tabs: TabItem[] = [
             aria-label={tab.label}
             aria-current={isActive ? 'page' : undefined}
           >
-            <IconComponent
-              size={22}
-              class={`fill-none stroke-2 shrink-0 ${isActive ? 'text-primary stroke-primary' : 'text-neutral stroke-neutral group-hover:text-primary group-hover:stroke-primary'}`}
-              aria-hidden="true"
-            />
+            {tab.id === 'profile' && hasUser ? (
+              <div
+                class={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl transition-colors ${
+                  isActive
+                    ? 'bg-primary/90 text-white shadow-[0_6px_16px_-10px_rgba(99,102,241,0.7)]'
+                    : 'bg-surface/90 text-primary/80 group-hover:bg-primary/12 group-hover:text-primary'
+                }`}
+              >
+                <Avatar
+                  userName={userName}
+                  userEmail={userEmail}
+                  imageUrl={userImageUrl}
+                  size="sm"
+                  class="h-8 w-8 rounded-lg"
+                />
+              </div>
+            ) : (
+              <div
+                class={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${
+                  isActive
+                    ? 'bg-primary/90 text-white shadow-[0_6px_16px_-10px_rgba(99,102,241,0.7)]'
+                    : 'bg-surface/90 text-primary/80 group-hover:bg-primary/12 group-hover:text-primary'
+                }`}
+              >
+                <IconComponent
+                  size={19}
+                  class={`bottom-bar-icon fill-none stroke-2 shrink-0 ${
+                    isActive
+                      ? 'text-white stroke-white'
+                      : 'text-primary/80 stroke-primary/80 group-hover:text-primary group-hover:stroke-primary'
+                  }`}
+                  aria-hidden="true"
+                />
+              </div>
+            )}
             <span class="text-sm font-medium whitespace-nowrap hidden sm:inline">
               {tab.label}
             </span>
@@ -100,4 +145,19 @@ const tabs: TabItem[] = [
 </nav>
 
 <!-- Espace réservé pour la barre flottante (éviter que le contenu passe en dessous) -->
-<div class="h-24 md:hidden" aria-hidden="true"></div>
+<div class="md:hidden" aria-hidden="true" style="height: calc(4.75rem + env(safe-area-inset-bottom));"></div>
+
+<style>
+  :global(html[data-theme='light']) .bottom-bar .bottom-bar-link {
+    color: var(--color-text);
+  }
+
+  :global(html[data-theme='light']) .bottom-bar .bottom-bar-link[aria-current='page'] {
+    color: var(--color-primary);
+  }
+
+  :global(html[data-theme='light']) .bottom-bar .bottom-bar-icon {
+    color: var(--color-primary);
+    stroke: var(--color-primary);
+  }
+</style>

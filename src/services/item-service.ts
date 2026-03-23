@@ -6,8 +6,13 @@ import { itemRepository } from '../repositories/item-repository'
 
 const MAX_SLUG_RETRIES = 20
 
+type CreateItemData = Omit<Prisma.ItemCreateInput, 'slug' | 'user'> & {
+  slug?: string
+  user?: Prisma.ItemCreateInput['user']
+}
+
 export class ItemService {
-  async createItem(userId: string, data: Prisma.ItemCreateInput) {
+  async createItem(userId: string, data: CreateItemData) {
     const artist = (data.artist as string) || ''
     const title = (data.title as string) || ''
     const year = (data.year as number) ?? null

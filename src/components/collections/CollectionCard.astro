@@ -32,6 +32,15 @@ const card = cardLabels
 const totalItems =
   collection.itemCount ??
   (collection.vinylCount ?? 0) + (collection.cdCount ?? 0) + (collection.cassetteCount ?? 0)
+
+const getPluralizedFormatLabel = (label: string, count: number): string => {
+  if (count <= 1) return label
+  return label.endsWith('s') ? label : `${label}s`
+}
+
+const vinylCount = collection.vinylCount ?? 0
+const cdCount = collection.cdCount ?? 0
+const cassetteCount = collection.cassetteCount ?? 0
 ---
 
 <a
@@ -60,27 +69,26 @@ const totalItems =
   <!-- Info -->
   <div class="p-6">
     <h3 class="mb-2 text-xl font-semibold text-neutral line-clamp-1">{collection.name}</h3>
-    {collection.description && (
-      <p class="mb-4 line-clamp-2 text-sm text-muted">{collection.description}</p>
-    )}
 
     <!-- Stats -->
-    <div class="flex flex-wrap items-center gap-3 text-sm">
+    <div class="flex flex-wrap items-center gap-2 text-sm">
       <span class="font-medium text-neutral">
-        {totalItems} {totalItems === 1 ? card.album : card.albums}
+        {totalItems} {getPluralizedFormatLabel(card.album, totalItems)}
       </span>
       <span class="text-muted">•</span>
-      <span class="flex items-center gap-1" title={card.vinylTitle}>
+      <span class="flex items-center gap-1.5" title={card.vinylTitle}>
         <Disc3 size={16} class="fill-none stroke-2 text-format-vinyl stroke-format-vinyl" aria-hidden="true" />
-        <span class="text-muted">{collection.vinylCount ?? 0}</span>
+        <span class="text-neutral">{vinylCount} {getPluralizedFormatLabel(card.vinylTitle, vinylCount)}</span>
       </span>
+      <span class="text-muted">•</span>
       <span class="flex items-center gap-1" title={card.cdTitle}>
         <Disc2 size={16} class="fill-none stroke-2 text-format-cd stroke-format-cd" aria-hidden="true" />
-        <span class="text-muted">{collection.cdCount ?? 0}</span>
+        <span class="text-neutral">{cdCount} {getPluralizedFormatLabel(card.cdTitle, cdCount)}</span>
       </span>
+      <span class="text-muted">•</span>
       <span class="flex items-center gap-1" title={card.cassetteTitle}>
         <CassetteTape size={16} class="fill-none stroke-2 text-format-cassette stroke-format-cassette" aria-hidden="true" />
-        <span class="text-muted">{collection.cassetteCount ?? 0}</span>
+        <span class="text-neutral">{cassetteCount} {getPluralizedFormatLabel(card.cassetteTitle, cassetteCount)}</span>
       </span>
     </div>
   </div>

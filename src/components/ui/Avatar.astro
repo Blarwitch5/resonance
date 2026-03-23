@@ -49,6 +49,7 @@ const hasImage = imageUrl && imageUrl.trim() !== '' && (imageUrl.startsWith('htt
 {hasImage ? (
   <img
     id={id ? `${id}-img` : undefined}
+    data-user-avatar="true"
     src={imageUrl}
     alt={userName || userEmail || 'Avatar'}
     class={`${sizeClass} rounded-full object-cover ${className}`}

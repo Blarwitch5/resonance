@@ -1,6 +1,9 @@
 ---
-import Plus from '@lucide/astro/icons/plus'
+import SmilePlus from '@lucide/astro/icons/smile-plus'
 import Heart from '@lucide/astro/icons/heart'
+import Bookmark from '@lucide/astro/icons/bookmark'
+import Plus from '@lucide/astro/icons/plus'
+import EllipsisVertical from '@lucide/astro/icons/ellipsis-vertical'
 import OptimizedImage from '../ui/OptimizedImage.astro'
 import { buildExplorerSlug } from '../../lib/slug'
 
@@ -14,12 +17,15 @@ type ResultCardProps = {
     format?: string[]
     slug?: string
   }
+  inWishlist?: boolean
   addToCollectionAria?: string
   addToWishlistAria?: string
+  inWishlistAria?: string
   unknownArtistLabel?: string
   scriptLabels?: {
     unknownArtist: string
     addedToWishlistToast: string
+    alreadyInWishlistToast?: string
     failedToAddToWishlist: string
     fetchReleaseError: string
     genericError: string
@@ -29,13 +35,21 @@ type ResultCardProps = {
 const defaultScriptLabels = {
   unknownArtist: 'Unknown Artist',
   addedToWishlistToast: 'Album successfully added to wishlist!',
+  alreadyInWishlistToast: 'This album is already in your wishlist.',
   failedToAddToWishlist: 'Failed to add to wishlist',
   fetchReleaseError: 'Failed to fetch release details',
   genericError: 'An error occurred',
 }
 
-const { result, addToCollectionAria = 'Add to collection', addToWishlistAria = 'Add to wishlist', unknownArtistLabel = 'Unknown', scriptLabels = defaultScriptLabels } = Astro.props as ResultCardProps
-const scriptL = scriptLabels
+const {
+  result,
+  inWishlist = false,
+  addToCollectionAria = 'Add to collection',
+  addToWishlistAria = 'Add to wishlist',
+  inWishlistAria = 'Already in your wishlist',
+  unknownArtistLabel = 'Unknown',
+  scriptLabels = defaultScriptLabels,
+} = Astro.props as ResultCardProps
 
 // Fonction pour extraire les formats affichables
 function extractDisplayFormats(formats: string[] | undefined): string[] {
@@ -67,10 +81,10 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
 
 <a
   href={`/explorer/${explorerSlug}`}
-  class="group glass-card relative block overflow-hidden rounded-xl transition-all hover:scale-105"
+  class="group glass-card relative isolate block overflow-visible rounded-xl transition-all md:overflow-hidden md:hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 >
   <!-- Cover -->
-  <div class="overflow-hidden bg-surface">
+  <div class="relative overflow-hidden rounded-t-xl bg-surface">
     <OptimizedImage
       src={coverUrl}
       alt={albumTitle}
@@ -80,44 +94,192 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
       aspectRatio="square"
       class="h-full w-full object-cover"
     />
+    <div
+      class="pointer-events-none absolute inset-0 bg-black/25 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+    ></div>
+    <!-- Actions -->
+    <div
+      class="result-card-actions absolute right-2 top-1/2 z-10 hidden -translate-y-1/2 flex-col gap-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 md:flex"
+    >
+      <button
+        type="button"
+        class="btn-primary cursor-pointer flex h-10 w-10 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+        aria-label={addToCollectionAria}
+        data-discogs-id={result.id}
+        data-action="collection"
+      >
+        <SmilePlus size={14} class="fill-none stroke-2 text-white stroke-white" />
+      </button>
+      <button
+        type="button"
+        class="btn-icon favorite-action-button border-0! bg-amber-500/90! flex h-10 w-10 items-center justify-center rounded-full p-0 shadow-lg hover:bg-amber-500! focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+        aria-label="Ajouter aux favoris"
+        aria-pressed="false"
+        data-discogs-id={result.id}
+        data-action="favorite"
+        data-in-favorite="false"
+      >
+        <Heart size={14} class="fill-none stroke-2 text-white stroke-white" />
+      </button>
+      <button
+        type="button"
+        class:list={[
+          'btn-icon-colored flex h-10 w-10 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70',
+          inWishlist && 'wishlist-action-button--saved',
+        ]}
+        aria-label={inWishlist ? inWishlistAria : addToWishlistAria}
+        aria-pressed={inWishlist ? 'true' : 'false'}
+        data-wishlist-aria-default={addToWishlistAria}
+        data-discogs-id={result.id}
+        data-action="wishlist"
+        data-in-wishlist={inWishlist ? 'true' : undefined}
+      >
+        <span class="relative flex h-4 w-4 items-center justify-center">
+          <Bookmark
+            size={14}
+            class:list={[
+              'wishlist-bookmark-icon stroke-2 text-white stroke-white',
+              inWishlist ? 'fill-current' : 'fill-none',
+            ]}
+          />
+          <Plus
+            size={8}
+            class:list={[
+              'wishlist-plus-accent pointer-events-none absolute -right-0.5 -top-0.5 fill-none stroke-[2.5]',
+              inWishlist ? 'opacity-100' : 'opacity-0',
+            ]}
+          />
+        </span>
+      </button>
+    </div>
+    <div class="absolute right-2 top-2 z-10 flex items-center gap-2 md:hidden">
+      <button
+        type="button"
+        class="btn-primary cursor-pointer flex h-10 w-10 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+        aria-label={addToCollectionAria}
+        data-discogs-id={result.id}
+        data-action="collection"
+      >
+        <SmilePlus size={14} class="fill-none stroke-2 text-white stroke-white" />
+      </button>
+      <div class="mobile-card-menu relative z-60">
+        <button
+          type="button"
+          class="mobile-card-menu-trigger flex h-10 w-10 list-none items-center justify-center rounded-full bg-white p-0 shadow-sm transition-transform duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+          aria-label="Plus d'actions"
+          aria-expanded="false"
+          data-discogs-id={result.id}
+          data-action="menu"
+        >
+          <EllipsisVertical size={14} class="fill-none stroke-2 text-primary stroke-primary" />
+        </button>
+        <div class="mobile-card-menu-panel absolute right-0 top-12 z-80 w-auto flex-col items-end gap-2 border-0 bg-transparent p-0 shadow-none backdrop-blur-none">
+          <button
+            type="button"
+            class="btn-icon favorite-action-button border-0! bg-amber-500/90! flex h-10 w-10 items-center justify-center rounded-full p-0 shadow-lg hover:bg-amber-500! focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+            aria-label="Ajouter aux favoris"
+            aria-pressed="false"
+            data-discogs-id={result.id}
+            data-action="favorite"
+            data-in-favorite="false"
+          >
+            <Heart size={14} class="fill-none stroke-2 text-white stroke-white" />
+          </button>
+          <button
+            type="button"
+            class:list={[
+              'btn-icon-colored flex h-10 w-10 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70',
+              inWishlist && 'wishlist-action-button--saved',
+            ]}
+            aria-label={inWishlist ? inWishlistAria : addToWishlistAria}
+            aria-pressed={inWishlist ? 'true' : 'false'}
+            data-wishlist-aria-default={addToWishlistAria}
+            data-discogs-id={result.id}
+            data-action="wishlist"
+            data-in-wishlist={inWishlist ? 'true' : undefined}
+          >
+            <span class="relative flex h-4 w-4 items-center justify-center">
+              <Bookmark
+                size={14}
+                class:list={[
+                  'wishlist-bookmark-icon stroke-2 text-white stroke-white',
+                  inWishlist ? 'fill-current' : 'fill-none',
+                ]}
+              />
+              <Plus
+                size={8}
+                class:list={[
+                  'wishlist-plus-accent pointer-events-none absolute -right-0.5 -top-0.5 fill-none stroke-[2.5]',
+                  inWishlist ? 'opacity-100' : 'opacity-0',
+                ]}
+              />
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Info -->
   <div class="p-3">
-    <h3 class="truncate font-medium text-neutral">{albumTitle}</h3>
-    <p class="truncate text-sm text-muted">{artist || unknownArtistLabel}</p>
+    <h3 class="truncate text-sm leading-5 font-semibold text-neutral">{albumTitle}</h3>
+    <p class="truncate text-sm leading-5 text-muted">{artist || unknownArtistLabel}</p>
     {formatsText && (
-      <p class="mt-1 text-xs font-medium text-primary">{formatsText}</p>
+      <p class="mt-1 truncate text-xs font-medium text-primary">{formatsText}</p>
     )}
-    {result.year && <p class="text-xs text-muted">{result.year}</p>}
+    {result.year && <p class="text-xs leading-5 text-muted">{result.year}</p>}
   </div>
 
-  <!-- Actions -->
-  <div
-    class="absolute right-2 top-2 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100"
-  >
-    <button
-      type="button"
-      class="btn-icon rounded-full p-2 shadow-lg"
-      aria-label={addToCollectionAria}
-      data-discogs-id={result.id}
-      data-action="collection"
-      onclick="event.preventDefault(); event.stopPropagation();"
-    >
-      <Plus size={16} />
-    </button>
-    <button
-      type="button"
-      class="btn-icon-colored rounded-full p-2 shadow-lg"
-      aria-label={addToWishlistAria}
-      data-discogs-id={result.id}
-      data-action="wishlist"
-      onclick="event.preventDefault(); event.stopPropagation();"
-    >
-      <Heart size={16} class="fill-none stroke-2 text-white stroke-white" />
-    </button>
-  </div>
 </a>
 
 <!-- Clics gérés par SearchResultCard.client (chargé sur la page explorer / explorer/[slug]) -->
+
+<style>
+  :global(button[data-action='wishlist'] .wishlist-plus-accent),
+  :global(button[data-action='wishlist'] .wishlist-plus-accent *),
+  :global(button[data-action='wishlist'] .wishlist-plus-accent svg),
+  :global(button[data-action='wishlist'] .wishlist-plus-accent path),
+  :global(button[data-action='wishlist'] .wishlist-plus-accent line) {
+    color: #f59e0b !important;
+    stroke: #f59e0b !important;
+  }
+
+  .mobile-card-menu-trigger.is-open {
+    transform: rotate(180deg);
+  }
+
+  .mobile-card-menu-panel {
+    display: flex;
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+    transition: opacity 180ms ease, transform 180ms ease;
+  }
+
+  .mobile-card-menu-panel > button {
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 160ms ease, transform 160ms ease;
+  }
+
+  .mobile-card-menu-panel.is-open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .mobile-card-menu-panel.is-open > button {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .mobile-card-menu-panel.is-open > button:nth-child(1) {
+    transition-delay: 40ms;
+  }
+
+  .mobile-card-menu-panel.is-open > button:nth-child(2) {
+    transition-delay: 110ms;
+  }
+
+</style>
 

@@ -9,11 +9,14 @@ import Tag from '@lucide/astro/icons/tag'
 import AddToCollectionModal from '../../components/explorer/AddToCollectionModal.astro'
 import NotAddedBadge from '../../components/items/NotAddedBadge.astro'
 import Plus from '@lucide/astro/icons/plus'
+import Heart from '@lucide/astro/icons/heart'
+import Bookmark from '@lucide/astro/icons/bookmark'
 import DashboardLayout from '../../components/layouts/DashboardLayout.astro'
 import OptimizedImage from '../../components/ui/OptimizedImage.astro'
 import { db } from '../../lib/db'
 import { buildExplorerSlug, parseExplorerSlug } from '../../lib/slug'
 import { collectionRepository } from '../../repositories/collection-repository'
+import { wishlistRepository } from '../../repositories/wishlist-repository'
 import { discogsService } from '../../services/discogs-service'
 import { getExplorerMessages } from '../../i18n/explorer'
 import { normalizeLocale } from '../../i18n/config'
@@ -39,10 +42,16 @@ const existingItem = await db.item.findFirst({
   },
   select: {
     slug: true,
+    collectionId: true,
+    metadata: {
+      select: {
+        isFavorite: true,
+      },
+    },
   },
 })
 
-if (existingItem) {
+if (existingItem && existingItem.collectionId) {
   return Astro.redirect(`/items/${existingItem.slug}`)
 }
 
@@ -96,6 +105,9 @@ if (slugParam !== canonicalSlug && /^\d+$/.test(slugParam)) {
 
 // Récupérer les collections de l'utilisateur pour le bouton d'ajout
 const userCollections = await collectionRepository.findByUserId(Astro.locals.user!.id)
+const wishlistItem = await wishlistRepository.findByDiscogsId(discogsId, Astro.locals.user!.id)
+const isInWishlist = Boolean(wishlistItem)
+const isFavorite = Boolean(existingItem?.metadata?.isFavorite)
 
 const coverUrl = release.cover_image || release.thumb || null
 ---
@@ -173,17 +185,51 @@ const coverUrl = release.cover_image || release.thumb || null
             )}
           </div>
 
-          <!-- Bouton d'ajout (ouvre la même modal que les cartes de recherche) -->
+          <!-- Actions rapides (collection, favoris, wishlist) -->
           <div class="pt-4 border-t border-border">
-            <button
-              type="button"
-              class="open-add-modal-btn bg-gradient-resonance hover:bg-gradient-resonance-hover flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 text-base font-medium text-white transition-all duration-300 shadow-lg shadow-primary/20"
-              data-discogs-id={discogsId}
-              data-redirect-on-success="true"
-            >
-              <Plus size={20} />
-              <span>{explorerT.release.addToCollectionButton}</span>
-            </button>
+            <div class="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                class="open-add-modal-btn bg-gradient-resonance hover:bg-gradient-resonance-hover flex h-11 w-11 items-center justify-center gap-2 rounded-full p-0 text-base font-medium text-white transition-all duration-300 shadow-lg shadow-primary/20 md:h-auto md:w-auto md:flex-1 md:min-w-[220px] md:rounded-xl md:px-6 md:py-3"
+                data-discogs-id={discogsId}
+                data-action="collection"
+                data-redirect-on-success="true"
+              >
+                <Plus size={20} />
+                <span class="hidden md:inline">{explorerT.release.addToCollectionButton}</span>
+              </button>
+              <button
+                type="button"
+                class:list={[
+                  'btn-icon favorite-action-button bg-amber-500/90! flex h-11 w-11 items-center justify-center gap-2 rounded-full p-0 text-white shadow-lg hover:bg-amber-500! focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 md:h-auto md:w-auto md:rounded-xl md:px-4 md:py-3',
+                  isFavorite && 'favorite-action-button--saved',
+                ]}
+                aria-label="Ajouter aux favoris"
+                aria-pressed={isFavorite ? 'true' : 'false'}
+                data-discogs-id={discogsId}
+                data-action="favorite"
+                data-in-favorite={isFavorite ? 'true' : 'false'}
+              >
+                <Heart size={16} class:list={['stroke-2 text-white stroke-white', isFavorite ? 'fill-current' : 'fill-none']} />
+                <span class="hidden md:inline">Favoris</span>
+              </button>
+              <button
+                type="button"
+                class:list={[
+                  'btn-icon-colored flex h-11 w-11 items-center justify-center gap-2 rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 md:h-auto md:w-auto md:rounded-xl md:px-4 md:py-3',
+                  isInWishlist && 'wishlist-action-button--saved',
+                ]}
+                aria-label={isInWishlist ? explorerT.addToCollection.inWishlistAria : explorerT.addToCollection.addToWishlistAria}
+                aria-pressed={isInWishlist ? 'true' : 'false'}
+                data-wishlist-aria-default={explorerT.addToCollection.addToWishlistAria}
+                data-discogs-id={discogsId}
+                data-action="wishlist"
+                data-in-wishlist={isInWishlist ? 'true' : undefined}
+              >
+                <Bookmark size={16} class:list={['stroke-2 text-white stroke-white', isInWishlist ? 'fill-current' : 'fill-none']} />
+                <span class="hidden md:inline">Wishlist</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -351,9 +397,16 @@ const coverUrl = release.cover_image || release.thumb || null
   <script type="text/plain" id="search-result-card-messages" data-encoding="base64" set:html={Buffer.from(JSON.stringify({
     unknownArtist: explorerT.client.unknownArtist,
     addedToWishlistToast: explorerT.addToCollection.addedToWishlistToast,
+    alreadyInWishlistToast: explorerT.addToCollection.alreadyInWishlistToast,
+    removedFromWishlistToast: explorerT.addToCollection.removedFromWishlistToast,
+    addedToFavoritesToast: explorerT.addToCollection.addedToFavoritesToast,
+    removedFromFavoritesToast: explorerT.addToCollection.removedFromFavoritesToast,
+    favoriteRequiresCollectionToast: explorerT.addToCollection.favoriteRequiresCollectionToast,
+    favoriteUpdateError: explorerT.addToCollection.favoriteUpdateError,
     failedToAddToWishlist: explorerT.addToCollection.failedToAddToWishlist,
     fetchReleaseError: explorerT.addToCollection.fetchReleaseError,
     genericError: explorerT.client.genericError,
+    inWishlistAria: explorerT.addToCollection.inWishlistAria,
   }), 'utf8').toString('base64')}></script>
   <script>
     import '../../components/explorer/SearchResultCard.client'
@@ -361,30 +414,5 @@ const coverUrl = release.cover_image || release.thumb || null
 </DashboardLayout>
 
 <script>
-  document.addEventListener('click', (event: MouseEvent) => {
-    const target = event.target as Element | null
-    if (!target) return
-
-    const button = target.closest('.open-add-modal-btn') as HTMLButtonElement | null
-    if (!button) return
-
-    const modal = document.getElementById('add-to-collection-modal')
-    if (!modal) return
-
-    event.preventDefault()
-
-    const discogsId = button.getAttribute('data-discogs-id')
-    const redirectOnSuccess = button.getAttribute('data-redirect-on-success')
-
-    if (!discogsId) return
-
-    modal.setAttribute('data-discogs-id', discogsId)
-    if (redirectOnSuccess) {
-      modal.setAttribute('data-redirect-on-success', 'true')
-    } else {
-      modal.removeAttribute('data-redirect-on-success')
-    }
-    modal.classList.remove('hidden')
-    ;(modal as HTMLElement).style.display = 'flex'
-  })
+  import '../ExplorerSlug.client'
 </script>

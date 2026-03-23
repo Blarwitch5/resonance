@@ -1,24 +1,24 @@
 ---
-import Library from '@lucide/astro/icons/library'
-import Search from '@lucide/astro/icons/scan-search'
-import User from '@lucide/astro/icons/user'
-import ChevronRight from '@lucide/astro/icons/chevron-right'
-import Settings from '@lucide/astro/icons/settings'
-import LogOut from '@lucide/astro/icons/log-out'
-import Layers from '@lucide/astro/icons/layers'
-import Disc3 from '@lucide/astro/icons/disc-3'
-import Disc2 from '@lucide/astro/icons/disc-2'
-import CassetteTape from '@lucide/astro/icons/cassette-tape'
-import Heart from '@lucide/astro/icons/heart'
 import Bookmark from '@lucide/astro/icons/bookmark'
+import CassetteTape from '@lucide/astro/icons/cassette-tape'
 import BarChart3 from '@lucide/astro/icons/chart-bar'
+import ChevronRight from '@lucide/astro/icons/chevron-right'
+import Disc2 from '@lucide/astro/icons/disc-2'
+import Disc3 from '@lucide/astro/icons/disc-3'
 import FolderOpen from '@lucide/astro/icons/folder-open'
-import Logo from './Logo.astro'
-import ThemeSwitcher from './ThemeSwitcher.astro'
-import LanguageSwitcher from './LanguageSwitcher.astro'
-import Avatar from './Avatar.astro'
+import Heart from '@lucide/astro/icons/heart'
+import Layers from '@lucide/astro/icons/layers'
+import Library from '@lucide/astro/icons/library'
+import LogOut from '@lucide/astro/icons/log-out'
+import Search from '@lucide/astro/icons/scan-search'
+import Settings from '@lucide/astro/icons/settings'
+import User from '@lucide/astro/icons/user'
 import X from '@lucide/astro/icons/x'
 import type { Locale } from '../../i18n/config'
+import Avatar from './Avatar.astro'
+import LanguageSwitcher from './LanguageSwitcher.astro'
+import Logo from './Logo.astro'
+import ThemeSwitcher from './ThemeSwitcher.astro'
 
 type NavLabels = {
   library: string
@@ -195,7 +195,7 @@ const navItems: NavItem[] = [
   id="sidebar"
   role="complementary"
   aria-label={siteNavAria}
-  class="sidebar fixed left-4 top-4 bottom-4 z-40 hidden h-[calc(100vh-2rem)] w-64 flex-col rounded-2xl border border-border/30 bg-surface-elevated/95 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.15),0_0_0_1px_rgba(255,255,255,0.05)_inset] backdrop-blur-md transition-transform duration-300 md:!flex lg:translate-x-0 dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.06)_inset]"
+  class="sidebar fixed left-4 top-4 bottom-4 z-40 hidden h-[calc(100vh-2rem)] w-64 flex-col rounded-2xl border border-border/30 bg-surface-elevated/95 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.15),0_0_0_1px_rgba(255,255,255,0.05)_inset] backdrop-blur-md transition-transform duration-300 md:flex! lg:translate-x-0 dark:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.06)_inset]"
   data-sidebar-panel
 >
   <div class="flex h-full flex-col overflow-hidden rounded-2xl">
@@ -207,7 +207,7 @@ const navItems: NavItem[] = [
       <button
         type="button"
         id="sidebar-close-btn"
-        class="sidebar-close-btn -mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-neutral transition-colors hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 lg:hidden"
+        class="sidebar-close-btn -mr-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-neutral transition-colors hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 lg:hidden"
         aria-label={closeMenuLabel}
       >
         <X size={20} class="fill-none stroke-2" />
@@ -226,31 +226,31 @@ const navItems: NavItem[] = [
             <li class={hasChildren ? 'sidebar-item sidebar-item-has-children' : 'sidebar-item'}>
               <a
                 href={item.href}
-                class={`group flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 ${
+                class={`sidebar-menu-link group flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 ${
                   isParentActive && !activeItem.child
-                    ? 'border-l-2 border-primary bg-primary/10 text-primary'
-                    : 'border-l-2 border-transparent text-neutral hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2'
+                    ? 'border-l-2 border-primary bg-primary/20 text-neutral'
+                    : 'border-l-2 border-transparent text-neutral hover:bg-primary/10 hover:text-neutral focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2'
                 }`}
                 aria-current={isParentActive && !activeItem.child ? 'page' : undefined}
               >
                 <div class="flex items-center gap-3">
                   <IconComponent 
                     size={20} 
-                    class={`fill-none stroke-2 transition-colors duration-150 ${
+                    class={`sidebar-menu-icon fill-none stroke-2 transition-colors duration-150 ${
                       isParentActive && !activeItem.child 
                         ? 'text-primary stroke-primary' 
-                        : 'text-neutral stroke-neutral group-hover:text-primary group-hover:stroke-primary'
+                        : 'text-primary/75 stroke-primary/75 group-hover:text-primary group-hover:stroke-primary'
                     }`} 
                   />
-                  <span class="transition-colors duration-150">{item.label}</span>
+                  <span class="sidebar-menu-label text-neutral transition-colors duration-150">{item.label}</span>
                 </div>
                 {hasChildren && (
                   <ChevronRight
                     size={16}
-                    class={`fill-none stroke-2 transition-all duration-150 ${
+                    class={`sidebar-menu-chevron fill-none stroke-2 transition-all duration-150 ${
                       isParentActive 
                         ? 'rotate-90 text-primary stroke-primary' 
-                        : 'text-muted stroke-muted group-hover:text-primary group-hover:stroke-primary'
+                        : 'text-primary/70 stroke-primary/70 group-hover:text-primary group-hover:stroke-primary'
                     }`}
                   />
                 )}
@@ -267,24 +267,24 @@ const navItems: NavItem[] = [
                       <li>
                         <a
                           href={child.href}
-                          class={`group/child flex items-center gap-2 rounded-lg border-l-2 px-3 py-2 text-sm transition-colors duration-150 ${
+                          class={`sidebar-submenu-link group/child flex items-center gap-2 rounded-lg border-l-2 px-3 py-2 text-sm transition-colors duration-150 ${
                             isChildActive
-                              ? 'border-primary bg-primary/10 text-primary font-medium'
-                              : 'border-transparent text-neutral hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1'
+                              ? 'border-primary bg-primary/20 text-neutral font-medium'
+                              : 'border-transparent text-neutral hover:bg-primary/10 hover:text-neutral focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1'
                           }`}
                           aria-current={isChildActive ? 'page' : undefined}
                         >
                           {ChildIcon && (
                             <ChildIcon
                               size={16}
-                              class={`fill-none stroke-2 transition-colors duration-150 shrink-0 ${
+                              class={`sidebar-submenu-icon fill-none stroke-2 transition-colors duration-150 shrink-0 ${
                                 isChildActive
                                   ? 'text-primary stroke-primary'
-                                  : 'text-neutral stroke-neutral group-hover/child:text-primary group-hover/child:stroke-primary'
+                                  : 'text-primary/70 stroke-primary/70 group-hover/child:text-primary group-hover/child:stroke-primary'
                               }`}
                             />
                           )}
-                          <span class="transition-colors duration-150">{child.label}</span>
+                          <span class="sidebar-submenu-label text-neutral transition-colors duration-150">{child.label}</span>
                         </a>
                       </li>
                     )
@@ -342,15 +342,15 @@ const navItems: NavItem[] = [
           <div class="px-3 py-2 space-y-1">
             <a
               href="/settings"
-              class="group flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-neutral transition-colors duration-150 hover:bg-secondary/10 hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
+              class="sidebar-settings-link group flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-neutral transition-colors duration-150 hover:bg-secondary/10 hover:text-neutral focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
             >
-              <Settings size={14} class="fill-none stroke-2 transition-colors duration-150 text-neutral stroke-neutral group-hover:text-secondary group-hover:stroke-secondary" />
-              <span class="transition-colors duration-150">{settingsLabel}</span>
+              <Settings size={14} class="sidebar-settings-icon fill-none stroke-2 transition-colors duration-150 text-primary stroke-primary group-hover:text-secondary group-hover:stroke-secondary" />
+              <span class="sidebar-settings-label transition-colors duration-150">{settingsLabel}</span>
             </a>
             <button
               type="button"
               id="sidebar-signout-btn"
-              class="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-red-500/80 transition-all duration-200 hover:bg-red-500/10 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 focus-visible:ring-offset-1"
+              class="group flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-red-500/80 transition-all duration-200 hover:bg-red-500/10 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 focus-visible:ring-offset-1"
               aria-label={signOutLabel}
             >
               <LogOut size={14} class="fill-none stroke-2 transition-colors duration-200 text-red-500/80 stroke-red-500/80 group-hover:text-red-500 group-hover:stroke-red-500" />
@@ -366,7 +366,7 @@ const navItems: NavItem[] = [
 <!-- Clics sidebar (toggle, fermer, déconnexion) gérés par délégation dans Layout.astro pour survivre aux View Transitions -->
 
 <!-- Spacer pour la sidebar flottante (desktop) : marge + largeur sidebar -->
-<div class="hidden lg:block lg:w-[17rem]"></div>
+<div class="hidden lg:block lg:w-68"></div>
 
 <style>
   /* Tablette (768–1024) : sidebar fermée par défaut, ouverte au toggle */
@@ -431,5 +431,32 @@ const navItems: NavItem[] = [
     .sidebar-item-has-children:focus-within > .sidebar-children {
       display: block;
     }
+  }
+
+  /* Theme clair: texte du menu en noir + icones en primary */
+  :global(html[data-theme='light']) .sidebar .sidebar-menu-link,
+  :global(html[data-theme='light']) .sidebar .sidebar-submenu-link,
+  :global(html[data-theme='light']) .sidebar .sidebar-settings-link {
+    color: var(--color-text) !important;
+  }
+
+  :global(html[data-theme='light']) .sidebar .sidebar-menu-label,
+  :global(html[data-theme='light']) .sidebar .sidebar-submenu-label,
+  :global(html[data-theme='light']) .sidebar .sidebar-settings-label {
+    color: var(--color-text) !important;
+  }
+
+  :global(html[data-theme='light']) .sidebar .sidebar-menu-icon,
+  :global(html[data-theme='light']) .sidebar .sidebar-submenu-icon,
+  :global(html[data-theme='light']) .sidebar .sidebar-menu-chevron,
+  :global(html[data-theme='light']) .sidebar .sidebar-settings-icon {
+    color: var(--color-primary) !important;
+    stroke: var(--color-primary) !important;
+  }
+
+  /* Theme sombre: texte du lien "Paramètres" en blanc */
+  :global(html[data-theme='dark']) .sidebar .sidebar-settings-link,
+  :global(html[data-theme='dark']) .sidebar .sidebar-settings-label {
+    color: var(--color-text) !important;
   }
 </style>

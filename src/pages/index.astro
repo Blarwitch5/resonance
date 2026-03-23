@@ -35,6 +35,7 @@ let recentItems: Array<{
   artist: string
   format: string
   year: number | null
+  coverUrl: string | null
 }> = []
 
 if (isLoggedIn && user?.id) {
@@ -52,6 +53,7 @@ if (isLoggedIn && user?.id) {
     artist: item.artist,
     format: item.format,
     year: item.year,
+    coverUrl: item.coverUrl ?? null,
   }))
 }
 ---
@@ -95,47 +97,46 @@ if (isLoggedIn && user?.id) {
           </p>
         </div>
       </a>
-    </div>
 
-    <!-- Actions rapides -->
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-      <!-- Explorer -->
-      <a
-        href={isLoggedIn ? '/explorer' : '/login?redirectTo=/explorer'}
-        class="group glass-card hover-resonance flex items-center gap-4 rounded-2xl p-6 transition-all duration-300"
-        aria-label={isLoggedIn ? t.quickNav.exploreAria : t.quickNav.exploreAriaGuest}
-      >
-        <div
-          class="from-accent to-accent/80 group-hover:animate-resonance-vibrato flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br"
+      <div class="flex flex-col gap-6">
+        <!-- Explorer -->
+        <a
+          href={isLoggedIn ? '/explorer' : '/login?redirectTo=/explorer'}
+          class="group glass-card hover-resonance flex items-center gap-4 rounded-2xl p-6 transition-all duration-300"
+          aria-label={isLoggedIn ? t.quickNav.exploreAria : t.quickNav.exploreAriaGuest}
         >
-          <Search size={24} class="text-white" />
-        </div>
-        <div>
-          <h2 class="font-display text-neutral font-semibold">{t.quickNav.explore}</h2>
-          <p class="text-muted text-sm">
-            {isLoggedIn ? t.quickNav.exploreDescription : t.quickNav.exploreDescriptionGuest}
-          </p>
-        </div>
-      </a>
+          <div
+            class="from-accent to-accent/80 group-hover:animate-resonance-vibrato flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br"
+          >
+            <Search size={24} class="text-white" />
+          </div>
+          <div>
+            <h2 class="font-display text-neutral font-semibold">{t.quickNav.explore}</h2>
+            <p class="text-muted text-sm">
+              {isLoggedIn ? t.quickNav.exploreDescription : t.quickNav.exploreDescriptionGuest}
+            </p>
+          </div>
+        </a>
 
-      <!-- Profile -->
-      <a
-        href={isLoggedIn ? '/profile' : '/login?redirectTo=/profile'}
-        class="group glass-card hover-resonance flex items-center gap-4 rounded-2xl p-6 transition-all duration-300"
-        aria-label={isLoggedIn ? t.quickNav.profileAria : t.quickNav.profileAriaGuest}
-      >
-        <div
-          class="from-accent to-accent/80 group-hover:animate-resonance-vibrato flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br"
+        <!-- Profile -->
+        <a
+          href={isLoggedIn ? '/profile' : '/login?redirectTo=/profile'}
+          class="group glass-card hover-resonance flex items-center gap-4 rounded-2xl p-6 transition-all duration-300"
+          aria-label={isLoggedIn ? t.quickNav.profileAria : t.quickNav.profileAriaGuest}
         >
-          <User size={24} class="text-white" />
-        </div>
-        <div>
-          <h2 class="font-display text-neutral font-semibold">{t.quickNav.profile}</h2>
-          <p class="text-muted text-sm">
-            {isLoggedIn ? t.quickNav.profileDescription : t.quickNav.profileDescriptionGuest}
-          </p>
-        </div>
-      </a>
+          <div
+            class="from-accent to-accent/80 group-hover:animate-resonance-vibrato flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br"
+          >
+            <User size={24} class="text-white" />
+          </div>
+          <div>
+            <h2 class="font-display text-neutral font-semibold">{t.quickNav.profile}</h2>
+            <p class="text-muted text-sm">
+              {isLoggedIn ? t.quickNav.profileDescription : t.quickNav.profileDescriptionGuest}
+            </p>
+          </div>
+        </a>
+      </div>
     </div>
 
     {isLoggedIn && (
@@ -199,13 +200,24 @@ if (isLoggedIn && user?.id) {
           {recentItems.map((item) => (
             <a
               href={`/library?format=${item.format}`}
-              class="flex items-center gap-4 p-3 rounded-xl hover:bg-surface/50 transition-colors"
+              class="flex items-center gap-4 rounded-xl p-3 no-underline transition-colors hover:bg-surface/50"
             >
-              <div
-                class="shrink-0 w-12 h-12 rounded-lg bg-linear-to-br from-primary to-secondary flex items-center justify-center"
-              >
-                <Disc3 size={24} class="text-white opacity-80" />
-              </div>
+              {item.coverUrl ? (
+                <img
+                  src={item.coverUrl}
+                  alt={item.title}
+                  loading="lazy"
+                  width={48}
+                  height={48}
+                  class="h-12 w-12 shrink-0 rounded-lg object-cover"
+                />
+              ) : (
+                <div
+                  class="shrink-0 w-12 h-12 rounded-lg bg-linear-to-br from-primary to-secondary flex items-center justify-center"
+                >
+                  <Disc3 size={24} class="text-white opacity-80" />
+                </div>
+              )}
               <div class="flex-1 min-w-0">
                 <p class="font-medium text-neutral truncate">{item.title}</p>
                 <p class="text-sm text-muted truncate">

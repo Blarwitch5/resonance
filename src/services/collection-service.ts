@@ -104,7 +104,6 @@ export class CollectionService {
     const created = await itemService.createItem(userId, {
       ...releaseData,
       discogsId,
-      user: { connect: { id: userId } },
       collection: { connect: { id: collectionId } },
     })
     return { item: created }

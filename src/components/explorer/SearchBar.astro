@@ -15,12 +15,14 @@ const { search = defaultMessages.search, client = defaultMessages.client, addToC
 ---
 
 <div class="relative">
+  <label for="discogs-search" class="sr-only">{search.placeholder}</label>
   <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
     <Search size={20} class="fill-none stroke-2 text-muted stroke-muted" />
   </div>
   <input
     type="text"
     id="discogs-search"
+    aria-label={search.placeholder}
     placeholder={search.placeholder}
     class="w-full rounded-xl border border-border bg-surface pl-12 pr-20 py-4 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
   />

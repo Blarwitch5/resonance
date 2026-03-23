@@ -295,10 +295,10 @@ export class DiscogsService {
       q: query,
       page: page.toString(),
       per_page: perPage.toString(),
+      type: 'release',
     }
 
     if (format) {
-      params.type = 'release'
       const formatMap: Record<Format, string> = {
         VINYL: 'Vinyl',
         CD: 'CD',

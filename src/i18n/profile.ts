@@ -101,6 +101,7 @@ const messages = {
       confirmMessage: 'Are you sure you want to remove this album from your wishlist?',
       confirmRemove: 'Remove',
       confirmCancel: 'Cancel',
+      priorityLabel: 'Priority:',
     },
   },
   fr: {
@@ -203,6 +204,7 @@ const messages = {
       confirmMessage: 'Es-tu sûr de vouloir retirer cet album de ta liste d\'envies ?',
       confirmRemove: 'Retirer',
       confirmCancel: 'Annuler',
+      priorityLabel: 'Priorité :',
     },
   },
 } satisfies Record<Locale, unknown>

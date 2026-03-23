@@ -39,17 +39,38 @@
     --color-secondary: oklch(0.65 0.15 45);
     --color-accent: oklch(0.6 0.2 280);
     --color-neutral: oklch(0.08 0.01 280);
+    --color-text: var(--color-neutral);
+    --color-text-secondary: oklch(0.32 0.02 280);
     --color-border: oklch(0.9 0.01 280);
+    --color-border-hover: oklch(0.78 0.02 280);
+    --color-border-disabled: oklch(0.9 0.01 280);
+    --color-border-error: oklch(0.58 0.18 20);
+    --color-border-success: oklch(0.58 0.14 140);
+    --color-border-warning: oklch(0.66 0.14 80);
     /* Muted: darker for WCAG AA contrast on light background (~4.5:1) */
     --color-muted: oklch(0.38 0.02 280);
+    --color-text-disabled: oklch(0.5 0.015 280);
     --color-success: oklch(0.5 0.15 140);
     --color-warning: oklch(0.6 0.15 80);
     --color-error: oklch(0.5 0.2 20);
+    --color-info-bg: oklch(0.94 0.02 260);
+    --color-success-bg: oklch(0.95 0.05 145);
+    --color-warning-bg: oklch(0.96 0.06 85);
+    --color-error-bg: oklch(0.95 0.05 25);
+    --color-primary-active: oklch(0.46 0.23 280);
+    --color-primary-disabled: oklch(0.78 0.04 280);
+    --color-secondary-hover: oklch(0.6 0.15 45);
+    --color-secondary-active: oklch(0.54 0.14 45);
+    --color-secondary-disabled: oklch(0.82 0.03 45);
+    --color-text-on-secondary: oklch(0.08 0.01 280);
+    --color-text-on-success: oklch(1 0 0);
+    --color-text-on-warning: oklch(0.08 0.01 280);
+    --color-text-on-error: oklch(1 0 0);
 
     /* Couleurs de format */
     --color-format-vinyl: oklch(0.55 0.25 280);
     --color-format-cassette: oklch(0.65 0.15 45);
-    --color-format-cd: oklch(0.85 0.02 280);
+    --color-format-cd: oklch(0.56 0.18 255);
     --color-format-explorer: oklch(0.6 0.2 280);
     --color-format-profile: oklch(0.6 0.15 180);
 
@@ -73,17 +94,38 @@
     --color-secondary: oklch(0.70 0.18 45);
     --color-accent: oklch(0.65 0.22 280);
     --color-neutral: oklch(0.98 0.005 280);
+    --color-text: var(--color-neutral);
+    --color-text-secondary: oklch(0.82 0.02 280);
     --color-border: oklch(0.28 0.025 280);
+    --color-border-hover: oklch(0.42 0.03 280);
+    --color-border-disabled: oklch(0.24 0.02 280);
+    --color-border-error: oklch(0.72 0.2 20);
+    --color-border-success: oklch(0.74 0.16 140);
+    --color-border-warning: oklch(0.8 0.14 80);
     /* Muted: lighter for WCAG AA contrast on dark background (~4.5:1) */
     --color-muted: oklch(0.72 0.02 280);
+    --color-text-disabled: oklch(0.55 0.02 280);
     --color-success: oklch(0.75 0.18 140);
     --color-warning: oklch(0.80 0.18 80);
     --color-error: oklch(0.70 0.22 20);
+    --color-info-bg: oklch(0.24 0.04 260);
+    --color-success-bg: oklch(0.24 0.05 145);
+    --color-warning-bg: oklch(0.26 0.05 85);
+    --color-error-bg: oklch(0.24 0.06 25);
+    --color-primary-active: oklch(0.58 0.25 280);
+    --color-primary-disabled: oklch(0.35 0.05 280);
+    --color-secondary-hover: oklch(0.76 0.18 45);
+    --color-secondary-active: oklch(0.68 0.18 45);
+    --color-secondary-disabled: oklch(0.4 0.04 45);
+    --color-text-on-secondary: oklch(0.08 0.01 280);
+    --color-text-on-success: oklch(0.08 0.01 280);
+    --color-text-on-warning: oklch(0.08 0.01 280);
+    --color-text-on-error: oklch(0.08 0.01 280);
 
     /* Couleurs de format */
     --color-format-vinyl: oklch(0.55 0.25 280);
     --color-format-cassette: oklch(0.65 0.15 45);
-    --color-format-cd: oklch(0.85 0.02 280);
+    --color-format-cd: oklch(0.68 0.16 255);
     --color-format-explorer: oklch(0.6 0.2 280);
     --color-format-profile: oklch(0.6 0.15 180);
 
@@ -158,15 +200,15 @@
 
 /* Couleurs pour les formats */
 .format-vinyl {
-  color: var(--color-primary);
+  color: var(--color-format-vinyl);
 }
 
 .format-cassette {
-  color: var(--color-secondary);
+  color: var(--color-format-cassette);
 }
 
 .format-cd {
-  color: var(--color-muted);
+  color: var(--color-format-cd);
 }
 
 .format-explorer {
@@ -240,13 +282,12 @@
 a {
   color: var(--color-primary);
   text-decoration: none;
-  transition: color 0.2s ease, text-decoration 0.2s ease;
+  transition: color 0.2s ease, background-color 0.2s ease;
 }
 
 a:hover {
   color: var(--color-primary);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  text-decoration: none;
 }
 
 a:focus {
@@ -427,7 +468,7 @@ select[aria-invalid='true'] {
 [data-theme='dark'] input::placeholder,
 [data-theme='dark'] textarea::placeholder {
   color: var(--color-muted);
-  opacity: 0.7;
+  opacity: 1;
 }
 
 /* Exceptions pour les liens de navigation, cartes et images qui ne doivent pas avoir d'underline */
@@ -472,6 +513,13 @@ p a:not(.glass-card):not([class*='card']),
 li a:not(.glass-card):not([class*='card']),
 .content a:not(.glass-card):not([class*='card']),
 .text-content a:not(.glass-card):not([class*='card']) {
+  text-decoration: none;
+}
+
+p a:not(.glass-card):not([class*='card']):hover,
+li a:not(.glass-card):not([class*='card']):hover,
+.content a:not(.glass-card):not([class*='card']):hover,
+.text-content a:not(.glass-card):not([class*='card']):hover {
   text-decoration: underline;
   text-underline-offset: 3px;
 }

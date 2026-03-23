@@ -1,6 +1,4 @@
 ---
-import Lock from '@lucide/astro/icons/lock'
-import Mail from '@lucide/astro/icons/mail'
 import DashboardLayout from '../components/layouts/DashboardLayout.astro'
 import FavoritesByGenre from '../components/profile/FavoritesByGenre.astro'
 import ImportExport from '../components/profile/ImportExport.astro'
@@ -40,103 +38,22 @@ const [stats, favorites, wishlistItems, recentActivities] = await Promise.all([
 ---
 
 <DashboardLayout title={profileT.meta.title}>
-  {!session ? (
-    <!-- Sign-in form when not authenticated -->
-    <div class="flex min-h-[60vh] items-center justify-center">
-      <div class="w-full max-w-md">
-        <div class="text-center mb-8">
-          <div
-            class="bg-gradient-resonance mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="text-white"
-            >
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-          </div>
-          <h1 class="text-gradient-resonance text-3xl font-bold mb-2">{profileT.unauthenticated.title}</h1>
-          <p class="text-muted">{profileT.unauthenticated.description}</p>
-        </div>
-
-        <form method="POST" action="/api/auth/sign-in/email" class="glass-card rounded-2xl p-8 space-y-6">
-          <div>
-            <label for="email-profile" class="block text-sm font-medium text-neutral mb-2">
-              {profileT.unauthenticated.emailLabel}
-            </label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail size={20} class="text-muted" />
-              </div>
-              <input
-                type="email"
-                id="email-profile"
-                name="email"
-                required
-                class="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-surface text-neutral placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-                placeholder={profileT.unauthenticated.emailPlaceholder}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label for="password-profile" class="block text-sm font-medium text-neutral mb-2">
-              {profileT.unauthenticated.passwordLabel}
-            </label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock size={20} class="text-muted" />
-              </div>
-              <input
-                type="password"
-                id="password-profile"
-                name="password"
-                required
-                class="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-surface text-neutral placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-                placeholder={profileT.unauthenticated.passwordPlaceholder}
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            class="btn-primary-gradient w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2"
-          >
-            {profileT.unauthenticated.submit}
-          </button>
-
-          <div class="text-center text-sm text-muted">
-            {profileT.unauthenticated.noAccountPrefix}{' '}
-            <a
-              href="/signup"
-              class="text-primary hover:text-primary-hover font-medium"
-            >
-              {profileT.unauthenticated.createAccount}
-            </a>
-          </div>
-        </form>
-      </div>
-    </div>
-  ) : (
-    <!-- Profile content when authenticated -->
-    <div class="min-w-0 space-y-8">
-      <!-- Header with avatar, display name, gradient background -->
-      <ProfileHeader user={user} stats={stats} />
+  <!-- Profile content when authenticated -->
+  <div class="min-w-0 space-y-8">
+    <!-- Header with avatar, display name, gradient background -->
+    <ProfileHeader user={user} stats={stats} settingsLabel={profileT.header.settings} />
 
       <!-- Quick stats -->
       <StatsGrid stats={stats} />
 
       <!-- Tabs: Favorites | Wishlist | Statistics | All Formats -->
-      <ProfileTabs tabsAriaLabel={profileT.tabs.ariaLabel}>
+      <ProfileTabs
+        tabsAriaLabel={profileT.tabs.ariaLabel}
+        favoritesLabel={profileT.tabs.favorites}
+        wishlistLabel={profileT.tabs.wishlist}
+        statisticsLabel={profileT.tabs.statistics}
+        allFormatsLabel={profileT.tabs.allFormats}
+      >
         <div slot="favorites" data-tab-content="favorites">
           <FavoritesByGenre favorites={favorites} emptyLabels={profileT.favoritesEmpty} actionLabels={itemT.actions} />
         </div>
@@ -174,8 +91,7 @@ const [stats, favorites, wishlistItems, recentActivities] = await Promise.all([
           <RecentCollections userId={user.id} labels={profileT.recentCollections} />
         </div>
       </ProfileTabs>
-    </div>
-  )}
+  </div>
 </DashboardLayout>
 
 <style>

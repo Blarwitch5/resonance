@@ -1,7 +1,16 @@
-/* Import des fonts partagées RGPD-compliant */
-@import './fonts.css';
-
 @import 'tailwindcss';
+@import './fonts.css';
+@import './theme.css';
+@import './design-tokens.css';
+@import './button-styles.css';
+@import './button-contrast-fix.css';
+
+/* Import des fonts partagées RGPD-compliant */
+
+/* Layout: la barre audio est flex, masquée via `hidden` */
+.global-audio-bar {
+  display: flex;
+}
 
 /* Empêcher le scroll horizontal sur mobile */
 html,
@@ -14,15 +23,16 @@ body {
   max-width: 100%;
 }
 
-@import './theme.css';
-@import './design-tokens.css';
-@import './button-styles.css';
-@import './button-contrast-fix.css';
-
 /* Masquer les scrollbars pour certains conteneurs scrollables (ex: tabs profil) */
 .no-scrollbar {
   -ms-overflow-style: none; /* IE et Edge */
-  scrollbar-width: none; /* Firefox */
+}
+
+/* Firefox */
+@supports (scrollbar-width: none) {
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
 }
 
 .no-scrollbar::-webkit-scrollbar {

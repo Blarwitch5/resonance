@@ -1,6 +1,5 @@
 ---
 import Heart from '@lucide/astro/icons/heart'
-import EllipsisVertical from '@lucide/astro/icons/ellipsis-vertical'
 import OptimizedImage from '../ui/OptimizedImage.astro'
 import type { Item, ItemMetadata } from '@prisma/client'
 
@@ -14,11 +13,10 @@ type ItemCardProps = {
 
 const { item, actionLabels } = Astro.props as ItemCardProps
 const addToFavoritesLabel = actionLabels?.addToFavorites ?? 'Add to favorites'
-const moreActionsLabel = actionLabels?.moreActions ?? 'More actions'
 ---
 
 <article
-  class="glass-card group relative overflow-hidden rounded-xl transition-all hover:scale-105"
+  class="glass-card group relative overflow-hidden rounded-xl transition-all md:hover:scale-105"
   data-item-card
   data-item-title={item.title}
   data-item-artist={item.artist}
@@ -48,29 +46,25 @@ const moreActionsLabel = actionLabels?.moreActions ?? 'More actions'
     </div>
   </a>
 
-  <!-- Actions (visible on hover or focus-within for keyboard/touch) -->
+  <!-- Actions -->
   <div
-    class="absolute top-2 right-2 z-10 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100"
+    class="item-card-actions mt-2 flex gap-2 md:absolute md:top-2 md:right-2 md:z-10 md:mt-0 md:opacity-0 md:transition-opacity md:group-hover:opacity-100 md:group-focus-within:opacity-100 md:focus-within:opacity-100"
   >
     <button
       type="button"
-      class="item-favorite-btn rounded-full bg-white/90 p-2 shadow-lg backdrop-blur-sm hover:bg-white"
+      class:list={[
+        'item-favorite-btn favorite-action-button flex h-11 w-11 items-center justify-center rounded-full border-0 bg-amber-500/90 p-0 text-white shadow-lg backdrop-blur-sm transition-all hover:bg-amber-500',
+        item.metadata?.isFavorite && 'favorite-action-button--saved',
+      ]}
       aria-label={addToFavoritesLabel}
+      aria-pressed={item.metadata?.isFavorite ? 'true' : 'false'}
       data-item-id={item.id}
       data-favorite={item.metadata?.isFavorite ? 'true' : 'false'}
     >
       <Heart
         size={16}
-        class={`stroke-2 ${item.metadata?.isFavorite ? 'fill-red-500 text-red-500 stroke-red-500' : 'fill-none text-gray-700 stroke-gray-700'}`}
+        class={`favorite-icon stroke-2 text-white stroke-white ${item.metadata?.isFavorite ? 'fill-current' : 'fill-none'}`}
       />
-    </button>
-    <button
-      type="button"
-      class="item-actions-btn rounded-full bg-white/90 p-2 shadow-lg backdrop-blur-sm hover:bg-white"
-      aria-label={moreActionsLabel}
-      data-item-id={item.id}
-    >
-      <EllipsisVertical size={16} class="fill-none stroke-2 text-gray-700 stroke-gray-700" />
     </button>
   </div>
 </article>
@@ -80,7 +74,7 @@ const moreActionsLabel = actionLabels?.moreActions ?? 'More actions'
   document.addEventListener('click', (event) => {
     const target = event.target instanceof Element ? event.target : null
     if (!target) return
-    const button = target.closest('.item-favorite-btn, .item-actions-btn')
+    const button = target.closest('.item-favorite-btn')
     
     if (button) {
       event.stopPropagation()
@@ -110,22 +104,37 @@ const moreActionsLabel = actionLabels?.moreActions ?? 'More actions'
       })
 
       if (response.ok) {
-        // Update icon
+        // Update icon + style
         const heartIcon = button.querySelector('svg')
         if (heartIcon) {
-          heartIcon.classList.toggle('fill-red-500')
+          heartIcon.classList.toggle('fill-current')
           heartIcon.classList.toggle('fill-none')
-          heartIcon.classList.toggle('text-red-500')
-          heartIcon.classList.toggle('stroke-red-500')
-          heartIcon.classList.toggle('text-gray-700')
-          heartIcon.classList.toggle('stroke-gray-700')
         }
 
         // Update data attribute
         button.setAttribute('data-favorite', (!isFavorite).toString())
+        button.setAttribute('aria-pressed', (!isFavorite).toString())
+        button.classList.toggle('favorite-action-button--saved', !isFavorite)
+
+        // En contexte "Profil -> Favoris", forcer un refresh pour que la liste se mette à jour.
+        // (La liste est rendue côté serveur, donc un simple toggle local ne suffit pas.)
+        try {
+          const url = new URL(window.location.href)
+          const tabParam = url.searchParams.get('tab')
+          const isProfileFavoritesContext = url.pathname.includes('/profile') && (!tabParam || tabParam === 'favorites')
+          if (isProfileFavoritesContext) setTimeout(() => window.location.reload(), 200)
+        } catch {
+          // no-op
+        }
       }
     } catch (error) {
       console.error('Error toggling favorite:', error)
     }
   })
 </script>
+
+<style>
+  .favorite-action-button--saved {
+    background-color: #d97706;
+  }
+</style>

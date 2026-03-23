@@ -24,12 +24,13 @@ type FormatFilterProps = {
 const { formats = defaultFormats } = Astro.props as FormatFilterProps
 ---
 
-<div class="flex flex-wrap gap-3">
+<div class="flex flex-wrap gap-3" role="group" aria-label="Format filters">
   <button
     type="button"
     data-format=""
-    class="format-filter-btn rounded-xl border-2 border-border bg-surface px-4 py-2 font-medium transition-all active"
+    class="format-filter-btn active inline-flex min-h-11 items-center rounded-xl border-2 border-border bg-surface px-4 py-2 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
     aria-label={formats.all}
+    aria-pressed="true"
   >
     {formats.all}
   </button>
@@ -37,8 +38,9 @@ const { formats = defaultFormats } = Astro.props as FormatFilterProps
   <button
     type="button"
     data-format="VINYL"
-    class="format-filter-btn rounded-xl border-2 border-border bg-surface px-4 py-2 font-medium transition-all flex items-center gap-2"
+    class="format-filter-btn inline-flex min-h-11 items-center gap-2 rounded-xl border-2 border-border bg-surface px-4 py-2 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
     aria-label={formats.vinyl}
+    aria-pressed="false"
   >
     <Turntable size={18} />
     <span>{formats.vinyl}</span>
@@ -47,8 +49,9 @@ const { formats = defaultFormats } = Astro.props as FormatFilterProps
   <button
     type="button"
     data-format="CASSETTE"
-    class="format-filter-btn rounded-xl border-2 border-border bg-surface px-4 py-2 font-medium transition-all flex items-center gap-2"
+    class="format-filter-btn inline-flex min-h-11 items-center gap-2 rounded-xl border-2 border-border bg-surface px-4 py-2 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
     aria-label={formats.cassette}
+    aria-pressed="false"
   >
     <CassetteTape size={18} />
     <span>{formats.cassette}</span>
@@ -57,8 +60,9 @@ const { formats = defaultFormats } = Astro.props as FormatFilterProps
   <button
     type="button"
     data-format="CD"
-    class="format-filter-btn rounded-xl border-2 border-border bg-surface px-4 py-2 font-medium transition-all flex items-center gap-2"
+    class="format-filter-btn inline-flex min-h-11 items-center gap-2 rounded-xl border-2 border-border bg-surface px-4 py-2 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
     aria-label={formats.cd}
+    aria-pressed="false"
   >
     <Disc size={18} />
     <span>{formats.cd}</span>
@@ -68,6 +72,7 @@ const { formats = defaultFormats } = Astro.props as FormatFilterProps
 <script>
   document.addEventListener('click', (event) => {
     const target = event.target
+    if (!(target instanceof Element)) return
     const button = target.closest('.format-filter-btn')
     
     if (!button) return
@@ -78,10 +83,12 @@ const { formats = defaultFormats } = Astro.props as FormatFilterProps
     document.querySelectorAll('.format-filter-btn').forEach((btn) => {
       btn.classList.remove('active', 'border-primary', 'bg-primary/10')
       btn.classList.add('border-border', 'bg-surface')
+      btn.setAttribute('aria-pressed', 'false')
     })
     
     button.classList.add('active', 'border-primary', 'bg-primary/10')
     button.classList.remove('border-border', 'bg-surface')
+    button.setAttribute('aria-pressed', 'true')
 
     window.dispatchEvent(new CustomEvent('explorer-format-change'))
   })

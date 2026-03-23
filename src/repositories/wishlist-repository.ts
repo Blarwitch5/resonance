@@ -60,6 +60,15 @@ export class WishlistRepository {
       take: limit,
     })
   }
+
+  /** IDs Discogs présents dans la wishlist (pour UI des cartes explorer). */
+  async findDiscogsIdsByUserId(userId: string): Promise<number[]> {
+    const rows = await db.wishlist.findMany({
+      where: { userId },
+      select: { discogsId: true },
+    })
+    return rows.map((row) => row.discogsId)
+  }
 }
 
 export const wishlistRepository = new WishlistRepository()

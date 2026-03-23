@@ -1,19 +1,34 @@
 ---
-import Layout from './Layout.astro'
-import Toast from '../ui/Toast.astro'
-import Sidebar from '../ui/Sidebar.astro'
-import AppHeader from '../ui/AppHeader.astro'
-import Logo from '../ui/Logo.astro'
 import Menu from '@lucide/astro/icons/menu'
-import KeyboardShortcuts from '../ui/KeyboardShortcuts.astro'
+import { normalizeLocale } from '../../i18n/config'
+import { getLayoutMessages } from '../../i18n/layout'
+import AppHeader from '../ui/AppHeader.astro'
 import BarcodeScanner from '../ui/BarcodeScanner.astro'
 import ConfirmDialog from '../ui/ConfirmDialog.astro'
-import { getLayoutMessages } from '../../i18n/layout'
-import { normalizeLocale } from '../../i18n/config'
+import KeyboardShortcuts from '../ui/KeyboardShortcuts.astro'
+import Logo from '../ui/Logo.astro'
+import Sidebar from '../ui/Sidebar.astro'
+import Toast from '../ui/Toast.astro'
+import Layout from './Layout.astro'
 
 // Utiliser la session depuis le middleware (Astro.locals)
 const session = Astro.locals.session
 const user = Astro.locals.user
+type UserWithImageUrl = {
+  image?: string | null
+  imageUrl?: string | null
+}
+function resolveUserImageUrl(userValue: UserWithImageUrl | null): string | null {
+  if (!userValue) return null
+  const sessionImage = userValue.image?.trim()
+  if (sessionImage) return sessionImage
+  const databaseImage = userValue.imageUrl?.trim()
+  if (databaseImage) return databaseImage
+  return null
+}
+const resolvedUserImageUrl = user
+  ? resolveUserImageUrl(user as UserWithImageUrl)
+  : null
 const locale = normalizeLocale(Astro.locals.userPreferences?.locale ?? Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
 const layoutT = getLayoutMessages(locale)
 
@@ -126,7 +141,7 @@ function getWelcomeMessage(userName: string | null | undefined, userEmail: strin
     <AppHeader
       userName={user?.name || null}
       userEmail={user?.email || null}
-      userImageUrl={user?.image || null}
+      userImageUrl={resolvedUserImageUrl}
       currentLocale={locale}
       languageLabel={layoutT.appHeader.language}
       backToLibraryAria={layoutT.appHeader.backToLibraryAria}
@@ -146,7 +161,7 @@ function getWelcomeMessage(userName: string | null | undefined, userEmail: strin
     <Sidebar
       userName={user?.name || null}
       userEmail={user?.email || null}
-      userImageUrl={user?.image || null}
+      userImageUrl={resolvedUserImageUrl}
       currentLocale={locale}
       languageLabel={layoutT.appHeader.language}
       themeTitle={layoutT.sidebar.themeTitle}

@@ -73,12 +73,18 @@ class SpotifyService {
       throw new Error(`Failed to get Spotify access token: ${error}`)
     }
 
-    const data = await response.json()
+    const data = await response.json() as { access_token?: string; expires_in?: number }
+    if (!data.access_token || typeof data.access_token !== 'string') {
+      throw new Error('Invalid Spotify token response: access_token is missing')
+    }
+    if (!data.expires_in || typeof data.expires_in !== 'number') {
+      throw new Error('Invalid Spotify token response: expires_in is missing')
+    }
     this.accessToken = data.access_token
     // Expire 5 minutes avant la date réelle pour être sûr
     this.tokenExpiry = Date.now() + (data.expires_in - 300) * 1000
 
-    return this.accessToken
+    return data.access_token
   }
 
   /**

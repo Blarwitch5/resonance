@@ -4,6 +4,23 @@
  * Config lue depuis le script #search-bar-messages (base64 JSON).
  */
 
+import { onAstroPageLoad, onDomReady } from '../../scripts/client/runtime'
+import {
+  ensureExplorerWishlistHeartBridge,
+  markDiscogsIdAsInWishlist,
+  syncWishlistHeartsWithLabels,
+} from '../../scripts/client/explorer-wishlist-hearts'
+
+type ExplorerToast = {
+  success?: (message: string, duration?: number) => void
+  error?: (message: string, duration?: number) => void
+  info?: (message: string, duration?: number) => void
+}
+
+function getExplorerToast(): ExplorerToast | undefined {
+  return (window as Window & { toast?: ExplorerToast }).toast
+}
+
 type SearchResult = {
   id: string
   slug?: string
@@ -40,9 +57,28 @@ type SearchBarMessages = {
     addToCollectionAria: string
     addToWishlistAria: string
     addedToWishlistToast: string
+    alreadyInWishlistToast?: string
     failedToAddToWishlist: string
     fetchReleaseError: string
     genericError: string
+  }
+}
+
+function decodeBase64Json<T>(raw: string): T | null {
+  try {
+    const binary = atob(raw)
+    const bytes = new Uint8Array(binary.length)
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index)
+    }
+    const decoded = new TextDecoder('utf-8').decode(bytes)
+    return JSON.parse(decoded) as T
+  } catch {
+    try {
+      return JSON.parse(atob(raw)) as T
+    } catch {
+      return null
+    }
   }
 }
 
@@ -50,11 +86,7 @@ function getSearchBarMessages(): SearchBarMessages | null {
   const el = document.getElementById('search-bar-messages')
   const raw = el?.textContent?.trim()
   if (!raw || !/^[A-Za-z0-9+/=]+$/.test(raw.replace(/\s/g, ''))) return null
-  try {
-    return JSON.parse(atob(raw)) as SearchBarMessages
-  } catch {
-    return null
-  }
+  return decodeBase64Json<SearchBarMessages>(raw)
 }
 
 function isValidFormat(formats: string[] | undefined): boolean {
@@ -75,7 +107,12 @@ async function displaySearchResults(
   if (!container) return
 
   const { search, client, addToCollectionMessages } = messages
-  const filteredResults = results.results.filter((item: SearchResult) => isValidFormat(item.format))
+  const formatButton = document.querySelector<HTMLElement>('.format-filter-btn.active[data-format]')
+  const formatValue = formatButton?.getAttribute('data-format') ?? ''
+  const activeFormat = formatValue === '' ? null : formatValue
+  const filteredResults = !activeFormat
+    ? results.results
+    : results.results.filter((item: SearchResult) => isValidFormat(item.format))
   const query = searchQuery?.trim() ?? ''
 
   container.classList.remove('hidden')
@@ -113,6 +150,7 @@ async function displaySearchResults(
         scriptLabels: {
           unknownArtist: client.unknownArtist,
           addedToWishlistToast: addToCollectionMessages.addedToWishlistToast,
+          alreadyInWishlistToast: addToCollectionMessages.alreadyInWishlistToast,
           failedToAddToWishlist: addToCollectionMessages.failedToAddToWishlist,
           fetchReleaseError: addToCollectionMessages.fetchReleaseError,
           genericError: client.genericError,
@@ -122,14 +160,16 @@ async function displaySearchResults(
     if (renderResponse.ok) {
       const html = await renderResponse.text()
       container.innerHTML = html
+      ensureExplorerWishlistHeartBridge()
+      void syncWishlistHeartsWithLabels({
+        inWishlistAria: addToCollectionMessages.inWishlistAria ?? 'Already in your wishlist',
+      })
     } else {
       throw new Error(client.renderSearchResultsError)
     }
   } catch (error) {
     console.error('Error rendering search results:', error)
-    if (typeof window !== 'undefined' && (window as Window & { toast?: (msg: string) => void }).toast) {
-      (window as Window & { toast: (msg: string) => void }).toast(client.barcodeErrorDisplay)
-    }
+    if (typeof window !== 'undefined') getExplorerToast()?.error?.(client.barcodeErrorDisplay)
   }
 }
 
@@ -151,7 +191,9 @@ type DiscogsRelease = {
 
 async function addToWishlist(messages: SearchBarMessages, discogsId: string): Promise<void> {
   const { client, addToCollectionMessages } = messages
-  const toast = (window as Window & { toast?: (msg: string, duration?: number) => void }).toast
+  const wishlistHeartLabels = {
+    inWishlistAria: addToCollectionMessages.inWishlistAria ?? 'Already in your wishlist',
+  }
   try {
     const releaseResponse = await fetch(`/api/discogs/release/${discogsId}`)
     if (!releaseResponse.ok) {
@@ -191,14 +233,26 @@ async function addToWishlist(messages: SearchBarMessages, discogsId: string): Pr
       }),
     })
 
+    if (wishlistResponse.status === 409) {
+      const duplicateMessage =
+        addToCollectionMessages.alreadyInWishlistToast ||
+        'This album is already in your wishlist.'
+      const toastApi = getExplorerToast()
+      if (toastApi?.info) toastApi.info(duplicateMessage)
+      else toastApi?.success?.(duplicateMessage)
+      markDiscogsIdAsInWishlist(discogsId, wishlistHeartLabels)
+      return
+    }
+
     if (!wishlistResponse.ok) {
-      const error = await wishlistResponse.json()
+      const error = (await wishlistResponse.json()) as { error?: string }
       throw new Error(error.error ?? addToCollectionMessages.failedToAddToWishlist)
     }
-    if (toast) toast(addToCollectionMessages.addedToWishlistToast)
+    getExplorerToast()?.success?.(addToCollectionMessages.addedToWishlistToast)
+    markDiscogsIdAsInWishlist(discogsId, wishlistHeartLabels)
   } catch (error) {
     console.error('Error adding to wishlist:', error)
-    if (toast) toast(client.generalSearchError)
+    getExplorerToast()?.error?.(client.generalSearchError)
   }
 }
 
@@ -216,9 +270,7 @@ async function runSearch(messages: SearchBarMessages, query: string): Promise<vo
     const response = await fetch(`/api/discogs/search?${urlParams.toString()}`)
     if (!response.ok) {
       const err = await response.json().catch(() => ({ error: client.unknownError }))
-      if ((window as Window & { toast?: (msg: string) => void }).toast) {
-        (window as Window & { toast: (msg: string) => void }).toast(err.error ?? client.generalSearchError)
-      }
+      getExplorerToast()?.error?.(err.error ?? client.generalSearchError)
       return
     }
     const data = await response.json()
@@ -243,9 +295,7 @@ async function runSearch(messages: SearchBarMessages, query: string): Promise<vo
     }
   } catch (error) {
     console.error('Error searching:', error)
-    if ((window as Window & { toast?: (msg: string) => void }).toast) {
-      (window as Window & { toast: (msg: string) => void }).toast(client.generalSearchError)
-    }
+    getExplorerToast()?.error?.(client.generalSearchError)
   } finally {
     if (loaderElement) loaderElement.classList.add('hidden')
   }
@@ -283,8 +333,11 @@ function initSearchBar(messages: SearchBarMessages): void {
           if (container) {
             container.classList.add('hidden')
           }
-          if ((window as Window & { toast?: (msg: string) => void }).toast) {
-            (window as Window & { toast: (msg: string) => void }).toast(messages.client.noResultsFound)
+          {
+            const toast = getExplorerToast()
+            const message = messages.client.noResultsFound
+            if (toast?.info) toast.info(message)
+            else toast?.error?.(message)
           }
         })
         .catch((error) => {
@@ -315,12 +368,7 @@ function run(messages: SearchBarMessages | null): void {
   initSearchBar(messages)
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => run(getSearchBarMessages()), { once: true })
-} else {
-  run(getSearchBarMessages())
-}
-
-document.addEventListener('astro:page-load', () => {
+onDomReady(() => run(getSearchBarMessages()))
+onAstroPageLoad(() => {
   run(getSearchBarMessages())
 })

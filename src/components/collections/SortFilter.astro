@@ -159,7 +159,7 @@ function buildUrl(params: Record<string, string | null>) {
           )}
           <a
             href={buildUrl({ genre: null, year: null, collection: null, favorites: null })}
-            class="inline-flex items-center gap-1 rounded-full bg-surface-elevated px-3 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface hover:text-neutral"
+            class="inline-flex min-h-9 items-center gap-1 rounded-full bg-surface-elevated px-3 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface hover:text-neutral focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             title={sortFilter.clearAllTitle}
           >
             <X size={12} />
@@ -179,7 +179,7 @@ function buildUrl(params: Record<string, string | null>) {
         </label>
         <select
           id="sort-select"
-          class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          class="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           onchange="window.location.href = this.value"
         >
           {sortOptions.map((option) => (
@@ -193,12 +193,13 @@ function buildUrl(params: Record<string, string | null>) {
       <!-- Genre filter -->
       {genres.length > 0 && (
         <div class="flex flex-col gap-2">
-          <label class="flex items-center gap-2 text-xs font-medium text-muted">
+          <label for="genre-select" class="flex items-center gap-2 text-xs font-medium text-muted">
             <Music size={14} />
             {sortFilter.genre}
           </label>
           <select
-            class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            id="genre-select"
+            class="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             onchange="window.location.href = this.value"
           >
             <option value={buildUrl({ genre: null })}>{sortFilter.allGenres}</option>
@@ -214,12 +215,13 @@ function buildUrl(params: Record<string, string | null>) {
       <!-- Year filter -->
       {years.length > 0 && (
         <div class="flex flex-col gap-2">
-          <label class="flex items-center gap-2 text-xs font-medium text-muted">
+          <label for="year-select" class="flex items-center gap-2 text-xs font-medium text-muted">
             <Calendar size={14} class="fill-none stroke-2" />
             {sortFilter.year}
           </label>
           <select
-            class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            id="year-select"
+            class="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             onchange="window.location.href = this.value"
           >
             <option value={buildUrl({ year: null })}>{sortFilter.allYears}</option>
@@ -237,12 +239,13 @@ function buildUrl(params: Record<string, string | null>) {
       <!-- Collection filter -->
       {collections.length > 0 && (
         <div class="flex flex-col gap-2">
-          <label class="flex items-center gap-2 text-xs font-medium text-muted">
+          <label for="collection-select" class="flex items-center gap-2 text-xs font-medium text-muted">
             <Folder size={14} class="fill-none stroke-2" />
             {sortFilter.collection}
           </label>
           <select
-            class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            id="collection-select"
+            class="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             onchange="window.location.href = this.value"
           >
             <option value={buildUrl({ collection: null })} selected={!currentCollection}>{sortFilter.allCollections}</option>
@@ -258,7 +261,7 @@ function buildUrl(params: Record<string, string | null>) {
     </div>
 
       <!-- Favorites filter -->
-    <div class="flex items-center justify-between rounded-xl border border-border bg-surface p-4">
+    <div class="favorites-filter-card flex items-center justify-between rounded-xl border border-border p-4">
       <div class="flex items-center gap-3">
         <div class={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
           showFavorites ? 'bg-primary/20' : 'bg-surface-elevated'
@@ -280,10 +283,46 @@ function buildUrl(params: Record<string, string | null>) {
           data-favorites-url={buildUrl({ favorites: showFavorites ? null : 'true' })}
           onchange="window.location.href = this.dataset.favoritesUrl"
           class="peer sr-only"
+          role="switch"
+          aria-checked={showFavorites ? 'true' : 'false'}
         />
-        <div class="h-6 w-11 rounded-full bg-surface-elevated transition-colors peer-checked:bg-primary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20"></div>
-        <div class="absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-5"></div>
+        <div class="favorites-switch-track h-6 w-11 rounded-full border border-border transition-colors peer-checked:bg-primary peer-checked:border-primary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20"></div>
+        <div class="favorites-switch-thumb absolute left-1 top-1 h-4 w-4 rounded-full border border-border transition-transform peer-checked:translate-x-5"></div>
       </label>
     </div>
   </div>
 </div>
+
+<style>
+  .favorites-filter-card {
+    background-color: var(--color-surface);
+  }
+
+  .favorites-switch-track {
+    background-color: var(--color-surface-elevated);
+  }
+
+  .favorites-switch-thumb {
+    background-color: #ffffff;
+  }
+
+  .peer:checked + .favorites-switch-track {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  [data-theme='dark'] .favorites-filter-card {
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+  }
+
+  [data-theme='dark'] .favorites-switch-track {
+    background-color: var(--color-surface-elevated);
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+
+  [data-theme='dark'] .favorites-switch-thumb {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-color: rgba(255, 255, 255, 0.32);
+  }
+</style>

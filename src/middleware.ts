@@ -24,7 +24,20 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   if (isAuthed) {
-    context.locals.user = isAuthed.user
+    let dbImageUrl: string | null | undefined
+    try {
+      const dbUser = await db.user.findUnique({
+        where: { id: isAuthed.user.id },
+        select: { imageUrl: true },
+      })
+      dbImageUrl = dbUser?.imageUrl ?? null
+    } catch {
+      dbImageUrl = undefined
+    }
+    context.locals.user = {
+      ...isAuthed.user,
+      imageUrl: dbImageUrl?.trim() || isAuthed.user.image?.trim() || null,
+    }
     context.locals.session = isAuthed.session
     let prefs: { preferredTheme: string | null; preferredLocale: string | null } | null = null
     try {

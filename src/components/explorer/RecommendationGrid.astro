@@ -9,29 +9,44 @@ type RecommendationGridProps = {
     thumb?: string
     year?: number
   }>
+  wishlistDiscogsIds?: number[]
   addToCollectionAria?: string
   addToWishlistAria?: string
+  inWishlistAria?: string
   unknownArtistLabel?: string
   scriptLabels?: {
     unknownArtist: string
     addedToWishlistToast: string
+    alreadyInWishlistToast?: string
     failedToAddToWishlist: string
     fetchReleaseError?: string
     genericError: string
   }
 }
 
-const { recommendations, addToCollectionAria, addToWishlistAria, unknownArtistLabel, scriptLabels } = Astro.props as RecommendationGridProps
+const {
+  recommendations,
+  wishlistDiscogsIds = [],
+  addToCollectionAria,
+  addToWishlistAria,
+  inWishlistAria,
+  unknownArtistLabel,
+  scriptLabels,
+} = Astro.props as RecommendationGridProps
+
+const wishlistDiscogsIdSet = new Set(wishlistDiscogsIds)
 ---
 
 <div class="recommendations-scroll -mx-4 overflow-x-auto px-4 pt-2 pb-6 md:-mx-6 md:px-6 md:pb-7 lg:-mx-8 lg:px-8 lg:pb-8">
-  <div class="flex w-max items-stretch gap-4">
+  <div class="flex w-max items-stretch gap-3 sm:gap-4">
     {recommendations.map((result) => (
       <div class="recommendations-scroll-item shrink-0">
         <ResultCard
         result={result}
+        inWishlist={wishlistDiscogsIdSet.has(result.id)}
         addToCollectionAria={addToCollectionAria}
         addToWishlistAria={addToWishlistAria}
+        inWishlistAria={inWishlistAria}
         unknownArtistLabel={unknownArtistLabel}
         scriptLabels={scriptLabels}
       />
@@ -46,6 +61,8 @@ const { recommendations, addToCollectionAria, addToWishlistAria, unknownArtistLa
     scrollbar-width: thin;
     scrollbar-color: var(--color-border) transparent;
     scrollbar-gutter: stable;
+    scroll-snap-type: none;
+    scroll-padding-inline: 0;
   }
   .recommendations-scroll::-webkit-scrollbar {
     height: 8px;
@@ -61,10 +78,9 @@ const { recommendations, addToCollectionAria, addToWishlistAria, unknownArtistLa
 
   /* Même hauteur pour toutes les cartes + layout flex pour remplir */
   .recommendations-scroll-item {
-    height: 280px;
-    width: calc(50vw - 1.5rem);
-    min-width: 120px;
-    max-width: 160px;
+    height: 256px;
+    width: clamp(126px, 36vw, 148px);
+    scroll-snap-align: none;
   }
   .recommendations-scroll-item > a {
     display: flex;
@@ -95,35 +111,38 @@ const { recommendations, addToCollectionAria, addToWishlistAria, unknownArtistLa
   }
 
   @media (min-width: 640px) {
+    .recommendations-scroll {
+      scroll-padding-inline: 1rem;
+    }
     .recommendations-scroll-item {
       height: 300px;
-      width: calc(33.333vw - 1.5rem);
-      min-width: 140px;
-      max-width: 180px;
+      width: clamp(154px, 28vw, 188px);
     }
   }
   @media (min-width: 768px) {
+    .recommendations-scroll {
+      scroll-snap-type: x proximity;
+      scroll-padding-inline: 1.5rem;
+    }
     .recommendations-scroll-item {
-      height: 320px;
-      width: calc(25vw - 1.5rem);
-      min-width: 150px;
-      max-width: 200px;
+      height: 328px;
+      width: clamp(168px, 22vw, 208px);
+      scroll-snap-align: start;
     }
   }
   @media (min-width: 1024px) {
+    .recommendations-scroll {
+      scroll-padding-inline: 2rem;
+    }
     .recommendations-scroll-item {
-      height: 340px;
-      width: calc(20vw - 1.25rem);
-      min-width: 160px;
-      max-width: 220px;
+      height: 344px;
+      width: clamp(176px, 18vw, 224px);
     }
   }
   @media (min-width: 1280px) {
     .recommendations-scroll-item {
       height: 360px;
-      width: calc(16.666vw - 1.25rem);
-      min-width: 170px;
-      max-width: 240px;
+      width: clamp(184px, 15vw, 240px);
     }
   }
 </style>

@@ -17,7 +17,7 @@ import EmptyState from '../../components/ui/EmptyState.astro'
 import OptimizedImage from '../../components/ui/OptimizedImage.astro'
 import { getItemMessages } from '../../i18n/item'
 import { normalizeLocale } from '../../i18n/config'
-import { looksLikeItemId } from '../../lib/slug'
+import { buildExplorerSlug, looksLikeItemId } from '../../lib/slug'
 import { collectionRepository } from '../../repositories/collection-repository'
 import { itemRepository } from '../../repositories/item-repository'
 import { discogsService } from '../../services/discogs-service'
@@ -76,6 +76,18 @@ if (item.discogsId) {
 
 // Collection is already included in item
 const collection = item.collection || null
+
+// Si l'item n'est plus dans une collection, on redirige vers la vue "aperçu"
+// (page explorer) pour éviter d'afficher le contenu full à tort.
+if (!collection) {
+  const discogsIdNumber =
+    typeof item.discogsId === 'number' ? item.discogsId : Number.parseInt(String(item.discogsId ?? ''), 10)
+  if (Number.isFinite(discogsIdNumber) && discogsIdNumber > 0) {
+    const explorerSlug = buildExplorerSlug(item.artist, item.title, item.year ?? null, discogsIdNumber)
+    return Astro.redirect(`/explorer/${explorerSlug}`)
+  }
+  return Astro.redirect('/library')
+}
 
 const userCollections = await collectionRepository.findByUserId(Astro.locals.user!.id)
 

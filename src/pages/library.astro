@@ -8,7 +8,6 @@ import SortFilter from '../components/collections/SortFilter.astro'
 import AddItemButton from '../components/items/AddItemButton.astro'
 import ItemGrid from '../components/items/ItemGrid.astro'
 import DashboardLayout from '../components/layouts/DashboardLayout.astro'
-import EmptyState from '../components/ui/EmptyState.astro'
 import Pagination from '../components/ui/Pagination.astro'
 import { getLibraryMessages } from '../i18n/library'
 import { getLayoutMessages } from '../i18n/layout'
@@ -163,7 +162,8 @@ const formatInfo = {
     <div class="flex flex-wrap gap-3">
       <a
         href="/library?format=ALL"
-        class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
+        aria-current={selectedFormat === 'ALL' && !showUncategorizedOnly ? 'page' : undefined}
+        class={`inline-flex min-h-11 items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
           selectedFormat === 'ALL'
             ? 'bg-gradient-resonance text-white shadow-lg shadow-primary/20'
             : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
@@ -174,7 +174,8 @@ const formatInfo = {
       {totalItems > 0 && (
         <a
           href="/library?format=ALL&collection=none"
-          class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
+          aria-current={showUncategorizedOnly ? 'page' : undefined}
+          class={`inline-flex min-h-11 items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
             showUncategorizedOnly
               ? 'bg-gradient-resonance text-white shadow-lg shadow-primary/20'
               : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
@@ -190,7 +191,8 @@ const formatInfo = {
         return (
           <a
             href={`/library?format=${format}`}
-            class={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
+            aria-current={selectedFormat === format ? 'page' : undefined}
+            class={`inline-flex min-h-11 items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
               selectedFormat === format
                 ? `bg-gradient-resonance text-white shadow-lg shadow-primary/20`
                 : 'glass-card text-muted hover:bg-surface-elevated hover:text-neutral'
@@ -222,31 +224,29 @@ const formatInfo = {
 
     <!-- Items grouped by collection -->
     {totalItems === 0 ? (
-      <EmptyState
-        title={
-          selectedFormat === 'ALL'
-            ? libraryT.emptyState.allTitle
-            : libraryT.emptyState.formatTitle.replace('{format}', formatInfo[selectedFormat as keyof typeof formatInfo]?.label ?? '')
-        }
-        description={
-          selectedFormat === 'ALL'
-            ? libraryT.emptyState.allDescription
-            : libraryT.emptyState.formatDescription.replace('{format}', formatInfo[selectedFormat as keyof typeof formatInfo]?.label ?? '').replace('{formatPlural}', formatInfo[selectedFormat as keyof typeof formatInfo]?.label?.toLowerCase() ?? '')
-        }
-        icon={
-          selectedFormat === 'ALL'
-            ? Turntable
-            : formatInfo[selectedFormat as keyof typeof formatInfo]?.icon || Turntable
-        }
-        action={{
-          label: selectedFormat === 'ALL' ? libraryT.emptyState.addAlbum : libraryT.emptyState.addAlbum,
-          href: '/explorer',
-        }}
-        secondaryAction={{
-          label: libraryT.emptyState.scanBarcode,
-          onClick: `alert(${JSON.stringify(libraryT.emptyState.comingSoonBarcode)})`,
-        }}
-      />
+      <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+        <article class="glass-card overflow-hidden rounded-xl border border-border p-4">
+          <div class="flex aspect-square flex-col items-center justify-center gap-3 text-center">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-surface">
+              <Package size={20} class="fill-none stroke-2 text-muted stroke-muted" />
+            </span>
+            <p class="text-base font-semibold text-neutral">Collection vide</p>
+          </div>
+        </article>
+        <a
+          href="/explorer"
+          class="group block overflow-hidden rounded-xl border border-primary/30 bg-linear-to-br from-primary to-secondary p-4 text-white no-underline transition-all hover:-translate-y-0.5 hover:border-primary/60"
+        >
+          <div class="flex aspect-square flex-col items-center justify-center gap-3 text-center">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+              <svg class="h-5 w-5 text-white stroke-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+            </span>
+            <p class="text-sm font-medium text-white/95">Rechercher et ajouter un album</p>
+          </div>
+        </a>
+      </div>
     ) : (
       <>
         <div data-items-container class="space-y-10">
@@ -273,7 +273,7 @@ const formatInfo = {
                   {collection && (
                     <a
                       href={`/collections/${collection.slug}`}
-                      class="inline-flex items-center gap-1 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+                      class="inline-flex min-h-11 items-center gap-1 px-2 text-sm font-medium text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     >
                       <span>{libraryT.collections.viewCollection}</span>
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -283,36 +283,31 @@ const formatInfo = {
                   )}
                 </div>
                 {items.length === 0 ? (
-                  <div class="glass-card rounded-2xl p-12 text-center border border-border">
-                    <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface">
-                      <svg class="h-8 w-8 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                      </svg>
-                    </div>
-                    <p class="mb-2 text-base font-medium text-neutral">
-                      {collectionId === 'no-collection'
-                        ? libraryT.collections.noUncategorized
-                        : libraryT.collections.empty}
-                    </p>
-                    <p class="mb-6 text-sm text-muted">
-                      {collectionId === 'no-collection'
-                        ? libraryT.collections.noUncategorizedHint
-                        : libraryT.collections.emptyHint}
-                    </p>
-                    {collectionId !== 'no-collection' && (
-                      <a
-                        href="/explorer"
-                        class="btn-primary-gradient inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-medium"
-                      >
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                        </svg>
-                        {libraryT.emptyState.addAlbum}
-                      </a>
-                    )}
+                  <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+                    <article class="glass-card overflow-hidden rounded-xl border border-border p-4">
+                      <div class="flex aspect-square flex-col items-center justify-center gap-3 text-center">
+                        <span class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-surface">
+                          <Package size={20} class="fill-none stroke-2 text-muted stroke-muted" />
+                        </span>
+                        <p class="text-base font-semibold text-neutral">Collection vide</p>
+                      </div>
+                    </article>
+                    <a
+                      href={collectionId === 'no-collection' ? '/explorer' : '/explorer'}
+                      class="group block overflow-hidden rounded-xl border border-primary/30 bg-linear-to-br from-primary to-secondary p-4 text-white no-underline transition-all hover:-translate-y-0.5 hover:border-primary/60"
+                    >
+                      <div class="flex aspect-square flex-col items-center justify-center gap-3 text-center">
+                        <span class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+                          <svg class="h-5 w-5 text-white stroke-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                          </svg>
+                        </span>
+                        <p class="text-sm font-medium text-white/95">Rechercher et ajouter un album</p>
+                      </div>
+                    </a>
                   </div>
                 ) : (
-                  <ItemGrid items={items} columns={6} actionLabels={itemT.actions} />
+                  <ItemGrid items={items} columns={5} actionLabels={itemT.actions} />
                 )}
               </section>
             )

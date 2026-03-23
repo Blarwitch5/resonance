@@ -1,6 +1,7 @@
 ---
 import { statsService } from '../services/stats-service'
 import { collectionRepository } from '../repositories/collection-repository'
+import { wishlistRepository } from '../repositories/wishlist-repository'
 import { discogsService } from '../services/discogs-service'
 import DashboardLayout from '../components/layouts/DashboardLayout.astro'
 import SearchBar from '../components/explorer/SearchBar.astro'
@@ -25,6 +26,7 @@ const libraryT = getLibraryMessages(locale)
 const genreStats = await statsService.getRecentItemsByGenre(user.id)
 const topGenres = genreStats.slice(0, 3).map((g) => g.genre)
 const collections = await collectionRepository.findByUserId(user.id)
+const userWishlistDiscogsIds = await wishlistRepository.findDiscogsIdsByUserId(user.id)
 
 let recommendations: Array<{ id: number; title: string; cover_image?: string; thumb?: string; year?: number }> = []
 let recommendationsError: string | null = null
@@ -48,9 +50,16 @@ if (topGenres.length > 0) {
   <script type="text/plain" id="search-result-card-messages" data-encoding="base64" set:html={Buffer.from(JSON.stringify({
     unknownArtist: explorerT.client.unknownArtist,
     addedToWishlistToast: explorerT.addToCollection.addedToWishlistToast,
+    alreadyInWishlistToast: explorerT.addToCollection.alreadyInWishlistToast,
+    removedFromWishlistToast: explorerT.addToCollection.removedFromWishlistToast,
+    addedToFavoritesToast: explorerT.addToCollection.addedToFavoritesToast,
+    removedFromFavoritesToast: explorerT.addToCollection.removedFromFavoritesToast,
+    favoriteRequiresCollectionToast: explorerT.addToCollection.favoriteRequiresCollectionToast,
+    favoriteUpdateError: explorerT.addToCollection.favoriteUpdateError,
     failedToAddToWishlist: explorerT.addToCollection.failedToAddToWishlist,
     fetchReleaseError: explorerT.addToCollection.fetchReleaseError,
     genericError: explorerT.client.genericError,
+    inWishlistAria: explorerT.addToCollection.inWishlistAria,
   }), 'utf8').toString('base64')}></script>
   <script>
     import '../components/explorer/SearchResultCard.client'
@@ -65,7 +74,7 @@ if (topGenres.length > 0) {
     </section>
 
     <!-- Search results (loaded dynamically, champ recherche uniquement) -->
-    <section id="search-results-container" class="hidden">
+    <section id="search-results-container" class="hidden" aria-live="polite" aria-atomic="true">
       <div id="search-results-content"></div>
     </section>
 
@@ -90,12 +99,15 @@ if (topGenres.length > 0) {
         ) : recommendations.length > 0 ? (
           <RecommendationGrid
             recommendations={recommendations}
+            wishlistDiscogsIds={userWishlistDiscogsIds}
             addToCollectionAria={explorerT.addToCollection.addToCollectionAria}
             addToWishlistAria={explorerT.addToCollection.addToWishlistAria}
+            inWishlistAria={explorerT.addToCollection.inWishlistAria}
             unknownArtistLabel={explorerT.client.unknownArtist}
             scriptLabels={{
               unknownArtist: explorerT.client.unknownArtist,
               addedToWishlistToast: explorerT.addToCollection.addedToWishlistToast,
+              alreadyInWishlistToast: explorerT.addToCollection.alreadyInWishlistToast,
               failedToAddToWishlist: explorerT.addToCollection.failedToAddToWishlist,
               fetchReleaseError: explorerT.addToCollection.fetchReleaseError,
               genericError: explorerT.client.genericError,
@@ -138,81 +150,8 @@ if (topGenres.length > 0) {
   <AddToCollectionModal collections={collections} addToCollection={explorerT.addToCollection} client={explorerT.client} />
 </DashboardLayout>
 
-<script is:inline>
-  (function() {
-    let explorerSearch = {}
-    let explorerClient = {}
-    try {
-      const el = document.getElementById('explorer-page-messages')
-      if (el && el.textContent) {
-        const parsed = JSON.parse(el.textContent)
-        explorerSearch = parsed.search || {}
-        explorerClient = parsed.client || {}
-      }
-    } catch (e) { console.warn('Could not parse explorer-page-messages', e) }
-
-    window.addEventListener('DOMContentLoaded', async function() {
-      const params = new URLSearchParams(window.location.search)
-      const barcodeParam = params.get('barcode')
-      const barcode = (barcodeParam && barcodeParam.trim) ? barcodeParam.trim() : ''
-      const qParam = params.get('q')
-      const q = (qParam && qParam.trim) ? qParam.trim() : ''
-
-      if (barcode) {
-        const section = document.getElementById('barcode-results-section')
-        const container = document.getElementById('barcode-results-container')
-        const titleEl = document.getElementById('barcode-results-title')
-        if (titleEl) titleEl.textContent = (explorerSearch.barcodeResultsTitleWithBarcode || '').replace('{barcode}', barcode)
-        if (!section || !container) return
-        section.classList.remove('hidden')
-        try {
-          const response = await fetch('/api/discogs/search-by-barcode?barcode=' + encodeURIComponent(barcode))
-          const data = await response.json()
-          if (data.found && data.results && data.results.length > 0) {
-            const renderRes = await fetch('/api/discogs/render-search-results', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ results: data.results }),
-            })
-            if (renderRes.ok) {
-              container.innerHTML = await renderRes.text()
-            } else {
-              const p = document.createElement('p')
-              p.className = 'text-muted'
-              p.textContent = explorerClient.barcodeErrorDisplay || ''
-              container.replaceChildren(p)
-            }
-          } else {
-            const wrapper = document.createElement('div')
-            wrapper.className = 'glass-card rounded-2xl border border-border/50 p-8 text-center'
-            const p1 = document.createElement('p')
-            p1.className = 'text-lg font-medium text-neutral mb-2'
-            p1.textContent = explorerClient.barcodeNoResults || ''
-            const p2 = document.createElement('p')
-            p2.className = 'text-sm text-muted'
-            p2.textContent = explorerSearch.barcodeNoResultsHint || ''
-            wrapper.appendChild(p1)
-            wrapper.appendChild(p2)
-            container.replaceChildren(wrapper)
-          }
-        } catch (error) {
-          console.error('Barcode search error:', error)
-          const errWrapper = document.createElement('div')
-          errWrapper.className = 'glass-card rounded-2xl border border-border/50 p-8 text-center'
-          const errP = document.createElement('p')
-          errP.className = 'text-muted'
-          errP.textContent = explorerClient.barcodeErrorSearch || ''
-          errWrapper.appendChild(errP)
-          container.replaceChildren(errWrapper)
-        }
-        return
-      }
-
-      if (q) {
-        window.dispatchEvent(new CustomEvent('explorer-search-from-url', { detail: { query: q } }))
-      }
-    })
-  })()
+<script>
+  import './ExplorerPage.client'
 </script>
 
 <style>
