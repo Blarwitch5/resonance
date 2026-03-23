@@ -13,6 +13,7 @@
     "format": "prettier --write . --ignore-path .prettierignore",
     "format:check": "prettier --check . --ignore-path .prettierignore",
     "a11y": "playwright test --config playwright.config.cjs",
+    "e2e:smoke": "playwright test --config playwright.config.cjs tests/smoke-critical.spec.ts",
     "covers:update": "tsx scripts/update-covers-hq.ts",
     "covers:clean": "tsx scripts/clean-covers.ts",
     "seed:test": "tsx scripts/seed-test-data.ts",
