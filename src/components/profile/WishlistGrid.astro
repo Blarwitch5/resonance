@@ -1,10 +1,10 @@
 ---
 import Trash2 from '@lucide/astro/icons/trash-2'
-import Star from '@lucide/astro/icons/star'
-import Heart from '@lucide/astro/icons/heart'
+import Bookmark from '@lucide/astro/icons/bookmark'
 import OptimizedImage from '../ui/OptimizedImage.astro'
 import EmptyState from '../ui/EmptyState.astro'
 import type { Wishlist } from '@prisma/client'
+import { buildExplorerSlug } from '../../lib/slug'
 
 type WishlistLabels = {
   emptyTitle: string
@@ -49,16 +49,13 @@ const getFormatColor = (format: string) => {
   }
 }
 
-const getPriorityStars = (priority: number) => {
-  return Array.from({ length: 5 }, (_, index) => index < priority)
-}
 ---
 
 {wishlistItems.length === 0 ? (
   <EmptyState
     title={wishlist.emptyTitle}
     description={wishlist.emptyDescription}
-    icon={Heart}
+      icon={Bookmark}
     action={{
       label: wishlist.exploreAction,
       href: '/explorer',
@@ -68,69 +65,53 @@ const getPriorityStars = (priority: number) => {
   <div class="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
     {wishlistItems.map((item) => {
       const formatColor = getFormatColor(item.format)
-      const priorityStars = getPriorityStars(item.priority)
+      const explorerSlug = buildExplorerSlug(item.artist, item.title, item.year ?? null, item.discogsId)
 
       return (
         <div class="glass-card group relative rounded-xl p-4 transition-all hover:translate-y-[-2px]">
-          <!-- Image -->
-          <div class="mb-3 overflow-hidden rounded-lg bg-surface">
-            <OptimizedImage
-              src={item.coverUrl}
-              alt={`${item.title} - ${item.artist}`}
-              width={400}
-              height={400}
-              loading="lazy"
-              aspectRatio="square"
-              class="h-full w-full object-cover transition-transform group-hover:scale-105"
-            />
-          </div>
-
-          <!-- Content -->
-          <div class="space-y-2">
-            <div>
-              <h3 class="font-semibold text-neutral line-clamp-1">{item.title}</h3>
-              <p class="text-sm text-muted line-clamp-1">{item.artist}</p>
-              {item.year && (
-                <p class="text-xs text-muted">{item.year}</p>
-              )}
+          <a href={`/explorer/${explorerSlug}`} class="block">
+            <!-- Image -->
+            <div class="mb-3 overflow-hidden rounded-lg bg-surface">
+              <OptimizedImage
+                src={item.coverUrl}
+                alt={`${item.title} - ${item.artist}`}
+                width={400}
+                height={400}
+                loading="lazy"
+                aspectRatio="square"
+                class="h-full w-full object-cover transition-transform group-hover:scale-105"
+              />
             </div>
 
-            <!-- Format badge -->
-            <div class="flex items-center gap-2">
-              <span class={`rounded border px-2 py-1 text-xs font-medium ${formatColor}`}>
-                {item.format}
-              </span>
-              {item.genre && (
-                <span class="text-xs text-muted">{item.genre}</span>
-              )}
-            </div>
+            <!-- Content -->
+            <div class="space-y-2">
+              <div>
+                <h3 class="font-semibold text-neutral line-clamp-1">{item.title}</h3>
+                <p class="text-sm text-muted line-clamp-1">{item.artist}</p>
+                {item.year && <p class="text-xs text-muted">{item.year}</p>}
+              </div>
 
-            <!-- Priority stars -->
-            <div class="flex items-center gap-1">
-              {priorityStars.map((filled, index) => (
-                <Star
-                  size={14}
-                  class={`fill-none stroke-2 ${filled ? 'text-yellow-400 stroke-yellow-400' : 'text-muted stroke-muted'}`}
-                />
-              ))}
+              <!-- Format badge -->
+              <div class="flex items-center gap-2">
+                <span class={`rounded border px-2 py-1 text-xs font-medium ${formatColor}`}>
+                  {item.format}
+                </span>
+                {item.genre && <span class="text-xs text-muted">{item.genre}</span>}
+              </div>
             </div>
+          </a>
 
-            <!-- Notes -->
-            {item.notes && (
-              <p class="text-xs text-muted line-clamp-2">{item.notes}</p>
-            )}
-
-            <!-- Actions -->
-            <div class="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                class="wishlist-delete-btn btn-icon rounded-lg p-2 hover:bg-red-500/20 hover:text-red-400"
-                data-id={item.id}
-                aria-label={wishlist.removeAria.replace('{title}', item.title)}
-              >
-                <Trash2 size={18} class="fill-none stroke-2" />
-              </button>
-            </div>
+          <!-- Actions -->
+          <div class="flex items-center justify-end gap-2 pt-2">
+            <button
+              type="button"
+              class="wishlist-delete-btn btn-icon rounded-lg p-2 hover:bg-red-500/20 hover:text-red-400"
+              data-id={item.id}
+              data-discogs-id={item.discogsId}
+              aria-label={wishlist.removeAria.replace('{title}', item.title)}
+            >
+              <Trash2 size={18} class="fill-none stroke-2" />
+            </button>
           </div>
         </div>
       )
@@ -146,64 +127,7 @@ const getPriorityStars = (priority: number) => {
 })}></script>
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const messagesEl = document.getElementById('wishlist-confirm-messages')
-    const messages = messagesEl ? JSON.parse(messagesEl.textContent || '{}') : {}
-    const deleteButtons = document.querySelectorAll('.wishlist-delete-btn')
-
-    deleteButtons.forEach((button) => {
-      button.addEventListener('click', async () => {
-        const id = button.getAttribute('data-id')
-        if (!id) return
-
-        const confirmed = await window.confirmDialog?.(
-          messages.confirmTitle,
-          messages.confirmMessage,
-          messages.confirmRemove,
-          messages.confirmCancel
-        )
-        
-        if (!confirmed) {
-          return
-        }
-
-        try {
-          const response = await fetch(`/api/wishlist/${id}/delete`, {
-            method: 'DELETE',
-          })
-
-          if (response.ok) {
-            const card = button.closest('.glass-card') as HTMLElement | null
-            if (card) {
-              card.style.transition = 'opacity 0.3s, transform 0.3s'
-              card.style.opacity = '0'
-              card.style.transform = 'scale(0.9)'
-              setTimeout(() => {
-                card.remove()
-                // Recharger la page si plus d'items
-                const remainingItems = document.querySelectorAll('.glass-card')
-                if (remainingItems.length === 0) {
-                  window.location.reload()
-                }
-              }, 300)
-            }
-          } else {
-            const error = await response.json()
-            // @ts-ignore - toast is available globally
-            if (window.toast) {
-              window.toast.error(`Error: ${error.error || 'Could not remove album'}`)
-            }
-          }
-        } catch (error) {
-          console.error('Error deleting wishlist item:', error)
-          // @ts-ignore - toast is available globally
-          if (window.toast) {
-            window.toast.error('An error occurred while removing')
-          }
-        }
-      })
-    })
-  })
+  import './WishlistGrid.client'
 </script>
 
 <style>

@@ -2,8 +2,10 @@
 
 declare namespace App {
   // Note: 'import {} from ""' syntax does not work in .d.ts files.
+  type AppUser = import('better-auth').User & { imageUrl?: string | null }
+
   interface Locals {
-    user: import('better-auth').User | null
+    user: AppUser | null
     session: import('better-auth').Session | null
     userPreferences?: { theme?: string; locale?: string }
   }

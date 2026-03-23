@@ -25,7 +25,6 @@ export default defineConfig({
       },
     },
     cacheDir: '.vite',
-    // Résoudre le problème de casse sur macOS
     resolve: {
       preserveSymlinks: false,
     },

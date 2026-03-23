@@ -110,14 +110,14 @@ const acquisitionDateStr =
 ---
 
 <section class="personal-data-section glass-card rounded-2xl p-4 md:p-6" data-item-id={itemId} data-data-saved={t.dataSaved}>
-  <div class="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+  <div class="mb-4 flex items-center justify-between gap-3">
     <h2 class="flex items-center gap-2 text-lg md:text-xl font-bold text-neutral">
       <FileText size={20} class="fill-none stroke-2 text-primary stroke-primary" />
       {t.sectionTitle}
     </h2>
     <button
       type="button"
-      class="edit-toggle inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-elevated hover:text-primary"
+      class="edit-toggle ml-auto inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-elevated hover:text-primary"
       data-action="toggle-edit"
       aria-label={t.editAria}
     >
@@ -346,227 +346,20 @@ const acquisitionDateStr =
   </form>
 </section>
 
-<script type="text/javascript" define:vars={{ scriptSaving, scriptSaveLabel, scriptRemoveTagAria, scriptErrorSaving, scriptErrorGeneric }}>
-  function initPersonalDataSection() {
-    const section = document.querySelector('.personal-data-section')
-    if (!section) return
+<script
+  type="application/json"
+  id="personal-data-messages"
+  set:html={JSON.stringify({
+    saving: scriptSaving,
+    saveLabel: scriptSaveLabel,
+    removeTagAria: scriptRemoveTagAria,
+    errorSaving: scriptErrorSaving,
+    errorGeneric: scriptErrorGeneric,
+  }).replace(/<\/script/gi, '<\\/script')}
+></script>
 
-    const itemId = section.getAttribute('data-item-id')
-    if (!itemId) return
-
-    const viewMode = section.querySelector('[data-mode="view"]')
-    const editMode = section.querySelector('[data-mode="edit"]')
-    const toggleBtn = section.querySelector('[data-action="toggle-edit"]')
-    const cancelBtn = section.querySelector('[data-action="cancel-edit"]')
-    const form = section.querySelector('form.edit-mode')
-    const starContainer = section.querySelector('[data-star-rating]')
-    const starValueInput = section.querySelector('#personal-rating-value-' + itemId)
-    const tagsInput = section.querySelector('[data-tags-input]')
-    const customTagsValue = section.querySelector('#custom-tags-value-' + itemId)
-
-    var currentTags = []
-    try {
-      var initial = customTagsValue && customTagsValue.value ? customTagsValue.value : '[]'
-      currentTags = JSON.parse(initial)
-    } catch (e) {
-      currentTags = []
-    }
-
-    function showView() {
-      if (viewMode) viewMode.classList.remove('hidden')
-      if (editMode) editMode.classList.add('hidden')
-    }
-
-    function showEdit() {
-      if (viewMode) viewMode.classList.add('hidden')
-      if (editMode) editMode.classList.remove('hidden')
-    }
-
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', showEdit)
-    }
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', function() {
-        showView()
-      })
-    }
-
-    if (starContainer && starValueInput) {
-      var rating = parseInt(starValueInput.value, 10) || 0
-      var hoverIndex = null
-
-      function updateStarDisplay() {
-        var stars = starContainer.querySelectorAll('.star-btn')
-        stars.forEach(function(btn) {
-          var value = parseInt(btn.getAttribute('data-value'), 10)
-          btn.classList.remove('star-outlined', 'star-filled-primary', 'star-filled-secondary')
-          if (hoverIndex !== null) {
-            if (value <= rating) {
-              btn.classList.add('star-filled-primary')
-            } else if (value <= hoverIndex) {
-              btn.classList.add('star-filled-secondary')
-            } else {
-              btn.classList.add('star-outlined')
-            }
-          } else {
-            if (value <= rating) {
-              btn.classList.add('star-filled-primary')
-            } else {
-              btn.classList.add('star-outlined')
-            }
-          }
-        })
-      }
-
-      updateStarDisplay()
-
-      starContainer.querySelectorAll('.star-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-          rating = parseInt(btn.getAttribute('data-value'), 10)
-          starValueInput.value = String(rating)
-          hoverIndex = null
-          updateStarDisplay()
-        })
-        btn.addEventListener('mouseenter', function() {
-          hoverIndex = parseInt(btn.getAttribute('data-value'), 10)
-          updateStarDisplay()
-        })
-      })
-
-      starContainer.addEventListener('mouseleave', function() {
-        hoverIndex = null
-        updateStarDisplay()
-      })
-    }
-
-    if (tagsInput && customTagsValue) {
-      var badgesContainer = section.querySelector('[data-tags-badges-container]')
-      if (!badgesContainer) badgesContainer = tagsInput.parentElement
-
-      function addTagsFromString(str) {
-        var parts = str.split(',').map(function(s) { return s.trim() }).filter(Boolean)
-        var added = 0
-        for (var i = 0; i < parts.length && currentTags.length < 10; i++) {
-          var tag = parts[i].slice(0, 50)
-          if (tag && currentTags.indexOf(tag) === -1) {
-            currentTags.push(tag)
-            added++
-          }
-        }
-        if (added > 0) {
-          customTagsValue.value = JSON.stringify(currentTags)
-          renderTags()
-        }
-      }
-
-      function renderTags() {
-        badgesContainer.replaceChildren()
-        currentTags.forEach(function(tag) {
-          var pill = document.createElement('span')
-          pill.className = 'tag-pill inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/15 px-3 py-1 text-sm text-primary'
-          pill.setAttribute('data-tag', tag)
-          var text = document.createElement('span')
-          text.textContent = tag
-          pill.appendChild(text)
-          var removeBtn = document.createElement('button')
-          removeBtn.type = 'button'
-          removeBtn.className = 'tag-remove -mr-0.5 flex h-5 w-5 items-center justify-center rounded-full text-muted transition-colors hover:bg-primary/25 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/50'
-          removeBtn.setAttribute('aria-label', scriptRemoveTagAria.replace('{tag}', tag))
-          removeBtn.innerHTML =
-            '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
-          removeBtn.addEventListener('click', function() {
-            currentTags = currentTags.filter(function(t) { return t !== tag })
-            customTagsValue.value = JSON.stringify(currentTags)
-            renderTags()
-          })
-          pill.appendChild(removeBtn)
-          badgesContainer.appendChild(pill)
-        })
-      }
-
-      renderTags()
-
-      tagsInput.addEventListener('keydown', function(event) {
-        if (event.key === 'Enter' || event.key === ',') {
-          event.preventDefault()
-          var value = tagsInput.value.trim()
-          if (value) {
-            addTagsFromString(value)
-            tagsInput.value = ''
-          }
-        }
-      })
-    }
-
-    if (form) {
-      form.addEventListener('submit', async function(event) {
-        event.preventDefault()
-        var formData = new FormData(form)
-        var personalNotes = formData.get('personalNotes')
-        var acquisitionDate = formData.get('acquisitionDate')
-        var purchasePrice = formData.get('purchasePrice')
-        var condition = formData.get('condition')
-        var purchaseLocation = formData.get('purchaseLocation')
-        var personalRating = formData.get('personalRating')
-
-        var payload = {}
-        if (personalNotes !== null && personalNotes !== undefined) payload.personalNotes = personalNotes === '' ? null : String(personalNotes)
-        if (acquisitionDate !== null && acquisitionDate !== undefined) payload.acquisitionDate = acquisitionDate === '' ? null : String(acquisitionDate)
-        if (purchasePrice !== null && purchasePrice !== undefined) payload.purchasePrice = purchasePrice === '' ? null : parseFloat(String(purchasePrice))
-        if (condition !== null && condition !== undefined) payload.condition = condition === '' ? null : String(condition)
-        if (purchaseLocation !== null && purchaseLocation !== undefined) payload.purchaseLocation = purchaseLocation === '' ? null : String(purchaseLocation)
-        if (personalRating !== null && personalRating !== undefined) payload.personalRating = personalRating === '' ? null : parseInt(String(personalRating), 10)
-        payload.customTags = currentTags
-
-        var submitBtn = form.querySelector('button[type="submit"]')
-        if (submitBtn) {
-          submitBtn.disabled = true
-          submitBtn.textContent = scriptSaving
-        }
-
-        try {
-          var response = await fetch('/api/items/' + itemId + '/personal-data', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          })
-
-          if (!response.ok) {
-            var err = await response.json()
-            throw new Error(err.error || scriptErrorSaving)
-          }
-
-          const section = document.querySelector('.personal-data-section')
-          const dataSavedMsg = section?.dataset?.dataSaved || 'Data saved'
-          if (window.toast) {
-            window.toast.success(dataSavedMsg)
-          } else {
-            console.log(dataSavedMsg)
-          }
-          window.location.reload()
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : scriptErrorGeneric
-          if (window.toast) {
-            window.toast.error(errorMessage)
-          } else {
-            console.error('Error:', errorMessage)
-          }
-        } finally {
-          if (submitBtn) {
-            submitBtn.disabled = false
-            submitBtn.textContent = scriptSaveLabel
-          }
-        }
-      })
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initPersonalDataSection)
-  } else {
-    initPersonalDataSection()
-  }
-  document.addEventListener('astro:page-load', initPersonalDataSection)
+<script>
+  import './PersonalDataSection.client'
 </script>
 
 <style>

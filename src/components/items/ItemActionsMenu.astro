@@ -55,7 +55,16 @@ const toasts = toastMessages ?? {
 }
 ---
 
-<div class="item-actions-menu">
+<div
+  class="item-actions-menu"
+  data-label-favorite={actions.favorite}
+  data-label-add-to-favorites={actions.addToFavorites}
+  data-toast-added={toasts.addedToFavorites}
+  data-toast-removed={toasts.removedFromFavorites}
+  data-toast-update-error={toasts.updateError}
+  data-confirm-remove-collection={toasts.removeFromCollectionConfirm}
+  data-toast-removed-from-collection={toasts.removedFromCollection}
+>
   <div class="flex items-center gap-2">
     <!-- Bouton Favoris -->
     <button
@@ -132,133 +141,8 @@ const toasts = toastMessages ?? {
   </div>
 </div>
 
-<script define:vars={{ labelFavorite: actions.favorite, labelAddToFavorites: actions.addToFavorites, toastAdded: toasts.addedToFavorites, toastRemoved: toasts.removedFromFavorites, toastUpdateError: toasts.updateError, confirmRemoveCollection: toasts.removeFromCollectionConfirm, toastRemovedFromCollection: toasts.removedFromCollection }}>
-  (function() {
-    const menuWrapper = document.querySelector('.item-actions-menu')
-    if (!menuWrapper) return
-
-    const menuTrigger = menuWrapper.querySelector('[data-menu-trigger]')
-    const menuDropdown = menuWrapper.querySelector('[data-menu-dropdown]')
-    const favoriteBtn = menuWrapper.querySelector('.favorite-btn')
-    const removeFromCollectionBtn = menuWrapper.querySelector(
-      '[data-action="remove-from-collection"]'
-    )
-    const deleteBtn = menuWrapper.querySelector('[data-action="delete"]')
-
-    const itemId = favoriteBtn?.dataset?.itemId
-    if (!itemId) return
-
-    // Toggle menu
-    if (menuTrigger && menuDropdown) {
-      menuTrigger.addEventListener('click', (event) => {
-        event.stopPropagation()
-        menuDropdown.classList.toggle('hidden')
-      })
-
-      // Fermer le menu en cliquant ailleurs
-      document.addEventListener('click', (event) => {
-        const target = event.target instanceof Node ? event.target : null
-        if (target && !menuWrapper.contains(target)) {
-          menuDropdown.classList.add('hidden')
-        }
-      })
-    }
-
-    // Toggle favoris
-    if (favoriteBtn) {
-      favoriteBtn.addEventListener('click', async () => {
-        const isFavorite = favoriteBtn?.dataset?.isFavorite === 'true'
-
-        try {
-          const response = await fetch(`/api/items/${itemId}/toggle-favorite`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          })
-
-          if (!response.ok) {
-            throw new Error('Failed to toggle favorite')
-          }
-
-          const data = await response.json()
-          const newIsFavorite = data.isFavorite
-
-          // Update UI (toggle pre-rendered icons; no SVG creation in JS)
-          if (favoriteBtn) favoriteBtn.dataset.isFavorite = newIsFavorite.toString()
-          const allIcons = favoriteBtn.querySelectorAll('svg.favorite-icon')
-          allIcons.forEach((icon) => {
-            const isFilled = icon.classList.contains('fill-red-500')
-            const shouldShow = newIsFavorite ? isFilled : !isFilled
-            icon.classList.toggle('hidden', !shouldShow)
-          })
-          const label = favoriteBtn.querySelector('[data-favorite-label]')
-          if (label) {
-            label.textContent = newIsFavorite ? labelFavorite : labelAddToFavorites
-            label.classList.toggle('text-primary', newIsFavorite)
-            label.classList.toggle('text-muted', !newIsFavorite)
-          }
-
-          if (window.toast) {
-            window.toast.success(newIsFavorite ? toastAdded : toastRemoved)
-          }
-        } catch (error) {
-          console.error('Error toggling favorite:', error)
-          if (window.toast) {
-            window.toast.error(toastUpdateError)
-          }
-        }
-      })
-    }
-
-    // Retirer de la collection
-    if (removeFromCollectionBtn) {
-      removeFromCollectionBtn.addEventListener('click', async () => {
-        if (!confirm(confirmRemoveCollection)) return
-
-        try {
-          const response = await fetch(`/api/items/${itemId}/remove-from-collection`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          })
-
-          if (!response.ok) {
-            throw new Error('Failed to remove from collection')
-          }
-
-          const data = await response.json()
-
-          if (window.toast) {
-            window.toast.success(toastRemovedFromCollection)
-          }
-
-          // Recharger la page
-          setTimeout(() => {
-            window.location.reload()
-          }, 500)
-        } catch (error) {
-          console.error('Error removing from collection:', error)
-          if (window.toast) {
-            window.toast.error('Error while removing')
-          }
-        }
-      })
-    }
-
-    // Supprimer
-    if (deleteBtn) {
-      deleteBtn.addEventListener('click', () => {
-        // Ouvrir le modal de confirmation
-        const modal = document.getElementById('delete-item-modal')
-        if (modal) {
-          modal.classList.remove('hidden')
-          modal.classList.add('flex')
-        }
-      })
-    }
-  })()
+<script>
+  import './ItemActionsMenu.client'
 </script>
 
 <style>

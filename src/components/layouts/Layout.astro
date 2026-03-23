@@ -28,6 +28,7 @@ const showDashboardHeader = props.showDashboardHeader ?? false
 const showBottomBar = props.showBottomBar ?? false
 const showFooter = props.showFooter ?? true
 const userPreferences = Astro.locals.userPreferences
+const user = Astro.locals.user
 const htmlLang = userPreferences?.locale ?? 'en'
 const preferredTheme = userPreferences?.theme ?? ''
 const locale = normalizeLocale(userPreferences?.locale ?? Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
@@ -104,7 +105,7 @@ const layoutT = getLayoutMessages(locale)
   >
     <a
       href="#main-content"
-      class="skip-link fixed left-4 top-4 z-[100] -translate-y-[9999px] rounded-lg bg-primary px-4 py-2 text-white shadow-lg transition-transform duration-200 focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+      class="skip-link fixed left-4 top-4 z-100 -translate-y-[9999px] rounded-lg bg-primary px-4 py-2 text-white shadow-lg transition-transform duration-200 focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
     >
       {layoutT.common.skipToMainContent}
     </a>
@@ -128,7 +129,7 @@ const layoutT = getLayoutMessages(locale)
       <!-- Barre d’extrait audio flottante en bas (remplie par TrackList) -->
       <div
         id="global-audio-bar"
-        class="global-audio-bar hidden fixed inset-x-0 bottom-20 z-40 flex justify-center pointer-events-none border-t border-border bg-surface-elevated shadow-lg backdrop-blur-sm md:bottom-6 md:border-none md:bg-transparent md:shadow-none"
+        class="global-audio-bar hidden fixed inset-x-0 bottom-20 z-40 justify-center pointer-events-none bg-surface-elevated shadow-lg backdrop-blur-sm md:bottom-6 md:border-none md:bg-transparent md:shadow-none"
         aria-live="polite"
         aria-label={layoutT.common.nowPlayingAria}
       >
@@ -138,7 +139,17 @@ const layoutT = getLayoutMessages(locale)
         ></div>
       </div>
 
-      {showBottomBar && <BottomBar mainNavAria={layoutT.bottomBar.mainNavAria} libraryLabel={layoutT.bottomBar.library} exploreLabel={layoutT.bottomBar.explore} profileLabel={layoutT.bottomBar.profile} />}
+      {showBottomBar && (
+        <BottomBar
+          mainNavAria={layoutT.bottomBar.mainNavAria}
+          libraryLabel={layoutT.bottomBar.library}
+          exploreLabel={layoutT.bottomBar.explore}
+          profileLabel={layoutT.bottomBar.profile}
+          userName={user?.name ?? null}
+          userEmail={user?.email ?? null}
+          userImageUrl={user?.imageUrl ?? user?.image ?? null}
+        />
+      )}
 
       {showFooter && <Footer navAria={layoutT.footer.navAria} />}
     </div>
@@ -156,92 +167,6 @@ const layoutT = getLayoutMessages(locale)
 <script>
   import '../../scripts/loading-utils';
 </script>
-<script is:inline>
-  (function () {
-    var sidebarOpenLabel = 'Open menu'
-    var sidebarCloseLabel = 'Close menu'
-    var signingOutLabel = 'Signing out...'
-    var signOutErrorLabel = 'Error while signing out'
-    try {
-      var el = document.getElementById('layout-sidebar-messages')
-      var raw = el && el.textContent && el.textContent.trim()
-      if (raw) {
-        raw = raw.replace(/\s/g, '')
-        if (/^[A-Za-z0-9+/=]+$/.test(raw)) {
-          var decoded = JSON.parse(atob(raw))
-          if (decoded.sidebarOpenLabel) sidebarOpenLabel = decoded.sidebarOpenLabel
-          if (decoded.sidebarCloseLabel) sidebarCloseLabel = decoded.sidebarCloseLabel
-          if (decoded.signingOutLabel) signingOutLabel = decoded.signingOutLabel
-          if (decoded.signOutErrorLabel) signOutErrorLabel = decoded.signOutErrorLabel
-        }
-      }
-    } catch (e) {
-      console.warn('Could not parse layout-sidebar-messages', e)
-    }
-
-    function applyTheme() {
-      var html = document.documentElement
-      var prefersDark =
-        typeof matchMedia !== 'undefined' ? matchMedia('(prefers-color-scheme: dark)').matches : false
-      var theme =
-        localStorage.theme === 'dark' || (!('theme' in localStorage) && prefersDark)
-          ? 'dark'
-          : 'light'
-      html.setAttribute('data-theme', theme)
-    }
-
-    document.addEventListener('astro:before-swap', function (event) {
-      var newDoc = event.detail && event.detail.newDocument
-      if (newDoc) {
-        var prefersDark =
-          typeof matchMedia !== 'undefined'
-            ? matchMedia('(prefers-color-scheme: dark)').matches
-            : false
-        var theme =
-          localStorage.theme === 'dark' || (!('theme' in localStorage) && prefersDark)
-            ? 'dark'
-            : 'light'
-        newDoc.documentElement.setAttribute('data-theme', theme)
-      }
-    })
-
-    document.addEventListener('click', async function (event) {
-      var target = event.target instanceof Element ? event.target : null
-      if (!target || !target.closest) return
-
-      if (target.closest('#sidebar-toggle-btn')) {
-        document.body.classList.toggle('sidebar-open')
-        var open = document.body.classList.contains('sidebar-open')
-        var button = document.getElementById('sidebar-toggle-btn')
-        if (button) {
-          button.setAttribute('aria-expanded', String(open))
-          button.setAttribute('aria-label', open ? sidebarCloseLabel : sidebarOpenLabel)
-        }
-        return
-      }
-
-      if (target.closest('#sidebar-close-btn') || target.closest('[data-sidebar-backdrop]')) {
-        document.body.classList.remove('sidebar-open')
-        return
-      }
-
-      if (target.closest('#sidebar-signout-btn')) {
-        event.preventDefault()
-        event.stopPropagation()
-        try {
-          var win = typeof window !== 'undefined' ? window : null
-          if (win && win.toast && win.toast.info) win.toast.info(signingOutLabel, 2000)
-          var auth = await import('../../lib/auth-client')
-          await auth.signOut()
-          sessionStorage.setItem('showLogoutToast', 'true')
-          setTimeout(function () { window.location.href = '/login' }, 500)
-        } catch (error) {
-          console.error('Error signing out:', error)
-          var winErr = typeof window !== 'undefined' ? window : null
-          if (winErr && winErr.toast && winErr.toast.error) winErr.toast.error(signOutErrorLabel)
-          setTimeout(function () { window.location.href = '/login' }, 1000)
-        }
-      }
-    })
-  })()
+<script>
+  import './Layout.client'
 </script>

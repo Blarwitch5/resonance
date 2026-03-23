@@ -83,32 +83,27 @@ const header = collectionT?.header ?? {
     <div class="flex items-start justify-between">
       <div class="flex-1">
         <h1 class="mb-2 text-3xl font-bold text-neutral">{collection.name}</h1>
-        {collection.description && (
-          <p class="mb-4 text-muted">{collection.description}</p>
-        )}
 
         <!-- Stats -->
-        <div class="flex flex-wrap gap-4">
-          <div>
-            <span class="text-2xl font-bold text-primary">
-              {itemCount}
-            </span>
-            <span class="text-sm text-muted"> {header.countAlbums}</span>
-          </div>
+        <div class="flex flex-wrap items-center gap-2 text-sm">
+          <span class="text-2xl font-bold text-primary">
+            {itemCount}
+          </span>
+          <span class="text-sm text-muted">{header.countAlbums}</span>
+          <span class="text-muted">|</span>
           <div class="flex items-center gap-1.5" title={header.countVinyls}>
             <Disc3 size={20} class="fill-none stroke-2 text-format-vinyl stroke-format-vinyl shrink-0" aria-hidden="true" />
-            <span class="text-xl font-bold text-format-vinyl">{collection.vinylCount ?? 0}</span>
-            <span class="text-sm text-muted">{header.countVinyls}</span>
+            <span class="font-medium text-neutral">{collection.vinylCount ?? 0} {header.countVinyls}</span>
           </div>
+          <span class="text-muted">|</span>
           <div class="flex items-center gap-1.5" title={header.countCds}>
             <Disc2 size={20} class="fill-none stroke-2 text-format-cd stroke-format-cd shrink-0" aria-hidden="true" />
-            <span class="text-xl font-bold text-format-cd">{collection.cdCount ?? 0}</span>
-            <span class="text-sm text-muted">{header.countCds}</span>
+            <span class="font-medium text-neutral">{collection.cdCount ?? 0} {header.countCds}</span>
           </div>
+          <span class="text-muted">|</span>
           <div class="flex items-center gap-1.5" title={header.countCassettes}>
             <CassetteTape size={20} class="fill-none stroke-2 text-format-cassette stroke-format-cassette shrink-0" aria-hidden="true" />
-            <span class="text-xl font-bold text-format-cassette">{collection.cassetteCount ?? 0}</span>
-            <span class="text-sm text-muted">{header.countCassettes}</span>
+            <span class="font-medium text-neutral">{collection.cassetteCount ?? 0} {header.countCassettes}</span>
           </div>
         </div>
       </div>
@@ -232,235 +227,6 @@ const header = collectionT?.header ?? {
   coverUploadErrorMsg: header.editModal.coverUploadError,
 }).replace(/<\/script/gi, '<\\/script')}></script>
 
-<script is:inline>
-  (function() {
-    var editMessages = { savingLabel: '', updatedSuccessMsg: '', errorUpdatingMsg: '', errorGenericMsg: '', deleteTitleLabel: '', deleteMessageTemplate: '', deleteConfirmLabel: '', deleteCancelLabel: '', deletingLabel: '', deletedSuccessMsg: '', errorDeletingMsg: '', coverFileTooLargeMsg: '', coverUploadErrorMsg: '' }
-    try {
-      var el = document.getElementById('edit-collection-messages')
-      if (el && el.textContent) { editMessages = JSON.parse(el.textContent) }
-    } catch (e) { console.warn('Could not parse edit-collection-messages', e) }
-
-    const editBtn = document.getElementById('edit-collection-btn')
-    const deleteBtn = document.getElementById('delete-collection-btn')
-    const collectionId = editBtn && editBtn.dataset && editBtn.dataset.collectionId
-    const collectionName = deleteBtn && deleteBtn.dataset && deleteBtn.dataset.collectionName
-    const editModal = document.getElementById('edit-collection-modal')
-    const editForm = document.getElementById('edit-collection-form')
-    const cancelEditBtn = document.getElementById('cancel-edit-btn')
-    const editNameInput = document.getElementById('edit-name')
-    const editDescriptionInput = document.getElementById('edit-description')
-    const editCoverUpload = document.getElementById('edit-cover-upload')
-    const editCoverRemove = document.getElementById('edit-cover-remove')
-    const editCoverPreviewWrapper = document.getElementById('edit-cover-preview-wrapper')
-    const editCoverPreview = document.getElementById('edit-cover-preview')
-
-    let pendingCoverUrl = null
-
-    const ALLOWED_COVER_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
-    const MAX_COVER_SIZE = 5 * 1024 * 1024
-
-    function syncEditCoverPreview() {
-      if (!editCoverPreview || !editCoverPreviewWrapper) return
-      if (pendingCoverUrl) {
-        editCoverPreview.src = pendingCoverUrl
-        editCoverPreview.alt = 'Cover preview'
-        editCoverPreviewWrapper.classList.remove('hidden')
-      } else {
-        editCoverPreview.src = ''
-        editCoverPreviewWrapper.classList.add('hidden')
-      }
-    }
-
-    function loadCollectionData() {
-      const nameElement = document.querySelector('h1.text-3xl')
-      const descElement = document.querySelector('p.text-muted')
-      
-      if (nameElement && editNameInput) {
-        editNameInput.value = nameElement.textContent || ''
-      }
-      if (descElement && editDescriptionInput) {
-        editDescriptionInput.value = descElement.textContent || ''
-      }
-      if (editForm && editForm.dataset.initialCover) {
-        pendingCoverUrl = editForm.dataset.initialCover
-      } else {
-        pendingCoverUrl = null
-      }
-      if (editCoverUpload) editCoverUpload.value = ''
-      syncEditCoverPreview()
-    }
-
-    // Open edit modal
-    editBtn?.addEventListener('click', function() {
-      loadCollectionData()
-      if (editModal) {
-        editModal.classList.remove('hidden')
-        editModal.classList.add('flex')
-      }
-    })
-
-    // Close edit modal
-    cancelEditBtn?.addEventListener('click', function() {
-      if (editModal) {
-        editModal.classList.add('hidden')
-        editModal.classList.remove('flex')
-      }
-    })
-
-    // Fermer le modal en cliquant sur l'overlay
-    editModal?.addEventListener('click', function(event) {
-      if (event.target === editModal) {
-        editModal.classList.add('hidden')
-        editModal.classList.remove('flex')
-      }
-    })
-
-    // Edit cover: upload
-    editCoverUpload?.addEventListener('change', async function(event) {
-      const target = event.target
-      const file = target.files?.[0]
-      if (!file) return
-      if (!ALLOWED_COVER_TYPES.includes(file.type)) {
-        if (window.toast) window.toast.error(editMessages.coverUploadErrorMsg)
-        target.value = ''
-        return
-      }
-      if (file.size > MAX_COVER_SIZE) {
-        if (window.toast) window.toast.error(editMessages.coverFileTooLargeMsg)
-        target.value = ''
-        return
-      }
-      const formDataUpload = new FormData()
-      formDataUpload.append('cover', file)
-      try {
-        const response = await fetch('/api/collections/upload-cover', {
-          method: 'POST',
-          body: formDataUpload,
-          credentials: 'include',
-        })
-        const data = await response.json()
-        if (response.ok && data.imageUrl) {
-          pendingCoverUrl = data.imageUrl
-          syncEditCoverPreview()
-        } else {
-          if (window.toast) window.toast.error(data.error || editMessages.coverUploadErrorMsg)
-          target.value = ''
-        }
-      } catch (error) {
-        if (window.toast) window.toast.error(editMessages.coverUploadErrorMsg)
-        target.value = ''
-      }
-    })
-
-    // Edit cover: remove
-    editCoverRemove?.addEventListener('click', function() {
-      pendingCoverUrl = null
-      if (editCoverUpload) editCoverUpload.value = ''
-      syncEditCoverPreview()
-    })
-
-    // Submit edit form
-    editForm?.addEventListener('submit', async function(event) {
-      event.preventDefault()
-      
-      if (!editForm) return
-      
-      const formData = new FormData(editForm)
-      const collectionData = {
-        name: formData.get('name'),
-        description: formData.get('description') || null,
-        coverImage: pendingCoverUrl,
-      }
-
-      const submitBtn = editForm.querySelector('button[type="submit"]')
-      const originalText = submitBtn?.textContent || ''
-      if (submitBtn) {
-        submitBtn.disabled = true
-        submitBtn.textContent = editMessages.savingLabel
-      }
-
-      try {
-        const response = await fetch('/api/collections/' + collectionId + '/update', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(collectionData),
-        })
-
-        const responseData = await response.json()
-
-        if (response.ok) {
-          if (window.toast) {
-            window.toast.success(editMessages.updatedSuccessMsg)
-          }
-          setTimeout(function() {
-            window.location.reload()
-          }, 500)
-        } else {
-          if (window.toast) {
-            window.toast.error(responseData.error || errorUpdatingMsg)
-          }
-        }
-      } catch (error) {
-        console.error('Error updating collection:', error)
-        if (window.toast) {
-          window.toast.error(editMessages.errorGenericMsg)
-        }
-      } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false
-          submitBtn.textContent = originalText
-        }
-      }
-    })
-
-    // Supprimer la collection
-    deleteBtn?.addEventListener('click', async function() {
-      const deleteMessage = editMessages.deleteMessageTemplate.replace('{name}', collectionName || '')
-      const confirmed = await window.confirmDialog?.(
-        editMessages.deleteTitleLabel,
-        deleteMessage,
-        editMessages.deleteConfirmLabel,
-        editMessages.deleteCancelLabel
-      )
-      
-      if (!confirmed) {
-        return
-      }
-
-      const button = deleteBtn
-      const originalText = button.textContent || ''
-      button.disabled = true
-      button.textContent = editMessages.deletingLabel
-
-      try {
-        const response = await fetch('/api/collections/' + collectionId + '/delete', {
-          method: 'DELETE',
-        })
-
-        if (response.ok || response.status === 204) {
-          if (window.toast) {
-            window.toast.success(editMessages.deletedSuccessMsg)
-          }
-          setTimeout(function() {
-            window.location.href = '/collections'
-          }, 500)
-        } else {
-          const responseData = await response.json()
-          if (window.toast) {
-            window.toast.error(responseData.error || editMessages.errorDeletingMsg)
-          }
-        }
-      } catch (error) {
-        console.error('Error deleting collection:', error)
-        if (window.toast) {
-          window.toast.error(editMessages.errorGenericMsg)
-        }
-      } finally {
-        button.disabled = false
-        button.textContent = originalText
-      }
-    })
-  })()
+<script>
+  import './CollectionHeader.client'
 </script>

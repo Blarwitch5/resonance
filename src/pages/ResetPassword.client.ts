@@ -3,6 +3,9 @@
  * Lit la config depuis #reset-password-messages (base64 JSON).
  */
 
+import { onAstroPageLoad, onDomReady } from '../scripts/client/runtime'
+import { decodeBase64Json } from '../scripts/client/encoding'
+
 type ResetPasswordMessages = {
   errorMinLength: string
   errorLowercase: string
@@ -19,11 +22,7 @@ function getMessages(): ResetPasswordMessages | null {
   const el = document.getElementById('reset-password-messages')
   const raw = el?.textContent?.trim()
   if (!raw || !/^[A-Za-z0-9+/=]+$/.test(raw.replace(/\s/g, ''))) return null
-  try {
-    return JSON.parse(atob(raw)) as ResetPasswordMessages
-  } catch {
-    return null
-  }
+  return decodeBase64Json<ResetPasswordMessages>(raw)
 }
 
 function run(messages: ResetPasswordMessages | null): void {
@@ -142,9 +141,5 @@ function run(messages: ResetPasswordMessages | null): void {
   })
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => run(getMessages()), { once: true })
-} else {
-  run(getMessages())
-}
-document.addEventListener('astro:page-load', () => run(getMessages()))
+onDomReady(() => run(getMessages()))
+onAstroPageLoad(() => run(getMessages()))

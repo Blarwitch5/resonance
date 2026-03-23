@@ -36,136 +36,28 @@ const { labels = defaultLabels } = Astro.props as CollectionSearchProps
     type="text"
     id="collection-search"
     placeholder={labels.placeholder}
-    class="w-full rounded-xl border border-border bg-surface pl-12 pr-12 py-3 text-neutral placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
+    class="h-11 w-full rounded-xl border border-border bg-surface pl-12 pr-12 text-neutral placeholder-muted transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
     autocomplete="off"
   />
   <button
     type="button"
     id="clear-search"
-    class="absolute inset-y-0 right-0 hidden items-center pr-4 text-muted hover:text-neutral transition-colors"
+    class="absolute inset-y-0 right-0 hidden min-w-11 items-center justify-center px-3 text-muted transition-colors hover:text-neutral focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
     aria-label={labels.clearAria}
   >
     <X size={20} />
   </button>
 </div>
 
-<script type="text/javascript" define:vars={{ noResultsLabel: labels.noResults, noResultsForQueryTemplate: labels.noResultsForQuery }}>
-  document.addEventListener('DOMContentLoaded', () => {
-    const searchInput = document.getElementById('collection-search')
-    const clearButton = document.getElementById('clear-search')
-    const itemSections = document.querySelectorAll('[data-item-section]')
-    const itemCards = document.querySelectorAll('[data-item-card]')
+<script
+  type="application/json"
+  id="collection-search-messages"
+  set:html={JSON.stringify({
+    noResultsLabel: labels.noResults,
+    noResultsForQueryTemplate: labels.noResultsForQuery,
+  }).replace(/<\/script/gi, '<\\/script')}
+></script>
 
-    if (!searchInput) return
-
-    function performSearch(query) {
-      const searchTerm = query.toLowerCase().trim()
-      let visibleCount = 0
-
-      // Si la recherche est vide, afficher tout
-      if (searchTerm === '') {
-        itemSections.forEach((section) => {
-          section.classList.remove('hidden')
-        })
-        itemCards.forEach((card) => {
-          card.classList.remove('hidden')
-        })
-        clearButton?.classList.add('hidden')
-        clearButton?.classList.remove('flex')
-        return
-      }
-
-      // Afficher le bouton clear
-      clearButton?.classList.remove('hidden')
-      clearButton?.classList.add('flex')
-
-      // Filtrer les items
-      itemCards.forEach((card) => {
-        const title = card.getAttribute('data-item-title')?.toLowerCase() || ''
-        const artist = card.getAttribute('data-item-artist')?.toLowerCase() || ''
-        const genre = card.getAttribute('data-item-genre')?.toLowerCase() || ''
-        const year = card.getAttribute('data-item-year') || ''
-
-        const matches =
-          title.includes(searchTerm) ||
-          artist.includes(searchTerm) ||
-          genre.includes(searchTerm) ||
-          year.includes(searchTerm)
-
-        if (matches) {
-          card.classList.remove('hidden')
-          visibleCount++
-        } else {
-          card.classList.add('hidden')
-        }
-      })
-
-      // Masquer les sections vides
-      itemSections.forEach((section) => {
-        const visibleItems = section.querySelectorAll('[data-item-card]:not(.hidden)')
-        if (visibleItems.length === 0) {
-          section.classList.add('hidden')
-        } else {
-          section.classList.remove('hidden')
-        }
-      })
-
-      // Show a message when there is no result
-      const resultsMessage = document.getElementById('search-results-message')
-      if (visibleCount === 0) {
-        if (!resultsMessage) {
-          const message = document.createElement('div')
-          message.id = 'search-results-message'
-          message.className =
-            'glass-card rounded-2xl p-12 text-center col-span-full'
-          // Build no-results message with DOM (no innerHTML)
-          const iconWrap = document.createElement('div')
-          iconWrap.className =
-            'bg-gradient-resonance-subtle mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full'
-          iconWrap.innerHTML =
-            '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>'
-          message.appendChild(iconWrap)
-          const heading = document.createElement('h3')
-          heading.className = 'font-display mb-2 text-xl font-semibold text-neutral'
-          heading.textContent = noResultsLabel
-          message.appendChild(heading)
-          const para = document.createElement('p')
-          para.className = 'text-muted'
-          para.textContent = noResultsForQueryTemplate.replace('{query}', query)
-          message.appendChild(para)
-          const container = document.querySelector('[data-items-container]')
-          if (container) {
-            container.appendChild(message)
-          }
-        }
-      } else {
-        resultsMessage?.remove()
-      }
-    }
-
-    // Live search
-    searchInput.addEventListener('input', (event) => {
-      const target = event.target
-      if (target && 'value' in target) {
-        performSearch(target.value)
-      }
-    })
-
-    // Bouton clear
-    clearButton?.addEventListener('click', () => {
-      if ('value' in searchInput) {
-        searchInput.value = ''
-      }
-      performSearch('')
-      searchInput.focus()
-    })
-
-    // Raccourci clavier pour effacer (Escape)
-    searchInput.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && 'value' in searchInput && searchInput.value) {
-        searchInput.value = ''
-        performSearch('')
-      }
-    })
-  })
+<script>
+  import './CollectionSearch.client'
 </script>

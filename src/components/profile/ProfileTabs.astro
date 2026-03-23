@@ -1,6 +1,6 @@
 ---
 import Heart from '@lucide/astro/icons/heart'
-import ShoppingCart from '@lucide/astro/icons/shopping-cart'
+import Bookmark from '@lucide/astro/icons/bookmark'
 import BarChart from '@lucide/astro/icons/chart-bar'
 import Library from '@lucide/astro/icons/library'
 import type { ComponentProps } from 'astro/types'
@@ -9,9 +9,21 @@ type ProfileTabsProps = {
   activeTab?: string
   slot?: string
   tabsAriaLabel?: string
+  favoritesLabel?: string
+  wishlistLabel?: string
+  statisticsLabel?: string
+  allFormatsLabel?: string
 }
 
-const { activeTab = 'favorites', slot: defaultSlot, tabsAriaLabel = 'Profile sections' } = Astro.props as ProfileTabsProps
+const {
+  activeTab = 'favorites',
+  slot: defaultSlot,
+  tabsAriaLabel = 'Profile sections',
+  favoritesLabel = 'Favorites',
+  wishlistLabel = 'Wishlist',
+  statisticsLabel = 'Statistics',
+  allFormatsLabel = 'All Formats',
+} = Astro.props as ProfileTabsProps
 ---
 
 <div class="min-w-0 space-y-6">
@@ -26,7 +38,7 @@ const { activeTab = 'favorites', slot: defaultSlot, tabsAriaLabel = 'Profile sec
       <button
         type="button"
         data-tab="favorites"
-        class="tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3"
+        class="tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3"
         role="tab"
         id="tab-favorites"
         aria-controls="panel-favorites"
@@ -34,27 +46,27 @@ const { activeTab = 'favorites', slot: defaultSlot, tabsAriaLabel = 'Profile sec
         tabindex="-1"
       >
         <Heart size={18} class="fill-none stroke-2" />
-        <span>Favorites</span>
+        <span>{favoritesLabel}</span>
       </button>
 
       <button
         type="button"
         data-tab="wishlist"
-        class="tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3"
+        class="tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3"
         role="tab"
         id="tab-wishlist"
         aria-controls="panel-wishlist"
         aria-selected="false"
         tabindex="-1"
       >
-        <ShoppingCart size={18} class="fill-none stroke-2" />
-        <span>Wishlist</span>
+        <Bookmark size={18} class="fill-none stroke-2" />
+        <span>{wishlistLabel}</span>
       </button>
 
       <button
         type="button"
         data-tab="statistics"
-        class="tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3"
+        class="tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3"
         role="tab"
         id="tab-statistics"
         aria-controls="panel-statistics"
@@ -62,13 +74,13 @@ const { activeTab = 'favorites', slot: defaultSlot, tabsAriaLabel = 'Profile sec
         tabindex="-1"
       >
         <BarChart size={18} class="fill-none stroke-2" />
-        <span>Statistics</span>
+        <span>{statisticsLabel}</span>
       </button>
 
       <button
         type="button"
         data-tab="all-formats"
-        class="tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3"
+        class="tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3"
         role="tab"
         id="tab-all-formats"
         aria-controls="panel-all-formats"
@@ -76,7 +88,7 @@ const { activeTab = 'favorites', slot: defaultSlot, tabsAriaLabel = 'Profile sec
         tabindex="-1"
       >
         <Library size={18} class="fill-none stroke-2" />
-        <span>All Formats</span>
+        <span>{allFormatsLabel}</span>
       </button>
     </div>
   </div>
@@ -127,184 +139,7 @@ const { activeTab = 'favorites', slot: defaultSlot, tabsAriaLabel = 'Profile sec
 </div>
 
 <script>
-  (function() {
-    function initTabs() {
-      const tabList = document.getElementById('profile-tablist')
-      const tabs = tabList ? tabList.querySelectorAll('.tab-btn') : document.querySelectorAll('.tab-btn')
-      const tabContent = document.getElementById('tab-content')
-      
-      if (!tabContent) {
-        setTimeout(initTabs, 100)
-        return
-      }
-      
-      // Chercher les slots par data-tab-content (plus fiable que [slot])
-      const slotElements = tabContent.querySelectorAll('[data-tab-content]')
-      
-      // Si aucun slot trouvé, essayer avec [slot] comme fallback
-      if (slotElements.length === 0) {
-        const fallbackSlots = tabContent.querySelectorAll('[slot]')
-        if (fallbackSlots.length > 0) {
-          fallbackSlots.forEach(function(slot) {
-            const slotName = slot.getAttribute('slot')
-            if (slotName) {
-              slot.setAttribute('data-tab-content', slotName)
-            }
-          })
-        }
-      }
-      
-      // Récupérer les slots (peut-être mis à jour)
-      const finalSlots = tabContent.querySelectorAll('[data-tab-content]')
-      
-      const showTab = (tabName: string | null, focusTab: boolean = false) => {
-        if (!tabName) return
-        
-        // Mettre à jour les boutons
-        tabs.forEach(function(tab) {
-          const icon = tab.querySelector('svg')
-          if (tab.getAttribute('data-tab') === tabName) {
-            tab.classList.add('active')
-            tab.classList.add('border-primary')
-            tab.classList.add('text-primary')
-            tab.classList.remove('border-transparent')
-            tab.setAttribute('aria-selected', 'true')
-            tab.setAttribute('tabindex', '0')
-            if (focusTab && tab instanceof HTMLElement) {
-              tab.focus()
-            }
-            if (icon) {
-              icon.classList.add('fill-none', 'stroke-2', 'text-primary', 'stroke-primary')
-              icon.classList.remove('text-muted', 'stroke-muted')
-            }
-          } else {
-            tab.classList.remove('active')
-            tab.classList.remove('border-primary')
-            tab.classList.remove('text-primary')
-            tab.classList.add('border-transparent')
-            tab.setAttribute('aria-selected', 'false')
-            tab.setAttribute('tabindex', '-1')
-            if (icon) {
-              icon.classList.add('fill-none', 'stroke-2', 'text-muted', 'stroke-muted')
-              icon.classList.remove('text-primary', 'stroke-primary')
-            }
-          }
-        })
-
-        // Afficher le contenu correspondant
-        ;(finalSlots as NodeListOf<HTMLElement>).forEach(function(slot) {
-          const slotName = slot.getAttribute('data-tab-content')
-          const element = slot
-          if (slotName === tabName) {
-            element.classList.remove('hidden')
-            element.classList.add('active')
-            element.style.display = 'block'
-            if (tabName === 'statistics') {
-              window.dispatchEvent(new CustomEvent('profile-tab-statistics-visible'))
-            }
-          } else {
-            element.classList.add('hidden')
-            element.classList.remove('active')
-            element.style.display = 'none'
-          }
-        })
-      }
-
-      // Récupérer le tab depuis l'URL ou utiliser le premier par défaut
-      function getTabFromURL() {
-        const urlParams = new URLSearchParams(window.location.search)
-        const tabParam = urlParams.get('tab')
-        if (tabParam) {
-          // Vérifier que le tab existe
-          const tabExists = Array.from(tabs).some(function(tab) {
-            return tab.getAttribute('data-tab') === tabParam
-          })
-          if (tabExists) {
-            return tabParam
-          }
-        }
-        return null
-      }
-
-      // Initialiser avec le tab de l'URL ou le premier tab par défaut
-      const urlTab = getTabFromURL()
-      const defaultTab = tabs.length > 0 ? tabs[0].getAttribute('data-tab') : null
-      const initialTab = urlTab || defaultTab
-      
-      if (initialTab) {
-        showTab(initialTab)
-      }
-
-      // Gérer les clics
-      tabs.forEach(function(tab) {
-        tab.addEventListener('click', function() {
-          const tabName = tab.getAttribute('data-tab')
-          if (tabName) {
-            showTab(tabName, true)
-            // Mettre à jour l'URL sans recharger la page
-            const url = new URL(window.location.href)
-            url.searchParams.set('tab', tabName)
-            window.history.pushState({}, '', url.toString())
-          }
-        })
-      })
-
-      // Navigation clavier entre onglets (flèches, Home, End)
-      if (tabList) {
-        tabList.addEventListener('keydown', function(event: KeyboardEvent) {
-          const currentTab = document.activeElement
-          const tabArray = Array.from(tabs) as HTMLElement[]
-          const currentIndex = tabArray.indexOf(currentTab as HTMLElement)
-
-          if (currentIndex === -1) return
-
-          let nextIndex = currentIndex
-
-          switch (event.key) {
-            case 'ArrowRight':
-            case 'Right':
-              event.preventDefault()
-              nextIndex = (currentIndex + 1) % tabArray.length
-              break
-            case 'ArrowLeft':
-            case 'Left':
-              event.preventDefault()
-              nextIndex = (currentIndex - 1 + tabArray.length) % tabArray.length
-              break
-            case 'Home':
-              event.preventDefault()
-              nextIndex = 0
-              break
-            case 'End':
-              event.preventDefault()
-              nextIndex = tabArray.length - 1
-              break
-            default:
-              return
-          }
-
-          const nextTab = tabArray[nextIndex]
-          const nextTabName = nextTab.getAttribute('data-tab')
-          if (nextTabName) {
-            showTab(nextTabName, true)
-            const url = new URL(window.location.href)
-            url.searchParams.set('tab', nextTabName)
-            window.history.pushState({}, '', url.toString())
-          }
-        })
-      }
-    }
-
-    // Initialiser au chargement
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initTabs)
-    } else {
-      initTabs()
-    }
-
-    // Réinitialiser lors de la navigation Astro
-    document.addEventListener('astro:page-load', initTabs)
-  })()
+  import './ProfileTabs.client'
 </script>
 
 <style>

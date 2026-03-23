@@ -3,32 +3,43 @@
  * Lit la config depuis #login-messages (base64 JSON).
  */
 
+import { onAstroPageLoad, onDomReady } from '../scripts/client/runtime'
+import { decodeBase64Json } from '../scripts/client/encoding'
+
 type LoginMessages = {
   form: Record<string, string>
   errors: Record<string, string>
   toasts?: { signedOutSuccess?: string; oauthNotConfigured?: string }
 }
 
+function getLatestElementById(id: string): HTMLElement | null {
+  const elements = Array.from(document.querySelectorAll(`#${id}`)).filter(
+    (element): element is HTMLElement => element instanceof HTMLElement
+  )
+  return elements.at(-1) ?? null
+}
+
 function getMessages(): LoginMessages | null {
-  const el = document.getElementById('login-messages')
+  const el = getLatestElementById('login-messages')
   const raw = el?.textContent?.trim()
   if (!raw || !/^[A-Za-z0-9+/=]+$/.test(raw.replace(/\s/g, ''))) return null
-  try {
-    return JSON.parse(atob(raw)) as LoginMessages
-  } catch {
-    return null
-  }
+  return decodeBase64Json<LoginMessages>(raw)
 }
 
 function run(messages: LoginMessages | null): void {
   if (!messages) return
+  const root = getLatestElementById('password')?.closest('form')
+  if (!(root instanceof HTMLFormElement)) return
+  if (root.dataset.initialized === 'true') return
+  root.dataset.initialized = 'true'
+
   const form = messages.form
   const errors = messages.errors
 
-  const togglePasswordButton = document.getElementById('toggle-password')
-  const passwordInput = document.getElementById('password')
-  const eyeIcon = document.getElementById('eye-icon')
-  const eyeOffIcon = document.getElementById('eye-off-icon')
+  const togglePasswordButton = root.querySelector('#toggle-password')
+  const passwordInput = root.querySelector('#password') as HTMLInputElement | null
+  const eyeIcon = root.querySelector('#eye-icon')
+  const eyeOffIcon = root.querySelector('#eye-off-icon')
 
   if (togglePasswordButton && passwordInput) {
     togglePasswordButton.addEventListener('click', function () {
@@ -36,21 +47,21 @@ function run(messages: LoginMessages | null): void {
       passwordInput.type = isPassword ? 'text' : 'password'
       if (eyeIcon && eyeOffIcon) {
         if (isPassword) {
-          eyeIcon.classList.remove('hidden')
-          eyeOffIcon.classList.add('hidden')
-          togglePasswordButton.setAttribute('aria-label', form.hidePassword)
-        } else {
           eyeIcon.classList.add('hidden')
           eyeOffIcon.classList.remove('hidden')
+          togglePasswordButton.setAttribute('aria-label', form.hidePassword)
+        } else {
+          eyeIcon.classList.remove('hidden')
+          eyeOffIcon.classList.add('hidden')
           togglePasswordButton.setAttribute('aria-label', form.showPassword)
         }
       }
     })
   }
 
-  const formEl = document.querySelector('form[action="/api/auth/sign-in/email"]')
-  const emailInput = document.getElementById('email')
-  const errorBox = document.getElementById('login-error')
+  const formEl = root
+  const emailInput = root.querySelector('#email') as HTMLInputElement | null
+  const errorBox = root.querySelector('#login-error')
 
   function setFieldError(input: HTMLElement | null, hasError: boolean): void {
     if (!input) return
@@ -66,32 +77,32 @@ function run(messages: LoginMessages | null): void {
   if (formEl) {
     formEl.addEventListener('submit', async function (event: Event) {
       event.preventDefault()
-      const formData = new FormData(formEl as HTMLFormElement)
+      const formData = new FormData(formEl)
       const email = formData.get('email')
       const password = formData.get('password')
       if (errorBox) {
         errorBox.classList.add('hidden')
         errorBox.textContent = ''
       }
-      setFieldError(emailInput as HTMLElement | null, false)
-      setFieldError(passwordInput as HTMLElement | null, false)
+      setFieldError(emailInput, false)
+      setFieldError(passwordInput, false)
       if (!email || !password) {
         if (errorBox) {
           errorBox.textContent = errors.fillRequired
           errorBox.classList.remove('hidden')
         }
-        setFieldError(emailInput as HTMLElement | null, !email)
-        setFieldError(passwordInput as HTMLElement | null, !password)
-        if (!email && emailInput) (emailInput as HTMLInputElement).focus()
-        else if (!password && passwordInput) (passwordInput as HTMLInputElement).focus()
-        if ((window as Window & { toast?: (m: string) => void }).toast) (window as Window & { toast: (m: string) => void }).toast.error(errors.fillRequired)
+        setFieldError(emailInput, !email)
+        setFieldError(passwordInput, !password)
+        if (!email && emailInput) emailInput.focus()
+        else if (!password && passwordInput) passwordInput.focus()
+        window.toast?.error(errors.fillRequired)
         return
       }
-      const submitButton = formEl.querySelector('button[type="submit"]')
-      const originalButtonText = submitButton ? (submitButton as HTMLButtonElement).textContent || '' : (form as { submit?: string }).submit
+      const submitButton = formEl.querySelector<HTMLButtonElement>('button[type="submit"]')
+      const originalButtonText = submitButton?.textContent || (form as { submit?: string }).submit || ''
       if (submitButton) {
-        (submitButton as HTMLButtonElement).disabled = true
-        (submitButton as HTMLButtonElement).textContent = form.signingIn
+        submitButton.disabled = true
+        submitButton.textContent = form.signingIn
       }
       try {
         const body = new URLSearchParams({ email: String(email), password: String(password) })
@@ -105,10 +116,10 @@ function run(messages: LoginMessages | null): void {
           const data = await response.json().catch(() => ({}))
           const message = (data.message || data.error || errors.signInError) as string
           if (errorBox) { errorBox.textContent = message; errorBox.classList.remove('hidden') }
-          setFieldError(emailInput as HTMLElement | null, true)
-          setFieldError(passwordInput as HTMLElement | null, true)
-          if (emailInput) (emailInput as HTMLInputElement).focus()
-          if ((window as Window & { toast?: (m: string) => void }).toast) (window as Window & { toast: (m: string) => void }).toast.error(message)
+          setFieldError(emailInput, true)
+          setFieldError(passwordInput, true)
+          if (emailInput) emailInput.focus()
+          window.toast?.error(message)
           return
         }
         sessionStorage.setItem('showWelcomeToast', 'true')
@@ -120,34 +131,42 @@ function run(messages: LoginMessages | null): void {
         console.error('Error signing in:', error)
         const errorMessage = error instanceof Error ? error.message : errors.generic
         if (errorBox) { errorBox.textContent = errorMessage; errorBox.classList.remove('hidden') }
-        if ((window as Window & { toast?: (m: string) => void }).toast) (window as Window & { toast: (m: string) => void }).toast.error(errorMessage)
+        window.toast?.error(errorMessage)
       } finally {
         if (submitButton) {
-          (submitButton as HTMLButtonElement).disabled = false
-          (submitButton as HTMLButtonElement).textContent = originalButtonText || (form as { submit?: string }).submit || ''
+          submitButton.disabled = false
+          submitButton.textContent = originalButtonText || (form as { submit?: string }).submit || ''
         }
       }
     })
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
-    const showLogoutToast = sessionStorage.getItem('showLogoutToast')
-    if (showLogoutToast && (window as Window & { toast?: { info?: (m: string, d?: number) => void } }).toast?.info && messages.toasts) {
-      (window as Window & { toast: { info: (m: string, d?: number) => void } }).toast.info(messages.toasts.signedOutSuccess ?? '', 4000)
-      sessionStorage.removeItem('showLogoutToast')
-    }
-    const urlParams = new URLSearchParams(window.location.search)
-    const oauthError = urlParams.get('error')
-    if (oauthError === 'oauth_not_configured' && (window as Window & { toast?: { warning?: (m: string, d?: number) => void } }).toast?.warning && messages.toasts) {
-      (window as Window & { toast: { warning: (m: string, d?: number) => void } }).toast.warning(messages.toasts.oauthNotConfigured ?? '', 5000)
-      window.history.replaceState({}, document.title, window.location.pathname)
-    }
-  })
+  const showLogoutToast = sessionStorage.getItem('showLogoutToast')
+  if (
+    showLogoutToast &&
+    (window as Window & { toast?: { info?: (message: string, duration?: number) => void } }).toast?.info &&
+    messages.toasts
+  ) {
+    ;(window as Window & { toast: { info: (message: string, duration?: number) => void } }).toast.info(
+      messages.toasts.signedOutSuccess ?? '',
+      4000
+    )
+    sessionStorage.removeItem('showLogoutToast')
+  }
+  const urlParams = new URLSearchParams(window.location.search)
+  const oauthError = urlParams.get('error')
+  if (
+    oauthError === 'oauth_not_configured' &&
+    (window as Window & { toast?: { warning?: (message: string, duration?: number) => void } }).toast?.warning &&
+    messages.toasts
+  ) {
+    ;(window as Window & { toast: { warning: (message: string, duration?: number) => void } }).toast.warning(
+      messages.toasts.oauthNotConfigured ?? '',
+      5000
+    )
+    window.history.replaceState({}, document.title, window.location.pathname)
+  }
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => run(getMessages()), { once: true })
-} else {
-  run(getMessages())
-}
-document.addEventListener('astro:page-load', () => run(getMessages()))
+onDomReady(() => run(getMessages()))
+onAstroPageLoad(() => run(getMessages()))

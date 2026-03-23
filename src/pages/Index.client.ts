@@ -3,6 +3,9 @@
  * Lit la config depuis #index-toasts-messages (base64 JSON).
  */
 
+import { onAstroPageLoad, onDomReady } from '../scripts/client/runtime'
+import { decodeBase64Json } from '../scripts/client/encoding'
+
 type HomeToasts = {
   welcomeNew: string
   welcomeNewNoName: string
@@ -16,11 +19,7 @@ function getMessages(): HomeToasts | null {
   const el = document.getElementById('index-toasts-messages')
   const raw = el?.textContent?.trim()
   if (!raw || !/^[A-Za-z0-9+/=]+$/.test(raw.replace(/\s/g, ''))) return null
-  try {
-    return JSON.parse(atob(raw)) as HomeToasts
-  } catch {
-    return null
-  }
+  return decodeBase64Json<HomeToasts>(raw)
 }
 
 function run(messages: HomeToasts | null): void {
@@ -65,5 +64,5 @@ function run(messages: HomeToasts | null): void {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => run(getMessages()))
-document.addEventListener('astro:page-load', () => run(getMessages()))
+onDomReady(() => run(getMessages()))
+onAstroPageLoad(() => run(getMessages()))

@@ -68,32 +68,5 @@ const { mode = 'signin' } = Astro.props as OAuthButtonsProps
 </div>
 
 <script>
-  // TypeScript fonctionne nativement dans les scripts Astro !
-  (function() {
-    // Gérer les clics sur les boutons OAuth
-    const providers: string[] = ['discord', 'google', 'spotify']
-
-    providers.forEach(function(provider: string) {
-      const button = document.getElementById('oauth-' + provider) as HTMLButtonElement | null
-      if (!button) return
-
-      button.addEventListener('click', function() {
-        if (window.setButtonLoading) window.setButtonLoading(button, true, '')
-        try {
-          const baseURL = window.location.origin
-          const callbackURL = window.location.origin + '/'
-          const oauthURL = baseURL + '/api/auth/oauth/' + provider + '?callbackURL=' + encodeURIComponent(callbackURL)
-          window.location.href = oauthURL
-        } catch (error) {
-          console.error('Error signing in with ' + provider + ':', error)
-          if (window.toast) {
-            window.toast.error('Error signing in with ' + provider)
-          } else {
-            alert('Error signing in with ' + provider)
-          }
-          if (window.setButtonLoading) window.setButtonLoading(button, false)
-        }
-      })
-    })
-  })()
+  import './OAuthButtons.client'
 </script>

@@ -3,6 +3,9 @@
  * Lit la config depuis #signup-messages (base64 JSON).
  */
 
+import { onAstroPageLoad, onDomReady } from '../scripts/client/runtime'
+import { decodeBase64Json } from '../scripts/client/encoding'
+
 type SignupMessages = {
   showPasswordLabel: string
   hidePasswordLabel: string
@@ -17,11 +20,7 @@ function getMessages(): SignupMessages | null {
   const el = document.getElementById('signup-messages')
   const raw = el?.textContent?.trim()
   if (!raw || !/^[A-Za-z0-9+/=]+$/.test(raw.replace(/\s/g, ''))) return null
-  try {
-    return JSON.parse(atob(raw)) as SignupMessages
-  } catch {
-    return null
-  }
+  return decodeBase64Json<SignupMessages>(raw)
 }
 
 function run(messages: SignupMessages | null): void {
@@ -98,7 +97,7 @@ function run(messages: SignupMessages | null): void {
       setFieldError(passwordInput, !password)
       if (!email && emailInput) emailInput.focus()
       else if (!password && passwordInput) passwordInput.focus()
-      if ((window as Window & { toast?: (m: string) => void }).toast) (window as Window & { toast: (m: string) => void }).toast.error(fillRequiredError)
+      window.toast?.error(fillRequiredError)
       return
     }
 
@@ -127,7 +126,7 @@ function run(messages: SignupMessages | null): void {
         setFieldError(emailInput, true)
         setFieldError(passwordInput, true)
         if (emailInput) emailInput.focus()
-        if ((window as Window & { toast?: (m: string) => void }).toast) (window as Window & { toast: (m: string) => void }).toast.error(message)
+        window.toast?.error(message)
         return
       }
 
@@ -157,7 +156,7 @@ function run(messages: SignupMessages | null): void {
         errorBox.textContent = errorMessage
         errorBox.classList.remove('hidden')
       }
-      if ((window as Window & { toast?: (m: string) => void }).toast) (window as Window & { toast: (m: string) => void }).toast.error(errorMessage)
+      window.toast?.error(errorMessage)
     } finally {
       if (submitButton) {
         submitButton.disabled = false
@@ -167,9 +166,5 @@ function run(messages: SignupMessages | null): void {
   })
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => run(getMessages()), { once: true })
-} else {
-  run(getMessages())
-}
-document.addEventListener('astro:page-load', () => run(getMessages()))
+onDomReady(() => run(getMessages()))
+onAstroPageLoad(() => run(getMessages()))

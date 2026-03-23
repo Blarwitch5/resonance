@@ -20,7 +20,11 @@ const defaultLabels = getItemMessages('en').collectionSelector
 const { itemId, currentCollection, collections, labels = defaultLabels } = Astro.props as CollectionSelectorProps
 ---
 
-<div class="collection-selector-wrapper">
+<div
+  class="collection-selector-wrapper"
+  data-toast-moved-template="Album moved to {collectionName}"
+  data-toast-error-generic="Error while changing collection"
+>
   <label class="mb-2 block text-sm font-medium text-neutral">
     {labels.label}
   </label>
@@ -30,7 +34,7 @@ const { itemId, currentCollection, collections, labels = defaultLabels } = Astro
       data-item-id={itemId}
       class="w-full appearance-none rounded-xl border border-border bg-surface px-4 py-3 pr-10 text-neutral transition-colors focus:border-primary focus:ring-2 focus:ring-primary/50 focus:outline-none"
     >
-      <option value="" {currentCollection === null ? 'selected' : ''}>
+      <option value="" selected={currentCollection === null}>
         {labels.uncategorized}
       </option>
       {collections.map((collection) => (
@@ -51,67 +55,8 @@ const { itemId, currentCollection, collections, labels = defaultLabels } = Astro
   </p>
 </div>
 
-<script define:vars={{ itemId }}>
-  (function() {
-    const select = document.getElementById(`collection-select-${itemId}`)
-    if (!select) return
-
-    select.addEventListener('change', async function() {
-      const newCollectionId = select.value || null
-      const itemId = select.dataset.itemId
-
-      if (!itemId) return
-
-      // Disable select while loading
-      select.disabled = true
-      const originalValue = select.value
-
-      try {
-        const response = await fetch(`/api/items/${itemId}/change-collection`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ collectionId: newCollectionId }),
-        })
-
-        if (!response.ok) {
-          const error = await response.json()
-          throw new Error(error.error || 'Error while changing collection')
-        }
-
-        const updatedItem = await response.json()
-
-        // Show success message
-        if (window.toast) {
-          const collectionName = newCollectionId
-            ? select.options[select.selectedIndex]?.text || 'Collection'
-            : 'Uncategorized'
-          window.toast.success(`Album moved to "${collectionName}"`)
-        }
-
-        // Recharger la page pour afficher la nouvelle collection
-        setTimeout(() => {
-          window.location.reload()
-        }, 500)
-      } catch (error) {
-        console.error('Error changing collection:', error)
-        
-        // Restore previous value
-        select.value = originalValue
-
-        // Afficher un message d'erreur
-        const errorMessage = error instanceof Error ? error.message : 'Error while changing collection'
-        if (window.toast) {
-          window.toast.error(errorMessage)
-        } else {
-          console.error('Error:', errorMessage)
-        }
-      } finally {
-        select.disabled = false
-      }
-    })
-  })()
+<script>
+  import './CollectionSelector.client'
 </script>
 
 <style>

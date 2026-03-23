@@ -12,6 +12,7 @@ type Props = {
 
 const { currentLocale, variant, languageLabel = 'Language' } = Astro.props as Props
 const flagSize = variant === 'settings' ? 22 : 18
+const compactLocaleLabel = variant === 'navbar' ? currentLocale.toUpperCase() : localeLabels[currentLocale]
 ---
 
 {variant === 'settings' && (
@@ -32,10 +33,10 @@ const flagSize = variant === 'settings' ? 22 : 18
 )}
 
 {(variant === 'sidebar' || variant === 'navbar') && (
-  <div class="language-switcher-compact flex items-center gap-2" data-current-locale={currentLocale}>
+  <div class={`language-switcher-compact flex items-center gap-2 ${variant === 'navbar' ? 'language-switcher-compact-navbar' : ''}`} data-current-locale={currentLocale}>
     <FlagLocale locale={currentLocale} size={flagSize} />
     <span class="locale-label text-sm font-medium text-neutral truncate max-w-24">
-      {localeLabels[currentLocale]}
+      {compactLocaleLabel}
     </span>
     <select
       aria-label={languageLabel}
@@ -65,6 +66,12 @@ const flagSize = variant === 'settings' ? 22 : 18
     border-color: oklch(from var(--color-primary) l c h / 0.5);
     background: oklch(from var(--color-primary) l c h / 0.08);
   }
+  .language-switcher-compact-navbar {
+    min-height: 2.5rem;
+    height: 2.5rem;
+    padding: 0 0.75rem;
+    border-radius: 0.75rem;
+  }
   .locale-select-compact {
     position: absolute;
     left: 0;
@@ -74,34 +81,5 @@ const flagSize = variant === 'settings' ? 22 : 18
 </style>
 
 <script>
-  (function() {
-    function setLocaleCookie(value: string) {
-      document.cookie = 'locale=' + value + '; path=/; max-age=' + (60 * 60 * 24 * 365) + '; SameSite=Lax'
-    }
-    function handleLocaleChange(select: HTMLSelectElement) {
-      const value = select.value
-      if (!value) return
-      fetch('/api/profile/preferences', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ locale: value }),
-      })
-        .then(function(response) {
-          if (response.ok || response.status === 401) {
-            setLocaleCookie(value)
-            setTimeout(function() {
-              window.location.reload()
-            }, 0)
-          }
-        })
-        .catch(function() {})
-    }
-    document.addEventListener('change', function(event) {
-      const target = event.target
-      if (target instanceof HTMLSelectElement && (target.classList.contains('locale-select') || target.classList.contains('locale-select-compact'))) {
-        handleLocaleChange(target)
-      }
-    })
-  })()
+  import './LanguageSwitcher.client'
 </script>

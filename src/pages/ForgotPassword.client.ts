@@ -3,6 +3,9 @@
  * Lit la config depuis #forgot-password-messages (base64 JSON).
  */
 
+import { onAstroPageLoad, onDomReady } from '../scripts/client/runtime'
+import { decodeBase64Json } from '../scripts/client/encoding'
+
 type ForgotPasswordMessages = {
   enterEmailError: string
   sendingLabel: string
@@ -13,11 +16,7 @@ function getMessages(): ForgotPasswordMessages | null {
   const el = document.getElementById('forgot-password-messages')
   const raw = el?.textContent?.trim()
   if (!raw || !/^[A-Za-z0-9+/=]+$/.test(raw.replace(/\s/g, ''))) return null
-  try {
-    return JSON.parse(atob(raw)) as ForgotPasswordMessages
-  } catch {
-    return null
-  }
+  return decodeBase64Json<ForgotPasswordMessages>(raw)
 }
 
 function run(messages: ForgotPasswordMessages | null): void {
@@ -85,9 +84,5 @@ function run(messages: ForgotPasswordMessages | null): void {
   })
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => run(getMessages()), { once: true })
-} else {
-  run(getMessages())
-}
-document.addEventListener('astro:page-load', () => run(getMessages()))
+onDomReady(() => run(getMessages()))
+onAstroPageLoad(() => run(getMessages()))
