@@ -174,7 +174,78 @@ Cible : **WCAG 2.1 AA + mobile-first**
 
 ---
 
-## 14. Features supprimées
+## 14. Item Detail `/items/[id]`
+
+### Informations publiques (visibles par tous)
+
+- Cover, artiste, titre, label, année, format, pays de pressage
+- Tracklist
+- Rating personnel de l'utilisateur propriétaire (étoiles 1–5)
+- Rating moyen communauté (affiché à partir de 3 ratings minimum)
+- Followers qui ont aussi cet album dans leur shelf ("X personnes que tu suis ont ce disque")
+- Bouton "+ Want" (si l'item appartient à quelqu'un d'autre)
+
+### Informations personnelles (propriétaire uniquement)
+
+- Note texte libre
+- Date d'acquisition
+- État de conservation : Mint · VG+ · VG · Good · Poor
+
+### Actions disponibles (propriétaire)
+
+- Éditer les infos personnelles
+- Modifier le rating
+- Supprimer de la shelf
+
+---
+
+## 15. Flow d'ajout — FAB `[+]`
+
+1. Tap sur `[+]` → bottom sheet avec deux options : **Scanner** / **Rechercher**
+2. **Scanner** : ouvre la caméra (natif Capacitor ou fallback web). Scan du code-barres → résultat automatique
+3. **Rechercher** : champ texte (artiste / titre / code-barres manuel) → liste de résultats
+4. Sélection d'un album → form inline :
+   - Format (Vinyl / CD / Cassette) — obligatoire
+   - État de conservation — obligatoire
+   - Note personnelle — optionnel
+5. Confirmation → ajout à la shelf + création d'une activité `ADDED_TO_SHELF`
+
+---
+
+## 16. Explore `/explorer`
+
+- Barre de recherche globale (artiste / titre / label)
+- Section **Tendances** — albums les plus ajoutés cette semaine dans la communauté
+- Section **Nouveaux membres actifs** — profils récemment rejoints avec activité
+- Résultats de recherche paginés avec cover + metadata
+
+---
+
+## 17. Settings
+
+| Section | Contenu |
+|---------|---------|
+| Compte | Changer email · Changer mot de passe · Connexions OAuth |
+| Confidentialité | Compte privé (on/off) |
+| Shelf | Formats actifs (Vinyl/CD/Cassette) · Vue par défaut (grille/liste) |
+| Notifications | Nouveau follower (on/off) · Ajout shelf suivi (on/off) |
+| Données | Export de mes données (RGPD) |
+| Danger zone | Supprimer mon compte |
+
+---
+
+## 18. Notifications
+
+Types envoyés en v1 :
+- **Nouveau follower** — "X a commencé à te suivre"
+- **Ajout shelf** — "X a ajouté [Album] à sa shelf"
+
+Chaque type est activable/désactivable indépendamment dans les settings.
+Opt-in explicite au premier lancement (permission push iOS/Android via Capacitor).
+
+---
+
+## 19. Features supprimées
 
 | Feature | Raison |
 |---------|--------|
@@ -187,11 +258,14 @@ Cible : **WCAG 2.1 AA + mobile-first**
 
 ---
 
-## 15. Hors scope (v1)
+## 20. Hors scope (v1)
 
 - Commentaires sur les activités
 - Likes sur les activités
 - Recommandations algorithmiques
 - Granularité de confidentialité par item
 - Haptics / status bar natifs Capacitor
-- Export RGPD (à prévoir, pas à implémenter en v1)
+- Export RGPD (endpoint à prévoir, pas à implémenter en v1)
+- Tendances hebdo par notification push
+- Back-office / curation éditoriale de l'Explore
+- Page collections detail refonte (ajout social léger, traité à l'implémentation)
