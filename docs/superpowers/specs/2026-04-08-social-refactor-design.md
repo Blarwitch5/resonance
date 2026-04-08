@@ -23,6 +23,7 @@ Resonance passe d'un outil de collection personnel à une app sociale publique o
 | Mobile | Capacitor (shell natif) | Ajouté |
 | Push | `@capacitor/push-notifications` | Ajouté |
 | Camera | `@capacitor/camera` | Fallback web conservé |
+| Email transactionnel | Resend (ou Postmark) | Ajouté — notifications email |
 
 ---
 
@@ -36,9 +37,11 @@ Feed · Shelf · [+] · Explore · Profile
 
 - **Feed** — activité des follows
 - **Shelf** — collection personnelle
-- **[+]** — FAB central — ajout rapide (scan / recherche)
+- **[+]** — FAB flottant *au-dessus* de la bottom bar (pas un onglet de navigation à part entière) — ajout rapide (scan / recherche)
 - **Explore** — découverte communauté + search global
 - **Profile** — profil public de l'utilisateur connecté
+
+> Note : le `[+]` est un FAB positionné en `absolute` au centre de la bottom bar. Il ne correspond pas à un onglet actif et ne change pas l'état de sélection de la nav.
 
 ---
 
@@ -46,8 +49,8 @@ Feed · Shelf · [+] · Explore · Profile
 
 - Rich cards avec cover, artiste, titre, action de l'utilisateur suivi
 - Bouton "+ Want" contextuel sur chaque card
-- Activités affichées : ajout shelf · Want · nouvelle collection · note/rating · like · commentaire
-- Pagination cursor-based (chargement infini)
+- Activités affichées : ajout shelf · Want · nouvelle collection · note/rating · like · commentaire · nouveau follow
+- Pagination cursor-based (chargement infini) — curseur composite `(createdAt, id)` pour garantir l'unicité
 - État vide (aucun follow) : suggestions de profils à suivre + tendances communauté
 
 ---
@@ -72,7 +75,10 @@ Style Letterboxd :
 - Section "Récemment ajoutés" (6 derniers items)
 - Collections épinglées
 - Bouton "Suivre" / "Ne plus suivre"
+- Bouton "Bloquer" accessible via menu contextuel (⋯) — voir section 25
 - Respect de la confidentialité : si compte privé, affiche uniquement les stats + bouton Suivre pour les non-followers
+
+> `/profile` est un alias qui redirige en 302 vers `/u/[username]` de l'utilisateur connecté.
 
 ---
 
@@ -99,21 +105,25 @@ Le modèle `List` est renommé `Collection` dans le schéma et dans tout le code
 
 - Collections publiques ou privées (champ `isPublic`)
 - Affichées sur le profil public si publiques
-- Collections épinglables sur le profil (champ `isPinned`)
-- Route : `/collections/[slug]`
+- Collections épinglables sur le profil (jusqu'à 4 épinglées)
+- Route : `/u/[username]/collections/[slug]`
+- Le slug est **auto-généré depuis le titre** à la création (ex : "Ma Collection Jazz" → `ma-collection-jazz`), unique par utilisateur. En cas de collision, un suffixe numérique est ajouté (`ma-collection-jazz-2`)
+- L'utilisateur ne saisit pas le slug manuellement
 
 ---
 
 ## 10. Item Detail `/items/[id]`
+
+> **Note architecturale :** Un `Release` est une ressource partagée représentant une release Discogs (métadonnées immuables). Un `ShelfItem` est l'instance personnelle d'un utilisateur pour cette release (état de conservation, note, date d'acquisition). Voir section 16.
 
 ### Informations publiques (visibles par tous)
 
 - Cover, artiste, titre, label, année, format, pays de pressage
 - Tracklist
 - Rating personnel du propriétaire (étoiles 1–5)
-- Rating moyen communauté (affiché à partir de 3 ratings minimum)
-- Followers qui ont aussi cet album ("X personnes que tu suis ont ce disque")
-- Bouton "+ Want" (si l'item appartient à quelqu'un d'autre)
+- Rating moyen communauté (affiché à partir de 3 ratings minimum) — calculé sur tous les `ShelfItem` liés à cette `Release`
+- Followers qui ont aussi cet album ("X personnes que tu suis ont ce disque") — requête sur `ShelfItem` filtrée par les follows
+- Bouton "+ Want" (si la release appartient à quelqu'un d'autre ou n'est pas encore dans la shelf)
 
 ### Informations personnelles (propriétaire uniquement)
 
@@ -139,16 +149,16 @@ Le modèle `List` est renommé `Collection` dans le schéma et dans tout le code
    - Format (Vinyl / CD / Cassette) — obligatoire
    - État de conservation — obligatoire
    - Note personnelle — optionnel
-5. Confirmation → ajout à la shelf + activité `ADD_ITEM` créée
+5. Confirmation → création d'un `ShelfItem` lié à la `Release` Discogs + activité `ADD_ITEM` créée
 
 ---
 
-## 12. Explore `/explorer`
+## 12. Explore `/explore`
 
 - Barre de recherche globale (artiste / titre / label) → résultats Discogs paginés
 - Section **Tendances** — albums les plus ajoutés cette semaine dans la communauté
 - Section **Nouveaux membres actifs** — profils récemment rejoints avec activité
-- Page de détail release `/explorer/[discogsId]` : metadata complète + qui dans ton réseau a cet album + bouton "+ Want" / "Ajouter à ma shelf"
+- Page de détail release `/explore/[discogsId]` : metadata complète + qui dans ton réseau a cet album + bouton "+ Want" / "Ajouter à ma shelf"
 
 ---
 
@@ -163,6 +173,7 @@ Le modèle `List` est renommé `Collection` dans le schéma et dans tout le code
 | `RATE_ITEM` | Note d'un item (1–5 étoiles) |
 | `CREATE_COLLECTION` | Création d'une collection |
 | `ADD_TO_COLLECTION` | Ajout d'un item à une collection |
+| `FOLLOW_USER` | Un utilisateur commence à en suivre un autre |
 
 ### Interactions sur les activités
 
@@ -179,9 +190,13 @@ Le modèle `List` est renommé `Collection` dans le schéma et dans tout le code
 | Type | Déclencheur |
 |------|-------------|
 | `NEW_FOLLOWER` | Quelqu'un commence à te suivre |
-| `NEW_SHELF_ADD` | Un utilisateur suivi ajoute un item à sa shelf |
+| `NEW_SHELF_ADD` | Un utilisateur suivi ajoute un item à sa shelf (max 1 notification par utilisateur suivi par période de 2h — voir ci-dessous) |
 | `ACTIVITY_LIKE` | Quelqu'un like ton activité |
 | `ACTIVITY_COMMENT` | Quelqu'un commente ton activité |
+
+### Règle anti-spam sur `NEW_SHELF_ADD`
+
+Pour éviter le bruit : si un utilisateur suivi ajoute plusieurs items en moins de 2h, une seule notification groupée est envoyée ("Alex a ajouté 3 disques"). Le compteur est remis à zéro après la notification.
 
 ### Centre de notifications
 
@@ -196,6 +211,13 @@ Le modèle `List` est renommé `Collection` dans le schéma et dans tout le code
 - Token stocké dans le modèle `PushToken` (voir section 16)
 - Chaque type activable/désactivable indépendamment dans les settings
 
+### Email (Resend / Postmark)
+
+- Envoi uniquement pour : `NEW_FOLLOWER` et `ACTIVITY_COMMENT`
+- Uniquement si l'utilisateur n'a pas lu la notification en app dans les 15 minutes
+- Désactivable dans les settings (indépendamment du push)
+- Format : email transactionnel simple, lien CTA vers la page concernée
+
 ---
 
 ## 15. Settings
@@ -206,25 +228,150 @@ Le modèle `List` est renommé `Collection` dans le schéma et dans tout le code
 | Compte | Changer email · Changer mot de passe · Connexions OAuth |
 | Confidentialité | Compte privé (on/off) |
 | Shelf | Formats actifs (Vinyl/CD/Cassette) · Vue par défaut (grille/liste) |
-| Notifications | Nouveau follower · Ajout shelf · Like · Commentaire (chacun on/off) |
+| Notifications — Push | Nouveau follower · Ajout shelf · Like · Commentaire (chacun on/off) |
+| Notifications — Email | Nouveau follower · Commentaire (chacun on/off) |
 | Langue | FR / EN |
-| Données | Export de mes données (RGPD) |
+| Données | Export de mes données (RGPD) — inclut : profil, shelf, collections, wants, activités, commentaires |
 | Danger zone | Supprimer mon compte |
 
 ---
 
 ## 16. Data Model — Schéma Prisma cible
 
-Le schéma actuel est une bonne base. Modifications pour la refonte :
+### Principe architectural : `Release` vs `ShelfItem`
+
+Un même disque physique (release Discogs) peut appartenir à plusieurs utilisateurs. Le schéma sépare donc :
+
+- **`Release`** — métadonnées immuables d'une release Discogs (titre, artiste, label, année, cover, tracklist…). Partagée entre tous les utilisateurs. Créée à la première fois qu'un utilisateur ajoute ce disque.
+- **`ShelfItem`** — instance personnelle d'un utilisateur pour une `Release` (état de conservation, note personnelle, date d'acquisition, rating). Un utilisateur ne peut avoir qu'un seul `ShelfItem` par `Release`.
+
+Cela permet nativement : les ratings communautaires, le "X amis ont ce disque", et les tendances.
 
 ### Renommages
 
 - `List` → `Collection`, `ListItem` → `CollectionItem`, table `lists` → `collections`, `list_items` → `collection_items`
-- Champ `Item.condition` : valeurs alignées sur `"Mint" | "NM" | "EX" | "VG+" | "VG" | "G"`
+- Champ `ShelfItem.condition` : valeurs alignées sur `"Mint" | "NM" | "EX" | "VG+" | "VG" | "G"`
 
-### Ajouts
+### Modèles complets (nouveaux et modifiés)
 
 ```prisma
+// Release Discogs — ressource partagée
+model Release {
+  id           String      @id @default(cuid())
+  discogsId    String      @unique
+  title        String
+  artist       String
+  label        String?
+  year         Int?
+  country      String?
+  format       String      // "Vinyl" | "CD" | "Cassette"
+  coverUrl     String?
+  tracklist    Json?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  shelfItems   ShelfItem[]
+  wants        Want[]
+
+  @@map("releases")
+}
+
+// Instance personnelle d'une release dans la shelf d'un utilisateur
+model ShelfItem {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  releaseId   String
+  release     Release   @relation(fields: [releaseId], references: [id])
+  condition   String    // "Mint" | "NM" | "EX" | "VG+" | "VG" | "G"
+  rating      Int?      // 1–5
+  note        String?
+  acquiredAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  collectionItems CollectionItem[]
+  activities      Activity[]
+
+  @@unique([userId, releaseId])
+  @@index([userId])
+  @@index([releaseId])
+  @@map("shelf_items")
+}
+
+// Want — liste d'envies unifiée (ex Favoris + Wishlist)
+model Want {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  releaseId String
+  release   Release   @relation(fields: [releaseId], references: [id])
+  priority  String    @default("normal") // "high" | "normal"
+  createdAt DateTime  @default(now())
+
+  @@unique([userId, releaseId])
+  @@index([userId])
+  @@map("wants")
+}
+
+// Follow — relation sociale entre utilisateurs
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  follower    User     @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+// Block — blocage d'un utilisateur
+model UserBlock {
+  id        String   @id @default(cuid())
+  blockerId String
+  blocker   User     @relation("Blocking", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("BlockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@map("user_blocks")
+}
+
+// Like sur une activité
+model ActivityLike {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, activityId])
+  @@index([activityId])
+  @@map("activity_likes")
+}
+
+// Commentaire sur une activité
+model ActivityComment {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  text       String   @db.VarChar(280)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([activityId])
+  @@map("activity_comments")
+}
+
 // Token push Capacitor par device
 model PushToken {
   id        String   @id @default(cuid())
@@ -246,31 +393,58 @@ enum ActivityType {
   RATE_ITEM
   CREATE_COLLECTION   // ex CREATE_LIST
   ADD_TO_COLLECTION   // ex ADD_TO_LIST
+  FOLLOW_USER
 }
 
 // Mise à jour de NotificationType
 enum NotificationType {
   NEW_FOLLOWER
-  NEW_SHELF_ADD       // nouveau type
+  NEW_SHELF_ADD
   ACTIVITY_LIKE
   ACTIVITY_COMMENT
 }
 ```
 
-### Ajout sur User
+### Ajouts sur le modèle `User`
 
 ```prisma
-// Sur le modèle User
-pinnedCollections  Collection[]  @relation("PinnedCollections")
-pushTokens         PushToken[]
+// Relations sociales
+following        Follow[]     @relation("Following")
+followers        Follow[]     @relation("Followers")
+blocking         UserBlock[]  @relation("Blocking")
+blockedBy        UserBlock[]  @relation("BlockedBy")
+// Collections épinglées (max 4, simple flag isPinned sur Collection)
+pushTokens       PushToken[]
+wants            Want[]
+shelfItems       ShelfItem[]
+activityLikes    ActivityLike[]
+activityComments ActivityComment[]
 ```
 
-### Ajout sur Collection (ex-List)
+### Modèle `Collection` (ex-List)
 
 ```prisma
-isPinned    Boolean  @default(false)
-pinnedBy    User[]   @relation("PinnedCollections")
+model Collection {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  slug        String   // auto-généré depuis le titre, unique par userId
+  description String?
+  isPublic    Boolean  @default(true)
+  isPinned    Boolean  @default(false)  // épinglé sur le profil (max 4 vérifiés applicativement)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       CollectionItem[]
+
+  @@unique([userId, slug])
+  @@index([userId])
+  @@map("collections")
+}
 ```
+
+> Le champ `isPinned` est un booléen simple sur la collection de l'utilisateur. La limite de 4 collections épinglées est vérifiée applicativement avant la mise à jour. Il n'y a pas de relation many-to-many `pinnedBy` — un utilisateur ne peut épingler que ses propres collections.
 
 ---
 
@@ -313,10 +487,11 @@ Cible : **WCAG 2.1 AA + mobile-first**
 
 - **better-auth** — sessions sécurisées, CSRF protection
 - **IDOR** — toutes les routes API vérifient que l'utilisateur authentifié est propriétaire de la ressource avant modification ou suppression
-- **XSS** — les champs utilisateur (notes, bio, descriptions) sont sanitisés côté serveur avant persistance
-- **Rate limiting** — routes sensibles limitées : follow/unfollow, create item, search, add want
+- **XSS** — les champs utilisateur (notes, bio, descriptions, commentaires) sont sanitisés côté serveur avant persistance
+- **Rate limiting** — routes sensibles limitées : follow/unfollow/block, create item, search, add want, comment
 - **Compte privé** — enforcement côté serveur sur toutes les routes de lecture (profil, shelf, feed)
-- **Suppression de compte** — purge complète en cascade : items, wants, collections, activités, follows, notifications, push tokens
+- **Blocage** — un utilisateur bloqué ne peut pas voir le profil de celui qui l'a bloqué, ni lui envoyer des likes/commentaires. Les routes API vérifient l'absence de blocage mutuel.
+- **Suppression de compte** — purge complète en cascade : items, wants, collections, activités, follows, blocks, notifications, push tokens
 - **Push tokens** — liés à l'utilisateur, supprimés à la déconnexion et à la suppression de compte
 - **Pas de données sensibles côté client**
 - **Profils privés** — `noindex` via meta tag + header HTTP `X-Robots-Tag`
@@ -332,27 +507,70 @@ Cible : **WCAG 2.1 AA + mobile-first**
 
 ---
 
-## 22. Pages et routes
+## 22. Landing page `/`
+
+La landing est la page de conversion principale pour les utilisateurs non connectés.
+
+**Contenu minimal v1 :**
+
+- Headline + sous-titre (valeur proposition de Resonance)
+- Mockup ou screenshot de l'app (shelf ou feed)
+- CTA principal : "Créer un compte" → `/signup`
+- CTA secondaire : "Se connecter" → `/login`
+- Section "Rejoindre la communauté" : nombre de membres et disques enregistrés (stats publiques)
+- Footer : liens légaux
+
+Les utilisateurs connectés sont redirigés vers `/feed`.
+
+---
+
+## 23. Onboarding (premier lancement)
+
+Après la création de compte, l'utilisateur traverse un flow en 3 étapes (skippable) :
+
+1. **Formats** — Quels formats collectionnes-tu ? (Vinyl / CD / Cassette — multiselect)
+2. **Trouve des amis** — Recherche par username ou email. Suggestions de profils actifs si aucun résultat.
+3. **Premier ajout** — Invite directe à ajouter un premier disque via le FAB. Si skippé, l'état vide de la shelf affiche le même CTA.
+
+L'onboarding est stocké comme complété dans la DB (`User.onboardingCompleted Boolean @default(false)`). Il ne réapparaît pas après avoir été terminé ou skippé.
+
+---
+
+## 24. Blocage utilisateur
+
+- Accessible via le menu contextuel (⋯) sur le profil public `/u/[username]`
+- Bloquer un utilisateur : supprime le follow mutuel + crée un `UserBlock`
+- Effets du blocage :
+  - Le profil bloqué n'apparaît plus dans le feed, l'explore, ni les suggestions
+  - Le compte bloqué ne peut pas voir le profil du bloqueur
+  - Toute tentative d'interaction (like, commentaire, follow) depuis un compte bloqué est rejetée avec une 403
+- Déblocage possible depuis les settings (section "Confidentialité" → "Comptes bloqués")
+- Pas de notification envoyée au bloqué
+
+---
+
+## 25. Pages et routes
 
 ### Pages Astro
 
 | Route | Description |
 |-------|-------------|
-| `/` | Redirect → `/feed` si connecté, landing si non connecté |
+| `/` | Landing si non connecté · Redirect → `/feed` si connecté |
 | `/feed` | Feed d'activité |
 | `/shelf` | Collection personnelle |
 | `/explore` | Explore + search |
-| `/explorer/[discogsId]` | Détail release Discogs |
-| `/profile` | Profil de l'utilisateur connecté |
-| `/u/[username]` | Profil public d'un autre utilisateur |
-| `/items/[id]` | Détail d'un item de la shelf |
+| `/explore/[discogsId]` | Détail release Discogs |
+| `/profile` | Redirect 302 → `/u/[username]` de l'utilisateur connecté |
+| `/u/[username]` | Profil public d'un utilisateur |
+| `/items/[id]` | Détail d'un ShelfItem |
 | `/collections` | Liste des collections de l'utilisateur |
-| `/collections/[slug]` | Détail d'une collection |
+| `/u/[username]/collections/[slug]` | Détail d'une collection |
 | `/collections/new` | Création d'une collection |
 | `/notifications` | Centre de notifications |
 | `/settings` | Settings |
 | `/login` | Connexion |
 | `/signup` | Inscription |
+| `/onboarding` | Flow premier lancement (post-signup) |
 | `/forgot-password` | Mot de passe oublié |
 | `/reset-password` | Réinitialisation mot de passe |
 
@@ -360,8 +578,9 @@ Cible : **WCAG 2.1 AA + mobile-first**
 
 | Route | Description |
 |-------|-------------|
-| `GET /api/feed` | Feed paginé (cursor-based) |
+| `GET /api/feed` | Feed paginé (cursor composite `createdAt` + `id`) |
 | `POST /api/users/[username]/follow` | Follow / unfollow |
+| `POST /api/users/[username]/block` | Bloquer / débloquer |
 | `GET /api/notifications` | Liste des notifications |
 | `PATCH /api/notifications/read` | Marquer comme lues |
 | `POST /api/push-tokens` | Enregistrer un token push |
@@ -370,11 +589,12 @@ Cible : **WCAG 2.1 AA + mobile-first**
 | `GET /api/explore/new-members` | Nouveaux membres actifs |
 | `POST /api/activities/[id]/like` | Like / unlike une activité |
 | `POST /api/activities/[id]/comment` | Commenter une activité |
-| `GET /api/profile/export` | Export RGPD |
+| `GET /api/profile/export` | Export RGPD (profil, shelf, collections, wants, activités, commentaires) |
+| `GET /api/releases/[discogsId]` | Récupérer ou créer une Release depuis Discogs |
 
 ---
 
-## 23. Features supprimées
+## 26. Features supprimées
 
 | Feature | Raison |
 |---------|--------|
@@ -384,13 +604,16 @@ Cible : **WCAG 2.1 AA + mobile-first**
 | Wishlist séparée | Fusionnée dans Wants |
 | Stats complexes | Remplacées par 4–5 chiffres clés sur le profil |
 | Boutons rapides sur cards | Remplacés par tap overlay |
+| Route `/explorer/[discogsId]` | Renommée `/explore/[discogsId]` (correction coquille) |
 
 ---
 
-## 24. Hors scope (v1)
+## 27. Hors scope (v1)
 
 - Tendances hebdo par notification push (job schedulé)
 - Back-office / curation éditoriale de l'Explore
 - Granularité de confidentialité par item
 - Haptics / status bar natifs Capacitor
 - Recommandations algorithmiques
+- Signalement de contenu / modération back-office
+- Email digest hebdomadaire
