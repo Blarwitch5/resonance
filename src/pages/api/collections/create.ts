@@ -1,3 +1,4 @@
+import { safeErrorMessage } from '../../../lib/api-error'
 import type { APIRoute } from 'astro'
 import { auth } from '../../../lib/auth'
 import { collectionService } from '../../../services/collection-service'

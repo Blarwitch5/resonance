@@ -9,7 +9,9 @@ import { notifyNewUser } from './notify-new-user'
 // https://www.better-auth.com/docs/integrations/astro
 
 if (!import.meta.env.BETTER_AUTH_SECRET) {
-  console.warn('⚠️  BETTER_AUTH_SECRET is not set. Please set it in your .env file.')
+  throw new Error(
+    'BETTER_AUTH_SECRET must be set. Add it to your .env file (local) or Vercel environment variables (production).'
+  )
 }
 
 // NOTE: Les providers OAuth nécessitent Better Auth v1.5+ ou une configuration différente
@@ -22,11 +24,9 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: false,
+    requireEmailVerification: true,
   },
-  secret:
-    import.meta.env.BETTER_AUTH_SECRET ||
-    'development-secret-change-in-production-minimum-32-characters',
+  secret: import.meta.env.BETTER_AUTH_SECRET,
   baseURL:
     import.meta.env.BETTER_AUTH_URL ||
     import.meta.env.PUBLIC_APP_URL ||

@@ -1,6 +1,8 @@
+import { safeErrorMessage } from '../../../lib/api-error'
 import type { APIRoute } from 'astro'
 import { deezerService } from '../../../services/deezer-service'
 import { spotifyService } from '../../../services/spotify-service'
+import { auth } from '../../../lib/auth'
 
 export const prerender = false
 
@@ -9,7 +11,14 @@ export const prerender = false
  * GET /api/spotify/search-track?q=artist track (recommandé)
  * GET /api/spotify/search-track?artist=...&track=... (alternatif)
  */
-export const GET: APIRoute = async ({ url }) => {
+export const GET: APIRoute = async ({ url, request }) => {
+  const session = await auth.api.getSession({ headers: request.headers })
+  if (!session) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
   try {
     // Support pour deux formats de query :
     // 1. ?q=artist track (format utilisé par TrackList)

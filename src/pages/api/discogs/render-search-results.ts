@@ -1,8 +1,16 @@
 import type { APIRoute } from 'astro'
 import { experimental_AstroContainer as AstroContainer } from 'astro/container'
 import SearchResultsGrid from '../../../components/explorer/SearchResultsGrid.astro'
+import { auth } from '../../../lib/auth'
 
 export const POST: APIRoute = async ({ request }) => {
+  const session = await auth.api.getSession({ headers: request.headers })
+  if (!session) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
   try {
     const body = await request.json()
     const { results, resultsCountLabel, noImageLabel, unknownArtistLabel, addToCollectionAria, addToWishlistAria, scriptLabels } = body ?? {}

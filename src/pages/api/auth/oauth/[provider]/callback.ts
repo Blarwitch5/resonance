@@ -1,3 +1,4 @@
+import { safeErrorMessage } from '../../../../lib/api-error'
 import type { APIRoute } from 'astro'
 import crypto from 'crypto'
 import { db } from '../../../../../lib/db'
@@ -10,8 +11,8 @@ export const prerender = false
  * 
  * Reçoit le code d'autorisation du provider et crée une session Better Auth
  */
-export const GET: APIRoute = async ({ params, url }) => {
-  return handleCallback(params.provider, url)
+export const GET: APIRoute = async ({ params, url, request }) => {
+  return handleCallback(params.provider, url, request)
 }
 
 export const POST: APIRoute = async ({ params, request }) => {
@@ -19,16 +20,15 @@ export const POST: APIRoute = async ({ params, request }) => {
   const formData = await request.formData()
   const code = formData.get('code') as string
   const state = formData.get('state') as string
-  
-  // Reconstruire l'URL avec les paramètres
+
   const fakeUrl = new URL(request.url)
   if (code) fakeUrl.searchParams.set('code', code)
   if (state) fakeUrl.searchParams.set('state', state)
-  
-  return handleCallback(params.provider, fakeUrl)
+
+  return handleCallback(params.provider, fakeUrl, request)
 }
 
-async function handleCallback(provider: string | undefined, url: URL) {
+async function handleCallback(provider: string | undefined, url: URL, request: Request) {
   if (!provider || !['discord', 'google', 'spotify'].includes(provider)) {
     return new Response(
       JSON.stringify({ error: 'Provider invalide' }),
@@ -52,8 +52,31 @@ async function handleCallback(provider: string | undefined, url: URL) {
     )
   }
 
-  // Extraire le callbackURL du state
-  const [stateToken, callbackURL] = state ? state.split('|').map(statePart => decodeURIComponent(statePart)) : [null, '/']
+  // Extraire le stateToken et le callbackURL depuis le state
+  const [stateToken, callbackURL] = state
+    ? state.split('|').map(statePart => decodeURIComponent(statePart))
+    : [null, '/']
+
+  // Vérifier le state CSRF contre le cookie oauth_state
+  const cookieHeader = request.headers.get('cookie') || ''
+  const oauthStateCookie = cookieHeader
+    .split(';')
+    .map(c => c.trim())
+    .find(c => c.startsWith('oauth_state='))
+    ?.split('=')[1]
+
+  if (!stateToken || !oauthStateCookie || stateToken !== oauthStateCookie) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid state — possible CSRF attack' }),
+      {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  // Valider callbackURL
+  const safeCallback = callbackURL && callbackURL.startsWith('/') && !callbackURL.startsWith('//') ? callbackURL : '/'
 
   try {
     // Échanger le code contre un token d'accès
@@ -82,8 +105,9 @@ async function handleCallback(provider: string | undefined, url: URL) {
     })
 
     // Rediriger vers un endpoint qui créera la session Better Auth
+    // Utilise safeCallback (URL relative validée) au lieu du callbackURL brut
     return Response.redirect(
-      `${baseURL}/api/auth/oauth/create-session?token=${sessionToken}&callback=${encodeURIComponent(callbackURL)}`,
+      `${baseURL}/api/auth/oauth/create-session?token=${sessionToken}&callback=${encodeURIComponent(safeCallback)}`,
       302
     )
   } catch (error) {

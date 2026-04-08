@@ -1,3 +1,4 @@
+import { safeErrorMessage } from '../../../../lib/api-error'
 import type { APIRoute } from 'astro'
 import { hashPassword } from 'better-auth/crypto'
 import { db } from '../../../../lib/db'
@@ -90,15 +91,25 @@ export const GET: APIRoute = async ({ url }) => {
       })
     }
 
-    // Supprimer le token de vérification temporaire
+    // Valider que callbackURL est une URL relative (pas de redirection ouverte)
+    const safeCallback = callbackURL.startsWith('/') && !callbackURL.startsWith('//') ? callbackURL : '/'
+
+    // Supprimer le token de vérification et créer un nouveau token final à usage unique
     await db.verification.delete({
       where: { id: verification.id },
     })
+    const finalToken = crypto.randomBytes(32).toString('hex')
+    await db.verification.create({
+      data: {
+        identifier: user.id,
+        value: finalToken,
+        expiresAt: new Date(Date.now() + 2 * 60 * 1000), // 2 minutes
+      },
+    })
 
-    // Rediriger vers la page d'accueil avec un paramètre pour créer la session
-    // On utilisera un endpoint qui créera la session via Better Auth
-    const sessionCreationURL = `${baseURL}/api/auth/oauth/finalize-session?userId=${user.id}&callback=${encodeURIComponent(callbackURL)}`
-    
+    // Passer le token (pas l'userId) à finalize-session pour éviter l'accès non authentifié
+    const sessionCreationURL = `${baseURL}/api/auth/oauth/finalize-session?token=${finalToken}&callback=${encodeURIComponent(safeCallback)}`
+
     return Response.redirect(sessionCreationURL, 302)
   } catch (error) {
     console.error('Error creating session:', error)

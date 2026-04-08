@@ -1,3 +1,4 @@
+import { safeErrorMessage } from '../../../../lib/api-error'
 import type { APIRoute } from 'astro'
 
 export const prerender = false

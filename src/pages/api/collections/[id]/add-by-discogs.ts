@@ -1,3 +1,4 @@
+import { safeErrorMessage } from '../../../../lib/api-error'
 import type { APIRoute } from 'astro'
 import { auth } from '../../../../lib/auth'
 import { collectionService } from '../../../../services/collection-service'
@@ -86,7 +87,7 @@ export const POST: APIRoute = async ({ params, request }) => {
       error instanceof Error &&
       error.message === 'Collection not found or unauthorized'
     ) {
-      return new Response(JSON.stringify({ error: error.message }), {
+      return new Response(JSON.stringify({ error: safeErrorMessage(error) }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' },
       })

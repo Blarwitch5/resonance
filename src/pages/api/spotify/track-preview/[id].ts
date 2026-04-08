@@ -1,3 +1,4 @@
+import { safeErrorMessage } from '../../../lib/api-error'
 import type { APIRoute } from 'astro'
 import { deezerService } from '../../../../services/deezer-service'
 import { spotifyService } from '../../../../services/spotify-service'

@@ -1,3 +1,4 @@
+import { safeErrorMessage } from '../../../../lib/api-error'
 import type { APIRoute } from 'astro'
 import { auth } from '../../../../lib/auth'
 import { collectionService } from '../../../../services/collection-service'
@@ -29,7 +30,7 @@ export const DELETE: APIRoute = async ({ params, request }) => {
     console.error('Error deleting collection:', error)
 
     if (error instanceof Error && error.message === 'Collection not found or unauthorized') {
-      return new Response(JSON.stringify({ error: error.message }), {
+      return new Response(JSON.stringify({ error: safeErrorMessage(error) }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' },
       })
