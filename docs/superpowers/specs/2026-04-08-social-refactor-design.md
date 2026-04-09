@@ -52,6 +52,7 @@ Feed · Shelf · [+] · Explore · Profile
 - Activités affichées : ajout shelf · Want · nouvelle collection · note/rating · like · commentaire · nouveau follow
 - Pagination cursor-based (chargement infini) — curseur composite `(createdAt, id)` pour garantir l'unicité
 - État vide (aucun follow) : suggestions de profils à suivre + tendances communauté
+- **Implémentation requête feed :** une seule requête `WHERE userId IN (followingIds) ORDER BY createdAt DESC` — pas de loop par follow. `followingIds` est résolu en amont en une requête `Follow` séparée.
 
 ---
 
@@ -196,7 +197,9 @@ Le modèle `List` est renommé `Collection` dans le schéma et dans tout le code
 
 ### Règle anti-spam sur `NEW_SHELF_ADD`
 
-Pour éviter le bruit : si un utilisateur suivi ajoute plusieurs items en moins de 2h, une seule notification groupée est envoyée ("Alex a ajouté 3 disques"). Le compteur est remis à zéro après la notification.
+Pour éviter le bruit : si un utilisateur suivi ajoute plusieurs items en moins de 2h, une seule notification groupée est envoyée ("Alex a ajouté 3 disques").
+
+**Implémentation :** `upsert` sur la clé composite `(userId, fromUserId, type, windowStart)` avec `increment` du compteur `count`. `windowStart` = début de la fenêtre 2h courante (arrondi à l'heure paire). Pas de verrou, pas de race condition — l'`upsert` est atomique côté Postgres.
 
 ### Centre de notifications
 
@@ -267,6 +270,9 @@ model Release {
   format       String      // "Vinyl" | "CD" | "Cassette"
   coverUrl     String?
   tracklist    Json?
+  // Dénormalisés pour éviter un AVG() à la volée — mis à jour via prisma.$transaction à chaque ajout/modif de rating
+  avgRating    Float?
+  ratingCount  Int         @default(0)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -296,6 +302,7 @@ model ShelfItem {
   @@unique([userId, releaseId])
   @@index([userId])
   @@index([releaseId])
+  @@index([createdAt])  // trending queries : albums les plus ajoutés cette semaine
   @@map("shelf_items")
 }
 
@@ -396,6 +403,10 @@ enum ActivityType {
   FOLLOW_USER
 }
 
+// Index composite sur Activity pour la requête feed
+// WHERE userId IN (...) ORDER BY createdAt DESC — sans cet index = full table scan
+// @@index([userId, createdAt]) à ajouter sur le modèle Activity (en plus des index existants)
+
 // Mise à jour de NotificationType
 enum NotificationType {
   NEW_FOLLOWER
@@ -495,6 +506,7 @@ Cible : **WCAG 2.1 AA + mobile-first**
 - **Push tokens** — liés à l'utilisateur, supprimés à la déconnexion et à la suppression de compte
 - **Pas de données sensibles côté client**
 - **Profils privés** — `noindex` via meta tag + header HTTP `X-Robots-Tag`
+- **Export RGPD** — `GET /api/profile/export` limité à 1 requête par utilisateur par heure (vérification en DB : champ `User.lastExportAt DateTime?`, rejeté avec 429 si < 1h)
 
 ---
 
@@ -539,7 +551,7 @@ L'onboarding est stocké comme complété dans la DB (`User.onboardingCompleted 
 ## 24. Blocage utilisateur
 
 - Accessible via le menu contextuel (⋯) sur le profil public `/u/[username]`
-- Bloquer un utilisateur : supprime le follow mutuel + crée un `UserBlock`
+- Bloquer un utilisateur : **transaction atomique** `prisma.$transaction([deleteFollow, createUserBlock])` — le follow est supprimé et le `UserBlock` créé dans la même transaction. Pas de state intermédiaire possible.
 - Effets du blocage :
   - Le profil bloqué n'apparaît plus dans le feed, l'explore, ni les suggestions
   - Le compte bloqué ne peut pas voir le profil du bloqueur
@@ -608,7 +620,28 @@ L'onboarding est stocké comme complété dans la DB (`User.onboardingCompleted 
 
 ---
 
-## 27. Hors scope (v1)
+## 27. Stratégie de performance
+
+### Requêtes
+
+- **Feed** : une seule requête `Activity` avec `WHERE userId IN (followingIds)` — pas de N+1. Les `followingIds` sont résolus en amont en une requête `Follow` séparée.
+- **Profil public** : stats + items récents + collections chargés en `Promise.all()` — 3 requêtes en parallèle, pas en séquence.
+- **Trending** : `GROUP BY releaseId COUNT(*)` sur `ShelfItem` filtrée sur `createdAt > now() - 7 days`, rendu possible par `@@index([createdAt])`.
+- **Rating moyen** : lu depuis `Release.avgRating` (dénormalisé) — pas de `AVG()` à la volée. Mis à jour via `prisma.$transaction` à chaque ajout ou modification de rating.
+
+### Cache HTTP
+
+- Pages publiques (`/u/[username]`, `/explore`) : `Cache-Control: s-maxage=60, stale-while-revalidate=300` — Vercel Edge Cache sert le HTML statale pendant 5 minutes sans toucher le serveur.
+- Pages authentifiées (feed, shelf) : `Cache-Control: no-store` — jamais mises en cache.
+
+### Images
+
+- Covers Discogs : optimisées via **Vercel Image Optimization** — composant `<Image>` Astro avec `src` externe autorisé dans `astro.config.ts` (`image.domains`). Resize automatique, format WebP, lazy loading.
+- Avatars : servis depuis Vercel Blob (prod) ou `/uploads/avatars/` (dev) — pas de traitement supplémentaire nécessaire.
+
+---
+
+## 28. Hors scope (v1)
 
 - Tendances hebdo par notification push (job schedulé)
 - Back-office / curation éditoriale de l'Explore
