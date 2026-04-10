@@ -102,6 +102,7 @@ model Want {
 
   @@unique([userId, releaseId])
   @@index([userId])
+  @@index([releaseId])
   @@map("wants")
 }
 
@@ -137,6 +138,7 @@ model CollectionItem {
   addedAt      DateTime   @default(now())
 
   @@unique([collectionId, shelfItemId])
+  @@index([shelfItemId])
   @@map("collection_items")
 }
 
@@ -165,6 +167,7 @@ model UserBlock {
 
   @@unique([blockerId, blockedId])
   @@index([blockerId])
+  @@index([blockedId])
   @@map("user_blocks")
 }
 
@@ -209,6 +212,8 @@ model Activity {
   @@index([userId])
   @@index([createdAt])
   @@index([userId, createdAt])
+  @@index([collectionId])
+  @@index([targetUserId])
   @@map("activities")
 }
 
@@ -221,6 +226,8 @@ model ActivityLike {
   createdAt  DateTime @default(now())
 
   @@unique([activityId, userId])
+  @@index([activityId])
+  @@index([userId])
   @@map("activity_likes")
 }
 
@@ -277,7 +284,6 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([token])
   @@map("sessions")
 }
 
