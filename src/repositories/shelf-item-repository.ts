@@ -5,7 +5,7 @@ export class ShelfItemRepository {
   async findById(id: string, userId?: string) {
     return db.shelfItem.findFirst({
       where: { id, ...(userId ? { userId } : {}) },
-      include: { release: true, user: { select: { id: true, name: true, image: true, username: true, isPrivate: true } } },
+      include: { release: true, user: { select: { id: true, name: true, imageUrl: true, username: true, isPrivate: true } } },
     })
   }
 
@@ -14,7 +14,7 @@ export class ShelfItemRepository {
       where: { id },
       include: {
         release: true,
-        user: { select: { id: true, name: true, image: true, username: true, isPrivate: true } },
+        user: { select: { id: true, name: true, imageUrl: true, username: true, isPrivate: true } },
       },
     })
   }
@@ -121,7 +121,7 @@ export class ShelfItemRepository {
     const followingIds = follows.map((f) => f.followingId)
     return db.shelfItem.findMany({
       where: { releaseId, userId: { in: followingIds } },
-      include: { user: { select: { id: true, name: true, image: true, username: true } } },
+      include: { user: { select: { id: true, name: true, imageUrl: true, username: true } } },
       take: 5,
     })
   }

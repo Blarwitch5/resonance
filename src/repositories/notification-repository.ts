@@ -57,7 +57,7 @@ export class NotificationRepository {
       take,
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
       include: {
-        fromUser: { select: { id: true, name: true, image: true, username: true } },
+        fromUser: { select: { id: true, name: true, imageUrl: true, username: true } },
         activity: { select: { id: true, type: true, shelfItemId: true } },
       },
     })
