@@ -1,0 +1,98 @@
+---
+export const prerender = false
+import Layout from '../components/layouts/Layout.astro'
+import { notificationRepository } from '../repositories/notification-repository'
+
+const user = Astro.locals.user
+if (!user) return Astro.redirect('/login', 302)
+
+const [notifications, unreadCount] = await Promise.all([
+  notificationRepository.findByUserId(user.id, { take: 50 }),
+  notificationRepository.countUnread(user.id),
+])
+
+// Mark all as read when page is visited
+await notificationRepository.markAllRead(user.id)
+---
+
+<Layout title="Notifications">
+  <div class="notifications-page max-w-2xl mx-auto px-4 py-6">
+    <header class="flex items-center justify-between mb-6">
+      <h1 class="text-xl font-semibold">Notifications</h1>
+      {unreadCount > 0 && (
+        <span class="text-sm text-muted">{unreadCount} non lues</span>
+      )}
+    </header>
+
+    {notifications.length === 0 && (
+      <p class="text-center text-muted py-12">Aucune notification pour l'instant.</p>
+    )}
+
+    <ul class="space-y-2" role="list" aria-label="Notifications">
+      {notifications.map((notif) => (
+        <li
+          class={`notification-item p-4 rounded-lg border ${!notif.read ? 'bg-surface-raised border-accent/20' : 'bg-surface border-border'}`}
+          data-id={notif.id}
+        >
+          <div class="flex items-start gap-3">
+            {notif.fromUser?.imageUrl && (
+              <img
+                src={notif.fromUser.imageUrl}
+                alt={notif.fromUser.name ?? ''}
+                width="40"
+                height="40"
+                class="rounded-full w-10 h-10 object-cover flex-shrink-0"
+              />
+            )}
+            <div class="flex-1 min-w-0">
+              <p class="text-sm">
+                {notif.type === 'NEW_FOLLOWER' && (
+                  <><strong>{notif.fromUser?.name}</strong> a commencé à te suivre.</>
+                )}
+                {notif.type === 'NEW_SHELF_ADD' && (
+                  <>
+                    <strong>{notif.fromUser?.name}</strong>{' '}
+                    {notif.count && notif.count > 1
+                      ? `a ajouté ${notif.count} disques à sa shelf.`
+                      : 'a ajouté un disque à sa shelf.'}
+                  </>
+                )}
+                {notif.type === 'ACTIVITY_LIKE' && (
+                  <><strong>{notif.fromUser?.name}</strong> a aimé ton activité.</>
+                )}
+                {notif.type === 'ACTIVITY_COMMENT' && (
+                  <><strong>{notif.fromUser?.name}</strong> a commenté ton activité.</>
+                )}
+              </p>
+              <p class="text-xs text-muted mt-1">
+                {new Date(notif.createdAt).toLocaleDateString('fr-FR', {
+                  day: 'numeric',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
+            </div>
+            {notif.type === 'NEW_FOLLOWER' && notif.fromUser?.username && (
+              <a
+                href={`/u/${notif.fromUser.username}`}
+                class="text-sm text-accent hover:underline flex-shrink-0"
+              >
+                Voir profil
+              </a>
+            )}
+            {(notif.type === 'ACTIVITY_LIKE' || notif.type === 'ACTIVITY_COMMENT') &&
+              notif.activity && (
+                <a
+                  href={`/items/${notif.activity.shelfItemId}`}
+                  class="text-sm text-accent hover:underline flex-shrink-0"
+                >
+                  Voir
+                </a>
+              )}
+          </div>
+        </li>
+      ))}
+    </ul>
+  </div>
+</Layout>
