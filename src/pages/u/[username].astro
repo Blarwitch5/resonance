@@ -1,0 +1,191 @@
+---
+export const prerender = false
+import Layout from '../../components/layouts/Layout.astro'
+import { userRepository } from '../../repositories/user-repository'
+import { followRepository } from '../../repositories/follow-repository'
+import { shelfItemRepository } from '../../repositories/shelf-item-repository'
+import { collectionRepository } from '../../repositories/collection-repository'
+
+const { username } = Astro.params
+if (!username) return Astro.redirect('/explore')
+
+const currentUser = Astro.locals.user
+const currentUserId = currentUser?.id ?? null
+
+const profileUser = await userRepository.findByUsername(username)
+if (!profileUser) return Astro.redirect('/explore')
+
+// Privacy: if account is private and viewer is not a follower (and not self), show limited view
+const isSelf = currentUserId === profileUser.id
+const isFollowing = currentUserId && !isSelf
+  ? await followRepository.isFollowing(currentUserId, profileUser.id)
+  : false
+
+const isPrivate = profileUser.isPrivate ?? false
+const canViewFull = isSelf || !isPrivate || isFollowing
+
+// Load stats + recent items + pinned collections in parallel
+const [followers, following, shelfCount, recentItems, pinnedCollections, wantCount] =
+  canViewFull
+    ? await Promise.all([
+        followRepository.getFollowers(profileUser.id),
+        followRepository.getFollowing(profileUser.id),
+        shelfItemRepository.countByUser(profileUser.id),
+        shelfItemRepository.getRecent(profileUser.id, 6),
+        collectionRepository.getPinned(profileUser.id),
+        userRepository.countWants(profileUser.id),
+      ])
+    : await Promise.all([
+        followRepository.getFollowers(profileUser.id),
+        followRepository.getFollowing(profileUser.id),
+        Promise.resolve(0),
+        Promise.resolve([]),
+        Promise.resolve([]),
+        Promise.resolve(0),
+      ])
+
+// Set noindex if private
+if (isPrivate) {
+  Astro.response.headers.set('X-Robots-Tag', 'noindex')
+}
+---
+
+<Layout title={profileUser.name ?? username}>
+  {isPrivate && <meta name="robots" content="noindex" slot="head" />}
+
+  <div class="profile-page max-w-2xl mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="flex items-start gap-4 mb-6">
+      {profileUser.image
+        ? <img src={profileUser.image} alt={profileUser.name ?? username} width="80" height="80" class="rounded-full w-20 h-20 object-cover" />
+        : <div class="w-20 h-20 rounded-full bg-surface-raised flex items-center justify-center text-2xl font-bold">{(profileUser.name ?? username)[0]}</div>
+      }
+      <div class="flex-1 min-w-0">
+        <h1 class="text-xl font-semibold">{profileUser.name ?? username}</h1>
+        <p class="text-sm text-muted">@{username}</p>
+        {profileUser.bio && <p class="text-sm mt-1">{profileUser.bio}</p>}
+
+        <div class="flex items-center gap-2 mt-3">
+          {!isSelf && currentUserId && (
+            <button
+              class="btn-primary follow-btn"
+              data-username={username}
+              data-following={isFollowing ? 'true' : 'false'}
+              aria-pressed={isFollowing}
+            >
+              {isFollowing ? 'Abonné' : 'Suivre'}
+            </button>
+          )}
+          {!isSelf && currentUserId && (
+            <button class="btn-ghost p-2 context-menu-btn" aria-label="Plus d'actions" data-username={username}>
+              ⋯
+            </button>
+          )}
+          {isSelf && (
+            <a href="/settings" class="btn-secondary text-sm">Modifier le profil</a>
+          )}
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid grid grid-cols-5 gap-2 mb-6 text-center">
+      <div>
+        <p class="text-lg font-bold">{canViewFull ? shelfCount : '—'}</p>
+        <p class="text-xs text-muted">Disques</p>
+      </div>
+      <div>
+        <p class="text-lg font-bold">{canViewFull ? pinnedCollections.length : '—'}</p>
+        <p class="text-xs text-muted">Collections</p>
+      </div>
+      <div>
+        <p class="text-lg font-bold">{followers.length}</p>
+        <p class="text-xs text-muted">Followers</p>
+      </div>
+      <div>
+        <p class="text-lg font-bold">{following.length}</p>
+        <p class="text-xs text-muted">Following</p>
+      </div>
+      <div>
+        <p class="text-lg font-bold">{canViewFull ? wantCount : '—'}</p>
+        <p class="text-xs text-muted">Wants</p>
+      </div>
+    </div>
+
+    {!canViewFull && isPrivate && (
+      <div class="private-notice text-center py-12 border border-border rounded-xl">
+        <p class="font-medium mb-1">Compte privé</p>
+        <p class="text-sm text-muted">Suis {profileUser.name ?? username} pour voir sa collection.</p>
+      </div>
+    )}
+
+    {canViewFull && (
+      <>
+        <!-- Recent items -->
+        {recentItems.length > 0 && (
+          <section class="mb-6" aria-labelledby="recent-heading">
+            <h2 id="recent-heading" class="text-sm font-medium text-muted mb-3">Récemment ajoutés</h2>
+            <div class="grid grid-cols-3 gap-2">
+              {recentItems.map((item) => (
+                <a href={`/items/${item.id}`} class="aspect-square rounded overflow-hidden bg-surface-raised hover:opacity-90 transition-opacity">
+                  {item.release.coverUrl
+                    ? <img src={item.release.coverUrl} alt={`${item.release.artist} — ${item.release.title}`} width="120" height="120" class="w-full h-full object-cover" loading="lazy" />
+                    : <div class="w-full h-full flex items-center justify-center text-xs text-muted p-2 text-center">{item.release.title}</div>
+                  }
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <!-- Pinned collections -->
+        {pinnedCollections.length > 0 && (
+          <section aria-labelledby="collections-heading">
+            <h2 id="collections-heading" class="text-sm font-medium text-muted mb-3">Collections</h2>
+            <ul class="space-y-2">
+              {pinnedCollections.map((col) => (
+                <li>
+                  <a href={`/u/${username}/collections/${col.slug}`} class="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-surface-raised transition-colors">
+                    <span class="font-medium text-sm">{col.name}</span>
+                    <span class="text-xs text-muted">{col._count?.items ?? 0} disques</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </>
+    )}
+  </div>
+</Layout>
+
+<script>
+  // Follow/unfollow button
+  const followBtn = document.querySelector('.follow-btn') as HTMLButtonElement | null
+  followBtn?.addEventListener('click', async () => {
+    const username = followBtn.dataset.username
+    followBtn.disabled = true
+
+    try {
+      const res = await fetch(`/api/users/${username}/follow`, { method: 'POST' })
+      const data = await res.json()
+      followBtn.dataset.following = data.following ? 'true' : 'false'
+      followBtn.setAttribute('aria-pressed', String(data.following))
+      followBtn.textContent = data.following ? 'Abonné' : 'Suivre'
+    } catch {
+      // no-op
+    } finally {
+      followBtn.disabled = false
+    }
+  })
+
+  // Block via context menu (⋯)
+  const contextBtn = document.querySelector('.context-menu-btn') as HTMLButtonElement | null
+  contextBtn?.addEventListener('click', async () => {
+    const username = contextBtn.dataset.username
+    if (!confirm(`Bloquer @${username} ?`)) return
+
+    const res = await fetch(`/api/users/${username}/block`, { method: 'POST' })
+    if (res.ok) window.location.href = '/feed'
+  })
+</script>

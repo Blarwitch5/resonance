@@ -1,0 +1,138 @@
+---
+export const prerender = false
+import Layout from '../components/layouts/Layout.astro'
+import { activityRepository } from '../repositories/activity-repository'
+import { followRepository } from '../repositories/follow-repository'
+
+const currentUser = Astro.locals.user
+if (!currentUser) return Astro.redirect('/login', 302)
+
+const { activities, nextCursor } = await activityRepository.getFeedForUser(currentUser.id, { take: 20 })
+
+// For empty feed: check if user follows anyone
+const followingCount = (await followRepository.getFollowing(currentUser.id)).length
+---
+
+<Layout title="Feed">
+  <div class="feed-page max-w-2xl mx-auto px-4 py-4">
+
+    {activities.length === 0 && followingCount === 0 && (
+      <div class="empty-feed text-center py-16">
+        <p class="text-lg font-medium mb-2">Ton feed est vide</p>
+        <p class="text-muted text-sm mb-6">Suis des collectionneurs pour voir leur activité ici.</p>
+        <a href="/explore" class="btn-primary">Explorer la communauté</a>
+      </div>
+    )}
+
+    {activities.length === 0 && followingCount > 0 && (
+      <div class="empty-feed text-center py-16">
+        <p class="text-muted text-sm">Tes abonnements n'ont pas encore eu d'activité.</p>
+      </div>
+    )}
+
+    <ul class="feed-list space-y-4" id="feed-list" role="list" aria-label="Activités">
+      {activities.map((activity) => (
+        <li class="feed-card bg-surface border border-border rounded-xl p-4">
+          <div class="flex items-start gap-3">
+            <a href={`/u/${activity.user.username}`} aria-label={activity.user.name ?? activity.user.username ?? ''}>
+              {activity.user.imageUrl
+                ? <img src={activity.user.imageUrl} alt={activity.user.name ?? ''} width="40" height="40" class="rounded-full w-10 h-10 object-cover" />
+                : <div class="w-10 h-10 rounded-full bg-surface-raised flex items-center justify-center text-sm font-medium">{(activity.user.name ?? 'U')[0]}</div>
+              }
+            </a>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm">
+                <a href={`/u/${activity.user.username}`} class="font-medium hover:underline">{activity.user.name}</a>
+                {activity.type === 'ADD_ITEM' && ' a ajouté un disque à sa shelf'}
+                {activity.type === 'ADD_WANT' && ' veut ce disque'}
+                {activity.type === 'RATE_ITEM' && ' a noté un disque'}
+                {activity.type === 'CREATE_COLLECTION' && ' a créé une collection'}
+                {activity.type === 'ADD_TO_COLLECTION' && ' a ajouté un disque à une collection'}
+                {activity.type === 'FOLLOW_USER' && " suit quelqu'un de nouveau"}
+              </p>
+              {activity.shelfItem?.release && (
+                <a href={`/items/${activity.shelfItem.id}`} class="flex items-center gap-3 mt-2 p-2 rounded-lg hover:bg-surface-raised transition-colors">
+                  {activity.shelfItem.release.coverUrl && (
+                    <img
+                      src={activity.shelfItem.release.coverUrl}
+                      alt={`${activity.shelfItem.release.artist} — ${activity.shelfItem.release.title}`}
+                      width="48"
+                      height="48"
+                      class="rounded w-12 h-12 object-cover"
+                      loading="lazy"
+                    />
+                  )}
+                  <div>
+                    <p class="text-sm font-medium">{activity.shelfItem.release.title}</p>
+                    <p class="text-xs text-muted">{activity.shelfItem.release.artist}</p>
+                  </div>
+                </a>
+              )}
+              <div class="flex items-center gap-4 mt-2 text-xs text-muted">
+                <span>{new Date(activity.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                <span>{activity._count.likes} like{activity._count.likes !== 1 ? 's' : ''}</span>
+                <span>{activity._count.comments} commentaire{activity._count.comments !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      ))}
+    </ul>
+
+    {nextCursor && (
+      <div id="load-more-trigger" class="text-center py-8">
+        <button
+          id="load-more-btn"
+          class="btn-secondary"
+          data-cursor={nextCursor}
+        >
+          Charger plus
+        </button>
+      </div>
+    )}
+  </div>
+</Layout>
+
+<script>
+  const btn = document.getElementById('load-more-btn') as HTMLButtonElement | null
+  const list = document.getElementById('feed-list')
+
+  btn?.addEventListener('click', async () => {
+    const cursor = btn.dataset.cursor
+    if (!cursor || !list) return
+
+    btn.disabled = true
+    btn.textContent = 'Chargement…'
+
+    try {
+      const res = await fetch(`/api/feed?cursor=${encodeURIComponent(cursor)}`)
+      const data = await res.json()
+
+      for (const activity of data.activities) {
+        const li = document.createElement('li')
+        li.className = 'feed-card bg-surface border border-border rounded-xl p-4'
+        li.innerHTML = `
+          <a href="/items/${activity.shelfItem?.id ?? '#'}" class="flex items-center gap-3">
+            ${activity.shelfItem?.release?.coverUrl ? `<img src="${activity.shelfItem.release.coverUrl}" alt="${activity.shelfItem.release.artist} — ${activity.shelfItem.release.title}" width="48" height="48" class="rounded w-12 h-12 object-cover" loading="lazy" />` : ''}
+            <div>
+              <p class="text-sm font-medium">${activity.shelfItem?.release?.title ?? ''}</p>
+              <p class="text-xs text-muted">${activity.shelfItem?.release?.artist ?? ''}</p>
+            </div>
+          </a>
+        `
+        list.appendChild(li)
+      }
+
+      if (data.nextCursor) {
+        btn.dataset.cursor = data.nextCursor
+        btn.disabled = false
+        btn.textContent = 'Charger plus'
+      } else {
+        btn.closest('#load-more-trigger')?.remove()
+      }
+    } catch {
+      btn.disabled = false
+      btn.textContent = 'Réessayer'
+    }
+  })
+</script>

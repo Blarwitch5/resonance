@@ -1,348 +1,193 @@
 ---
-import ArrowLeft from '@lucide/astro/icons/arrow-left'
-import Calendar from '@lucide/astro/icons/calendar'
-import Disc from '@lucide/astro/icons/disc'
-import MapPin from '@lucide/astro/icons/map-pin'
-import Music from '@lucide/astro/icons/music'
-import Package from '@lucide/astro/icons/package-open'
-import Tag from '@lucide/astro/icons/tag'
-import CollectionSelector from '../../components/items/CollectionSelector.astro'
-import DeleteItemModal from '../../components/items/DeleteItemModal.astro'
-import InCollectionBadge from '../../components/items/InCollectionBadge.astro'
-import ItemActionsMenu from '../../components/items/ItemActionsMenu.astro'
-import PersonalDataSection from '../../components/items/PersonalDataSection.astro'
-import TrackList from '../../components/items/TrackList.astro'
-import DashboardLayout from '../../components/layouts/DashboardLayout.astro'
-import EmptyState from '../../components/ui/EmptyState.astro'
-import OptimizedImage from '../../components/ui/OptimizedImage.astro'
-import { getItemMessages } from '../../i18n/item'
-import { normalizeLocale } from '../../i18n/config'
-import { buildExplorerSlug, looksLikeItemId } from '../../lib/slug'
-import { collectionRepository } from '../../repositories/collection-repository'
-import { itemRepository } from '../../repositories/item-repository'
-import { discogsService } from '../../services/discogs-service'
-
 export const prerender = false
+import Layout from '../../components/layouts/Layout.astro'
+import { shelfItemRepository } from '../../repositories/shelf-item-repository'
+import { followRepository } from '../../repositories/follow-repository'
 
-const session = Astro.locals.session
-if (!session) return Astro.redirect('/login')
+const { id } = Astro.params
+if (!id) return Astro.redirect('/shelf')
 
-const slugOrId = Astro.params.id
-if (!slugOrId) return Astro.redirect('/library')
+const currentUser = Astro.locals.user
+const currentUserId = currentUser?.id ?? null
 
-const userId = Astro.locals.user!.id
-// Resolve by slug, then by id (legacy links)
-let item = await itemRepository.findByUserIdAndSlug(userId, slugOrId)
-if (!item && looksLikeItemId(slugOrId)) {
-  item = await itemRepository.findById(slugOrId, userId) ?? null
-  // Redirect to canonical URL (slug) if we found by id
-  if (item && item.slug !== slugOrId) {
-    return Astro.redirect(`/items/${item.slug}`)
-  }
+const shelfItem = await shelfItemRepository.findByIdWithRelease(id)
+if (!shelfItem) return Astro.redirect('/shelf')
+
+const isOwner = currentUserId === shelfItem.userId
+const release = shelfItem.release
+
+// If owner's account is private and viewer is not a follower, block access
+if (!isOwner && shelfItem.user.isPrivate) {
+  const canView = currentUserId
+    ? await followRepository.isFollowing(currentUserId, shelfItem.userId)
+    : false
+  if (!canView) return Astro.redirect('/explore')
 }
 
-if (!item || item.userId !== userId) {
-  return Astro.redirect('/library')
-}
+// Who among my follows also has this release?
+const friendsWithRelease = currentUserId && !isOwner
+  ? await shelfItemRepository.getFriendsWithRelease(currentUserId, release.id)
+  : []
 
-// Fetch complete details from Discogs when available
-let discogsRelease = null
-let tracklist: Array<{ position: string; title: string; duration?: string }> = []
-let discogsDetails = null
-
-if (item.discogsId) {
-  try {
-    discogsRelease = await discogsService.getRelease(item.discogsId)
-    tracklist = discogsRelease.tracklist || []
-    discogsDetails = {
-      masterId: discogsRelease.master_id,
-      masterUrl: discogsRelease.master_url,
-      country: discogsRelease.country,
-      released: discogsRelease.released,
-      releasedFormatted: discogsRelease.released_formatted,
-      notes: discogsRelease.notes,
-      genres: discogsRelease.genres || [],
-      styles: discogsRelease.styles || [],
-      labels: discogsRelease.labels || [],
-      formats: discogsRelease.formats || [],
-      identifiers: discogsRelease.identifiers || [],
-      videos: discogsRelease.videos || [],
-      community: discogsRelease.community,
-    }
-  } catch (error) {
-    console.error('Error fetching Discogs release:', error)
-  }
-}
-
-// Collection is already included in item
-const collection = item.collection || null
-
-// Si l'item n'est plus dans une collection, on redirige vers la vue "aperçu"
-// (page explorer) pour éviter d'afficher le contenu full à tort.
-if (!collection) {
-  const discogsIdNumber =
-    typeof item.discogsId === 'number' ? item.discogsId : Number.parseInt(String(item.discogsId ?? ''), 10)
-  if (Number.isFinite(discogsIdNumber) && discogsIdNumber > 0) {
-    const explorerSlug = buildExplorerSlug(item.artist, item.title, item.year ?? null, discogsIdNumber)
-    return Astro.redirect(`/explorer/${explorerSlug}`)
-  }
-  return Astro.redirect('/library')
-}
-
-const userCollections = await collectionRepository.findByUserId(Astro.locals.user!.id)
-
-const locale = normalizeLocale(Astro.locals.userPreferences?.locale ?? Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
-const itemT = getItemMessages(locale)
+// Community avg rating (show only if 3+ ratings)
+const showCommunityRating = (release.ratingCount ?? 0) >= 3
 ---
 
-<DashboardLayout title={`${item.title} - ${item.artist} - Resonance`}>
-  <div class="space-y-6 page-transition pb-24 md:pb-20">
-    <a
-      href={collection ? `/collections/${collection.slug}` : '/library'}
-      class="inline-flex items-center gap-2 text-muted transition-colors hover:text-primary"
-    >
-      <ArrowLeft size={18} />
-      <span>{collection ? itemT.backToCollection.replace('{name}', collection.name) : itemT.backToLibrary}</span>
-    </a>
+<Layout title={`${release.artist} — ${release.title}`}>
+  <div class="item-detail max-w-2xl mx-auto px-4 py-6">
 
-    <!-- Header avec cover et infos principales -->
-    <div class="glass-card rounded-2xl p-4 md:p-6">
-      <div class="flex flex-col gap-6 md:flex-row">
-        <!-- Cover -->
-        <div class="shrink-0">
-          <div class="aspect-square w-full max-w-xs overflow-hidden rounded-xl bg-surface">
-            <OptimizedImage
-              src={item.coverUrl}
-              alt={`${item.title} - ${item.artist}`}
-              width={400}
-              height={400}
-              loading="eager"
-              aspectRatio="square"
-              class="h-full w-full object-cover"
+    <!-- Cover + meta -->
+    <div class="flex items-start gap-4 mb-6">
+      <div class="flex-shrink-0">
+        {release.coverUrl
+          ? <img
+              src={release.coverUrl}
+              alt={`${release.artist} — ${release.title}`}
+              width="120"
+              height="120"
+              class="rounded-lg w-28 h-28 object-cover shadow"
             />
-          </div>
+          : <div class="w-28 h-28 rounded-lg bg-surface-raised flex items-center justify-center text-muted text-xs">No cover</div>
+        }
+      </div>
+      <div class="flex-1 min-w-0">
+        <h1 class="text-lg font-semibold leading-tight">{release.title}</h1>
+        <p class="text-sm text-muted">{release.artist}</p>
+        {release.label && <p class="text-xs text-muted">{release.label}</p>}
+        <div class="flex items-center gap-2 mt-1 text-xs text-muted">
+          {release.year && <span>{release.year}</span>}
+          {release.country && <span>· {release.country}</span>}
+          <span>· {release.format}</span>
         </div>
 
-        <!-- Infos principales -->
-        <div class="flex-1 space-y-4">
-          <div>
-            <h1 class="text-2xl md:text-3xl font-bold text-neutral mb-2">{item.title}</h1>
-            <div class="flex flex-wrap items-center gap-2 mb-2">
-              <InCollectionBadge />
-            </div>
-            <p class="text-lg md:text-xl text-muted">{item.artist}</p>
+        <!-- Owner rating -->
+        {shelfItem.rating && (
+          <div class="flex items-center gap-1 mt-2" aria-label={`Note : ${shelfItem.rating} sur 5`}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <span class={i < shelfItem.rating! ? 'text-accent' : 'text-muted'} aria-hidden="true">★</span>
+            ))}
           </div>
+        )}
 
-          <!-- Main metadata -->
-          <div class="flex flex-wrap gap-4 text-sm">
-            {item.year && (
-              <div class="flex items-center gap-2 text-muted">
-                <Calendar size={16} />
-                <span>{item.year}</span>
-              </div>
-            )}
-            {item.format && (
-              <div class="flex items-center gap-2 text-muted">
-                <Disc size={16} />
-                <span>{item.format}</span>
-              </div>
-            )}
-            {item.country && (
-              <div class="flex items-center gap-2 text-muted">
-                <MapPin size={16} />
-                <span>{item.country}</span>
-              </div>
-            )}
-            {item.genre && (
-              <div class="flex items-center gap-2 text-muted">
-                <Tag size={16} />
-                <span>{item.genre}</span>
-              </div>
-            )}
-            {collection && (
-              <div class="flex items-center gap-2 text-muted">
-                <Package size={16} />
-                <a
-                  href={`/collections/${collection.slug}`}
-                  class="text-primary hover:text-primary/80 transition-colors"
-                >
-                  {collection.name}
-                </a>
-              </div>
-            )}
-          </div>
-
-          <!-- Collection selector -->
-          <div class="pt-4 border-t border-border">
-            <CollectionSelector
-              itemId={item.id}
-              currentCollection={collection}
-              collections={userCollections}
-              labels={itemT.collectionSelector}
-            />
-          </div>
-
-          <!-- Actions -->
-          <div class="pt-4 border-t border-border">
-            <ItemActionsMenu
-              itemId={item.id}
-              itemTitle={item.title}
-              currentCollection={collection}
-              collections={userCollections}
-              isFavorite={item.metadata?.isFavorite || false}
-              actionLabels={itemT.actions}
-              toastMessages={itemT.toasts}
-            />
-          </div>
-        </div>
+        <!-- Community rating -->
+        {showCommunityRating && (
+          <p class="text-xs text-muted mt-1">
+            Moyenne communauté : {release.avgRating?.toFixed(1)}/5
+            ({release.ratingCount} notes)
+          </p>
+        )}
       </div>
     </div>
 
-    <!-- Tracklist avec previews Spotify -->
-    {tracklist.length > 0 && (
-      <TrackList
-        tracks={tracklist}
-        albumTitle={item.title}
-        albumArtist={item.artist}
-        coverUrl={item.coverUrl}
-        discogsId={item.discogsId}
-        tracklistTitle={itemT.tracklistTitle}
-        trackCountOne={itemT.trackCountOne}
-        trackCountOther={itemT.trackCountOther}
-        audioLabels={itemT.audio}
-        noPreviewForTrack={itemT.noPreviewForTrack}
-        closeLabel={itemT.deleteModal.closeAria}
-        previewsUnavailableLabel={itemT.audio.previewsUnavailable}
-        loadPreviewErrorLabel={itemT.audio.loadPreviewError}
-      />
-    )}
-
-    <!-- Additional details from Discogs -->
-    {discogsDetails && (
-      <div class="grid gap-6 md:grid-cols-2">
-        <!-- Detailed information -->
-        <div class="glass-card rounded-2xl p-4 md:p-6">
-          <h2 class="mb-4 text-lg md:text-xl font-bold text-neutral">{itemT.details}</h2>
-          <div class="space-y-3 text-sm">
-            {discogsDetails.released && (
-              <div>
-                <span class="font-medium text-muted">{itemT.labels.releaseDate}</span>
-                <span class="ml-2 text-neutral">
-                  {discogsDetails.releasedFormatted || discogsDetails.released}
-                </span>
-              </div>
-            )}
-            {discogsDetails.country && (
-              <div>
-                <span class="font-medium text-muted">{itemT.labels.country}</span>
-                <span class="ml-2 text-neutral">{discogsDetails.country}</span>
-              </div>
-            )}
-            {discogsDetails.labels.length > 0 && (
-              <div>
-                <span class="font-medium text-muted">{itemT.labels.labels}</span>
-                <span class="ml-2 text-neutral">
-                  {discogsDetails.labels.map((label) => label.name).join(', ')}
-                </span>
-              </div>
-            )}
-            {discogsDetails.genres.length > 0 && (
-              <div>
-                <span class="font-medium text-muted">{itemT.labels.genres}</span>
-                <span class="ml-2 text-neutral">
-                  {discogsDetails.genres.join(', ')}
-                </span>
-              </div>
-            )}
-            {discogsDetails.styles.length > 0 && (
-              <div>
-                <span class="font-medium text-muted">{itemT.labels.styles}</span>
-                <span class="ml-2 text-neutral">
-                  {discogsDetails.styles.join(', ')}
-                </span>
-              </div>
-            )}
-            {discogsDetails.identifiers.length > 0 && (
-              <div>
-                <span class="font-medium text-muted">{itemT.labels.identifiers}</span>
-                <div class="mt-1 space-y-1">
-                  {discogsDetails.identifiers.map((id) => (
-                    <div class="text-neutral">
-                      <span class="font-medium">{id.type}:</span> {id.value}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <!-- Format and community -->
-        <div class="glass-card rounded-2xl p-4 md:p-6">
-          <h2 class="mb-4 text-lg md:text-xl font-bold text-neutral">{itemT.formatAndCommunity}</h2>
-          <div class="space-y-3 text-sm">
-            {discogsDetails.formats.length > 0 && (
-              <div>
-                <span class="font-medium text-muted">{itemT.labels.formats}</span>
-                <div class="mt-1 space-y-1">
-                  {discogsDetails.formats.map((format) => (
-                    <div class="text-neutral">
-                      {format.name} {format.text && `(${format.text})`}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {discogsDetails.community && (
-              <div class="space-y-2">
-                <div>
-                  <span class="font-medium text-muted">{itemT.labels.averageRating}</span>
-                  <span class="ml-2 text-neutral">
-                    {discogsDetails.community.rating.average > 0
-                      ? `${discogsDetails.community.rating.average.toFixed(1)} / 5`
-                      : itemT.labels.notRated}
-                    {discogsDetails.community.rating.count > 0 &&
-                      ` ${itemT.labels.ratingsCount.replace('{count}', String(discogsDetails.community.rating.count))}`}
-                  </span>
-                </div>
-                <div>
-                  <span class="font-medium text-muted">{itemT.labels.collectors}</span>
-                  <span class="ml-2 text-neutral">
-                    {discogsDetails.community.have} {itemT.labels.collectorsHave}
-                  </span>
-                </div>
-                <div>
-                  <span class="font-medium text-muted">{itemT.labels.wantedBy}</span>
-                  <span class="ml-2 text-neutral">
-                    {discogsDetails.community.want} {itemT.labels.people}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
+    <!-- Social: friends who have this -->
+    {friendsWithRelease.length > 0 && (
+      <div class="friends-section mb-4 p-3 bg-surface-raised rounded-lg">
+        <p class="text-xs text-muted mb-2">
+          {friendsWithRelease.length === 1
+            ? '1 personne que tu suis a ce disque'
+            : `${friendsWithRelease.length} personnes que tu suis ont ce disque`}
+        </p>
+        <div class="flex -space-x-2">
+          {friendsWithRelease.slice(0, 5).map((f) => (
+            <a href={`/u/${f.user.username}`} aria-label={f.user.name ?? f.user.username ?? ''}>
+              {f.user.imageUrl
+                ? <img src={f.user.imageUrl} alt={f.user.name ?? ''} width="28" height="28" class="w-7 h-7 rounded-full border-2 border-background object-cover" />
+                : <div class="w-7 h-7 rounded-full border-2 border-background bg-accent flex items-center justify-center text-xs font-bold">{(f.user.name ?? 'U')[0]}</div>
+              }
+            </a>
+          ))}
         </div>
       </div>
     )}
 
-    <!-- Notes Discogs -->
-    {discogsDetails?.notes && (
-      <div class="glass-card rounded-2xl p-4 md:p-6">
-        <h2 class="mb-4 text-lg md:text-xl font-bold text-neutral">{itemT.notes}</h2>
-        <p class="whitespace-pre-wrap text-muted">{discogsDetails.notes}</p>
-      </div>
+    <!-- Personal info (owner only) -->
+    {isOwner && (
+      <section class="personal-info mb-6 p-4 bg-surface border border-border rounded-xl">
+        <h2 class="text-sm font-medium mb-3">Ma collection</h2>
+        <dl class="space-y-2 text-sm">
+          <div class="flex justify-between">
+            <dt class="text-muted">État</dt>
+            <dd>{shelfItem.condition}</dd>
+          </div>
+          {shelfItem.acquiredAt && (
+            <div class="flex justify-between">
+              <dt class="text-muted">Acquis le</dt>
+              <dd>{new Date(shelfItem.acquiredAt).toLocaleDateString('fr-FR')}</dd>
+            </div>
+          )}
+          {shelfItem.note && (
+            <div>
+              <dt class="text-muted mb-1">Note personnelle</dt>
+              <dd class="text-sm">{shelfItem.note}</dd>
+            </div>
+          )}
+        </dl>
+      </section>
     )}
 
-    <PersonalDataSection itemId={item.id} metadata={item.metadata} personalDataT={itemT.personalData} />
-
-    {!discogsRelease && item.discogsId && (
-      <EmptyState
-        title={itemT.emptyDetails.title}
-        description={itemT.emptyDetails.description}
-        icon={Music}
-      />
+    <!-- Tracklist -->
+    {release.tracklist && Array.isArray(release.tracklist) && release.tracklist.length > 0 && (
+      <section class="tracklist mb-6" aria-labelledby="tracklist-heading">
+        <h2 id="tracklist-heading" class="text-sm font-medium text-muted mb-2">Tracklist</h2>
+        <ol class="space-y-1">
+          {(release.tracklist as Array<{ position: string; title: string; duration?: string }>).map((track) => (
+            <li class="flex items-center justify-between text-sm py-1 border-b border-border/50 last:border-0">
+              <span class="text-muted w-8 flex-shrink-0">{track.position}</span>
+              <span class="flex-1">{track.title}</span>
+              {track.duration && <span class="text-muted text-xs">{track.duration}</span>}
+            </li>
+          ))}
+        </ol>
+      </section>
     )}
 
-    <!-- Modal de suppression -->
-    <DeleteItemModal itemId={item.id} itemTitle={item.title} deleteModal={itemT.deleteModal} toasts={itemT.toasts} />
+    <!-- Actions -->
+    <div class="actions flex gap-2 flex-wrap">
+      {!isOwner && currentUserId && (
+        <button
+          class="btn-secondary want-btn"
+          data-release-id={release.id}
+        >
+          + Want
+        </button>
+      )}
+      {isOwner && (
+        <>
+          <a href={`/items/${id}/edit`} class="btn-secondary">Modifier</a>
+          <button class="btn-ghost text-red-500 delete-btn" data-id={id}>Supprimer</button>
+        </>
+      )}
+    </div>
   </div>
-</DashboardLayout>
+</Layout>
+
+<script>
+  // Want button
+  const wantBtn = document.querySelector('.want-btn') as HTMLButtonElement | null
+  wantBtn?.addEventListener('click', async () => {
+    const releaseId = wantBtn.dataset.releaseId
+    wantBtn.disabled = true
+    try {
+      const res = await fetch('/api/wants/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ releaseId }),
+      })
+      if (res.ok) {
+        wantBtn.textContent = '✓ Dans mes Wants'
+        wantBtn.disabled = true
+      }
+    } catch {
+      wantBtn.disabled = false
+    }
+  })
+
+  // Delete button
+  const deleteBtn = document.querySelector('.delete-btn') as HTMLButtonElement | null
+  deleteBtn?.addEventListener('click', async () => {
+    if (!confirm('Supprimer ce disque de ta shelf ?')) return
+    const id = deleteBtn.dataset.id
+    const res = await fetch(`/api/items/${id}/delete`, { method: 'DELETE' })
+    if (res.ok) window.location.href = '/shelf'
+  })
+</script>
