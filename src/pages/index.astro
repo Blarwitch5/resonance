@@ -20,6 +20,9 @@ export const prerender = false
 const session = Astro.locals.session
 const isLoggedIn = !!session
 const user = Astro.locals.user
+
+// Redirect logged-in users to feed
+if (session && user) return Astro.redirect('/feed', 302)
 const locale = normalizeLocale(Astro.locals.userPreferences?.locale ?? Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
 const t = getHomeMessages(locale)
 
@@ -291,7 +294,9 @@ if (isLoggedIn && user?.id) {
     .glass-card {
       transition: transform 0.3s ease;
     }
+  }
 
+  @media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
     .glass-card:hover {
       transform: translateY(-4px) scale(1.02);
     }
