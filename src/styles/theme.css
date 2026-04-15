@@ -122,17 +122,17 @@
     --color-text-on-warning: oklch(0.08 0.01 280);
     --color-text-on-error: oklch(0.08 0.01 280);
 
-    /* Couleurs de format */
-    --color-format-vinyl: oklch(0.55 0.25 280);
-    --color-format-cassette: oklch(0.65 0.15 45);
-    --color-format-cd: oklch(0.68 0.16 255);
-    --color-format-explorer: oklch(0.6 0.2 280);
-    --color-format-profile: oklch(0.6 0.15 180);
+    /* Couleurs de format — boostées pour WCAG AA sur fond sombre (≥ oklch 0.72) */
+    --color-format-vinyl: oklch(0.78 0.20 280);
+    --color-format-cassette: oklch(0.82 0.14 45);
+    --color-format-cd: oklch(0.80 0.14 255);
+    --color-format-explorer: oklch(0.78 0.18 280);
+    --color-format-profile: oklch(0.78 0.14 180);
 
     /* Couleurs legacy (compatibilité) */
     --color-night-deep: oklch(0.08 0.01 280);
-    --color-electric-purple: oklch(0.55 0.25 280);
-    --color-copper-warm: oklch(0.65 0.15 45);
+    --color-electric-purple: oklch(0.78 0.20 280);
+    --color-copper-warm: oklch(0.82 0.14 45);
     --color-blue-gray: oklch(0.85 0.02 280);
     --color-cream-white: oklch(0.98 0.005 280);
   }

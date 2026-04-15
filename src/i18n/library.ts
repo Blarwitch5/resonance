@@ -77,6 +77,11 @@ const messages = {
       favoritesOnly: 'Favorites only',
       favoritesOnlyDescription: 'Show only your favorites',
     },
+    bulkMode: {
+      enter: 'Selection mode',
+      exit: 'Exit',
+      active: 'Selection mode active',
+    },
   },
   fr: {
     meta: {
@@ -154,6 +159,11 @@ const messages = {
       collectionFallback: 'Collection',
       favoritesOnly: 'Favoris uniquement',
       favoritesOnlyDescription: 'Afficher uniquement vos favoris',
+    },
+    bulkMode: {
+      enter: 'Mode selection',
+      exit: 'Quitter',
+      active: 'Mode selection actif',
     },
   },
 } satisfies Record<Locale, unknown>

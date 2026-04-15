@@ -26,18 +26,27 @@ const friendsWithRelease = currentUserId
 
 const showCommunityRating = (release.ratingCount ?? 0) >= 3
 
+const friendsLabel = friendsWithRelease.length === 1
+  ? '1 personne que tu suis a ce disque'
+  : friendsWithRelease.length + ' personnes que tu suis ont ce disque'
+
+const releaseTitle = release.artist + ' — ' + release.title
+const alreadyOwnedHref = alreadyOwned ? '/items/' + alreadyOwned.id : ''
+type TrackItem = { position: string; title: string; duration?: string }
+const tracklist = Array.isArray(release.tracklist) ? (release.tracklist as unknown as TrackItem[]) : null
+
 // Public page — cacheable
 Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
 ---
 
-<Layout title={`${release.artist} — ${release.title}`}>
+<Layout title={releaseTitle}>
   <div class="release-detail max-w-2xl mx-auto px-4 py-6">
 
     <!-- Cover + meta -->
     <div class="flex items-start gap-4 mb-6">
       <div class="flex-shrink-0">
         {release.coverUrl
-          ? <img src={release.coverUrl} alt={`${release.artist} — ${release.title}`} width="120" height="120" class="rounded-lg w-28 h-28 object-cover shadow" />
+          ? <img src={release.coverUrl} alt={releaseTitle} width="120" height="120" class="rounded-lg w-28 h-28 object-cover shadow" />
           : <div class="w-28 h-28 rounded-lg bg-surface-raised flex items-center justify-center text-muted text-xs">No cover</div>
         }
       </div>
@@ -62,13 +71,11 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
     {friendsWithRelease.length > 0 && (
       <div class="friends-section mb-4 p-3 bg-surface-raised rounded-lg">
         <p class="text-xs text-muted mb-2">
-          {friendsWithRelease.length === 1
-            ? '1 personne que tu suis a ce disque'
-            : `${friendsWithRelease.length} personnes que tu suis ont ce disque`}
+          {friendsLabel}
         </p>
         <div class="flex -space-x-2">
           {friendsWithRelease.slice(0, 5).map((f) => (
-            <a href={`/u/${f.user.username}`} aria-label={f.user.name ?? f.user.username ?? ''}>
+            <a href={'/u/' + f.user.username} aria-label={f.user.name ?? f.user.username ?? ''}>
               {f.user.imageUrl
                 ? <img src={f.user.imageUrl} alt="" width="28" height="28" class="w-7 h-7 rounded-full border-2 border-background object-cover" />
                 : <div class="w-7 h-7 rounded-full border-2 border-background bg-accent flex items-center justify-center text-xs">{(f.user.name ?? 'U')[0]}</div>
@@ -94,7 +101,7 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
             </button>
           )
           : (
-            <a href={`/items/${alreadyOwned.id}`} class="btn-secondary">Voir dans ma shelf</a>
+            <a href={alreadyOwnedHref} class="btn-secondary">Voir dans ma shelf</a>
           )
         }
         {!alreadyOwned && (
@@ -115,11 +122,11 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
     )}
 
     <!-- Tracklist -->
-    {release.tracklist && Array.isArray(release.tracklist) && release.tracklist.length > 0 && (
+    {tracklist && tracklist.length > 0 && (
       <section aria-labelledby="tracklist-heading">
         <h2 id="tracklist-heading" class="text-sm font-medium text-muted mb-2">Tracklist</h2>
         <ol class="space-y-1">
-          {(release.tracklist as Array<{ position: string; title: string; duration?: string }>).map((track) => (
+          {tracklist.map((track) => (
             <li class="flex items-center gap-3 text-sm py-1 border-b border-border/50 last:border-0">
               <span class="text-muted w-8 flex-shrink-0">{track.position}</span>
               <span class="flex-1">{track.title}</span>
@@ -130,9 +137,8 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
       </section>
     )}
   </div>
-</Layout>
 
-<!-- Add to shelf modal -->
+  <!-- Add to shelf modal -->
 <dialog id="add-shelf-dialog" class="rounded-2xl p-6 max-w-sm w-full shadow-xl backdrop:bg-black/40">
   <h2 class="font-semibold mb-4" id="dialog-title">Ajouter à ma shelf</h2>
   <form id="add-shelf-form" class="space-y-4">
@@ -179,6 +185,7 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
     </div>
   </form>
 </dialog>
+</Layout>
 
 <script>
   const addBtn = document.getElementById('add-to-shelf-btn') as HTMLButtonElement | null

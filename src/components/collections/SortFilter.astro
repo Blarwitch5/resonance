@@ -264,9 +264,9 @@ function buildUrl(params: Record<string, string | null>) {
     <div class="favorites-filter-card flex items-center justify-between rounded-xl border border-border p-4">
       <div class="flex items-center gap-3">
         <div class={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
-          showFavorites ? 'bg-primary/20' : 'bg-surface-elevated'
+          showFavorites ? 'bg-primary' : 'bg-surface-elevated'
         }`}>
-          <Heart size={18} class={`fill-none stroke-2 ${showFavorites ? 'text-primary stroke-primary' : 'text-muted stroke-muted'}`} />
+          <Heart size={18} class={`fill-none stroke-2 ${showFavorites ? 'text-white stroke-white' : 'text-muted stroke-muted'}`} />
         </div>
         <div>
           <label for="favorites-filter" class="text-sm font-medium text-neutral cursor-pointer">

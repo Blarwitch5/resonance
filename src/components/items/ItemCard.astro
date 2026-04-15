@@ -1,140 +1,111 @@
 ---
-import Heart from '@lucide/astro/icons/heart'
+import EllipsisVertical from '@lucide/astro/icons/ellipsis-vertical'
+import Star from '@lucide/astro/icons/star'
+import type { Item } from '@prisma/client'
 import OptimizedImage from '../ui/OptimizedImage.astro'
-import type { Item, ItemMetadata } from '@prisma/client'
 
 type ItemCardProps = {
-  item: Item & { metadata: ItemMetadata | null }
-  actionLabels?: {
-    addToFavorites: string
-    moreActions: string
-  }
+  item: Item
 }
 
-const { item, actionLabels } = Astro.props as ItemCardProps
-const addToFavoritesLabel = actionLabels?.addToFavorites ?? 'Add to favorites'
+const { item } = Astro.props as ItemCardProps
 ---
 
 <article
-  class="glass-card group relative overflow-hidden rounded-xl transition-all md:hover:scale-105"
-  data-item-card
-  data-item-title={item.title}
-  data-item-artist={item.artist}
-  data-item-genre={item.genre || ''}
-  data-item-year={item.year?.toString() || ''}
+  class="item-card group relative aspect-square overflow-hidden rounded-xl bg-surface cursor-pointer"
+  data-item-id={item.id}
+  data-item-title={item.albumTitle}
+  data-item-artist={item.artistName}
 >
-  <!-- Lien vers la page de détails -->
-  <a href={`/items/${item.slug}`} class="block no-underline">
-    <!-- Cover -->
-    <div class="overflow-hidden bg-surface">
-      <OptimizedImage
-        src={item.coverUrl}
-        alt={`${item.title} - ${item.artist}`}
-        width={400}
-        height={400}
-        loading="lazy"
-        aspectRatio="square"
-        class="h-full w-full object-cover"
-      />
-    </div>
-
-    <!-- Info -->
-    <div class="p-3">
-      <h3 class="truncate font-medium text-neutral">{item.title}</h3>
-      <p class="truncate text-sm text-muted">{item.artist}</p>
-      {item.year && <p class="text-xs text-muted">{item.year}</p>}
-    </div>
+  <!-- Cover -->
+  <a href={`/item/${item.slug}`} class="block h-full w-full no-underline" tabindex="-1" aria-hidden="true">
+    <OptimizedImage
+      src={item.coverUrl}
+      alt={`${item.albumTitle} — ${item.artistName}`}
+      width={400}
+      height={400}
+      loading="lazy"
+      aspectRatio="square"
+      class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+    />
   </a>
 
-  <!-- Actions -->
+  <!-- Overlay (tap mobile / hover desktop) -->
   <div
-    class="item-card-actions mt-2 flex gap-2 md:absolute md:top-2 md:right-2 md:z-10 md:mt-0 md:opacity-0 md:transition-opacity md:group-hover:opacity-100 md:group-focus-within:opacity-100 md:focus-within:opacity-100"
+    class="item-overlay absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/85 via-black/30 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
+    aria-hidden="true"
   >
-    <button
-      type="button"
-      class:list={[
-        'item-favorite-btn favorite-action-button flex h-11 w-11 items-center justify-center rounded-full border-0 bg-amber-500/90 p-0 text-white shadow-lg backdrop-blur-sm transition-all hover:bg-amber-500',
-        item.metadata?.isFavorite && 'favorite-action-button--saved',
-      ]}
-      aria-label={addToFavoritesLabel}
-      aria-pressed={item.metadata?.isFavorite ? 'true' : 'false'}
-      data-item-id={item.id}
-      data-favorite={item.metadata?.isFavorite ? 'true' : 'false'}
-    >
-      <Heart
-        size={16}
-        class={`favorite-icon stroke-2 text-white stroke-white ${item.metadata?.isFavorite ? 'fill-current' : 'fill-none'}`}
-      />
-    </button>
+    <div class="p-3">
+      <!-- Rating -->
+      {item.rating && (
+        <div class="mb-1 flex gap-0.5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Star
+              size={10}
+              class={`stroke-none ${i < item.rating! ? 'fill-amber-400' : 'fill-white/20'}`}
+            />
+          ))}
+        </div>
+      )}
+
+      <!-- Title + Artist -->
+      <p class="truncate text-sm font-semibold leading-tight text-white">{item.albumTitle}</p>
+      <p class="truncate text-xs text-white/70">{item.artistName}</p>
+
+      <!-- Actions -->
+      <div class="mt-2 flex gap-2">
+        <a
+          href={`/item/${item.slug}`}
+          class="flex-1 rounded-lg bg-white/20 px-3 py-1.5 text-center text-xs font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+        >
+          Voir
+        </a>
+        <button
+          type="button"
+          class="item-menu-btn flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 text-white backdrop-blur-sm transition-colors hover:bg-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          aria-label={`Plus d'options pour ${item.albumTitle}`}
+          aria-haspopup="menu"
+          data-item-id={item.id}
+          data-item-slug={item.slug}
+          data-item-title={item.albumTitle}
+        >
+          <EllipsisVertical size={14} class="stroke-2" />
+        </button>
+      </div>
+    </div>
   </div>
 </article>
 
 <script>
-  // Empêcher les clics sur les boutons d'action de déclencher le lien parent
+  // Tap sur mobile : toggle overlay
   document.addEventListener('click', (event) => {
-    const target = event.target instanceof Element ? event.target : null
-    if (!target) return
-    const button = target.closest('.item-favorite-btn')
-    
-    if (button) {
-      event.stopPropagation()
-      event.preventDefault()
-    }
-  })
-
-  // Favorite toggle handling
-  document.addEventListener('click', async (event) => {
-    const target = event.target instanceof Element ? event.target : null
-    if (!target) return
-    const button = target.closest('.item-favorite-btn')
-
-    if (!button) return
-
-    const itemId = button.getAttribute('data-item-id')
-    const isFavorite = button.getAttribute('data-favorite') === 'true'
-
-    if (!itemId) return
-
-    try {
-      const response = await fetch(`/api/items/${itemId}/toggle-favorite`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+    const card = (event.target as Element)?.closest('.item-card') as HTMLElement | null
+    if (!card) {
+      // Tap hors d'une carte : ferme toutes les overlays ouvertes
+      document.querySelectorAll('.item-card.overlay-open').forEach((openCard) => {
+        openCard.classList.remove('overlay-open')
+        openCard.querySelector('.item-overlay')?.classList.remove('opacity-100')
+        openCard.querySelector('.item-overlay')?.classList.add('opacity-0')
       })
-
-      if (response.ok) {
-        // Update icon + style
-        const heartIcon = button.querySelector('svg')
-        if (heartIcon) {
-          heartIcon.classList.toggle('fill-current')
-          heartIcon.classList.toggle('fill-none')
-        }
-
-        // Update data attribute
-        button.setAttribute('data-favorite', (!isFavorite).toString())
-        button.setAttribute('aria-pressed', (!isFavorite).toString())
-        button.classList.toggle('favorite-action-button--saved', !isFavorite)
-
-        // En contexte "Profil -> Favoris", forcer un refresh pour que la liste se mette à jour.
-        // (La liste est rendue côté serveur, donc un simple toggle local ne suffit pas.)
-        try {
-          const url = new URL(window.location.href)
-          const tabParam = url.searchParams.get('tab')
-          const isProfileFavoritesContext = url.pathname.includes('/profile') && (!tabParam || tabParam === 'favorites')
-          if (isProfileFavoritesContext) setTimeout(() => window.location.reload(), 200)
-        } catch {
-          // no-op
-        }
-      }
-    } catch (error) {
-      console.error('Error toggling favorite:', error)
+      return
     }
+
+    const overlay = card.querySelector('.item-overlay')
+    const isLink = (event.target as Element)?.closest('a, button')
+    if (isLink) return // laisser passer les clics sur liens/boutons
+
+    const isOpen = card.classList.contains('overlay-open')
+    // Ferme les autres
+    document.querySelectorAll('.item-card.overlay-open').forEach((c) => {
+      if (c !== card) {
+        c.classList.remove('overlay-open')
+        c.querySelector('.item-overlay')?.classList.remove('opacity-100')
+        c.querySelector('.item-overlay')?.classList.add('opacity-0')
+      }
+    })
+    // Toggle celle-ci
+    card.classList.toggle('overlay-open', !isOpen)
+    overlay?.classList.toggle('opacity-100', !isOpen)
+    overlay?.classList.toggle('opacity-0', isOpen)
   })
 </script>
-
-<style>
-  .favorite-action-button--saved {
-    background-color: #d97706;
-  }
-</style>

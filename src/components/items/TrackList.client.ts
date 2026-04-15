@@ -50,20 +50,20 @@ function initTrackList(): void {
     (element): element is HTMLButtonElement => element instanceof HTMLButtonElement
   )
 
-  let spotifyEnabled = false
-  let spotifyCheckDone = false
+  let deezerEnabled = false
+  let deezerCheckDone = false
 
   async function checkAudioAvailability(): Promise<boolean> {
-    if (spotifyCheckDone) return spotifyEnabled
+    if (deezerCheckDone) return deezerEnabled
     try {
-      await fetch('/api/spotify/search-track?artist=test&track=test')
-      spotifyEnabled = true
+      await fetch('/api/deezer/search-track?artist=test&track=test')
+      deezerEnabled = true
     } catch {
-      spotifyEnabled = false
+      deezerEnabled = false
     }
-    spotifyCheckDone = true
+    deezerCheckDone = true
 
-    if (!spotifyEnabled) {
+    if (!deezerEnabled) {
       previewButtons.forEach((button) => {
         button.style.display = 'none'
       })
@@ -84,7 +84,7 @@ function initTrackList(): void {
         tracklist.appendChild(infoMessage)
       }
     }
-    return spotifyEnabled
+    return deezerEnabled
   }
 
   void checkAudioAvailability()
@@ -107,7 +107,7 @@ function initTrackList(): void {
         if (previewCache.has(cacheKey)) return
         try {
           const searchResponse = await fetch(
-            `/api/spotify/search-track?artist=${encodeURIComponent(trackArtist)}&track=${encodeURIComponent(trackName)}`
+            `/api/deezer/search-track?artist=${encodeURIComponent(trackArtist)}&track=${encodeURIComponent(trackName)}`
           )
           if (!searchResponse.ok) return
           const searchData = (await searchResponse.json()) as { track?: { preview_url?: string } }
@@ -163,7 +163,7 @@ function initTrackList(): void {
 
         if (!previewUrl) {
           const searchResponse = await fetch(
-            `/api/spotify/search-track?artist=${encodeURIComponent(trackArtist)}&track=${encodeURIComponent(trackName)}`
+            `/api/deezer/search-track?artist=${encodeURIComponent(trackArtist)}&track=${encodeURIComponent(trackName)}`
           )
           if (!searchResponse.ok) throw new Error('Failed to search track')
           const searchData = (await searchResponse.json()) as { track?: { preview_url?: string } }

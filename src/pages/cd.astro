@@ -1,4 +1,4 @@
 ---
-// Redirect to unified library page with format filter
-return Astro.redirect('/library?format=CD')
+export const prerender = false
+return Astro.redirect('/shelf?format=CD', 301)
 ---

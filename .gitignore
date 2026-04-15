@@ -29,3 +29,6 @@ public/uploads/avatars/
 
 # jetbrains setting folder
 .idea/
+
+# gstack security reports (local only)
+.gstack/

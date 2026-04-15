@@ -27,6 +27,8 @@ let stream: MediaStream | null = null
 let detector: BarcodeDetectorInstance | null = null
 let lastActiveElement: HTMLElement | null = null
 let shouldDetect = false
+let zxingControls: { stop?: () => void } | null = null
+let isHandlingBarcode = false
 
 const fallbackMessages: BarcodeMessageMap = {
   noSupport: 'Your browser does not support automatic scanning. Manual input is available.',
@@ -121,6 +123,15 @@ function closeManualModal() {
 
 function closeScanner() {
   shouldDetect = false
+  if (zxingControls?.stop) {
+    try {
+      zxingControls.stop()
+    } catch {
+      // no-op
+    }
+  }
+  zxingControls = null
+  isHandlingBarcode = false
   if (stream) {
     stream.getTracks().forEach((track) => track.stop())
     stream = null
@@ -239,9 +250,45 @@ async function runCameraFlow() {
       })
       startNativeDetection(video)
     } else {
-      window.toast?.info(messages.noSupport)
-      closeScanner()
-      openManualModal()
+      try {
+        try {
+          if (video.paused) await video.play()
+        } catch {
+          // Autoplay peut être bloqué dans certains cas, on laisse tenter quand même.
+        }
+
+        const ZXingBrowserModule = (await import('https://esm.sh/@zxing/browser@0.1.5')) as any
+        const BrowserMultiFormatReader = ZXingBrowserModule?.BrowserMultiFormatReader
+        if (!BrowserMultiFormatReader) throw new Error('ZXing reader unavailable')
+
+        const reader = new BrowserMultiFormatReader()
+        const maybeText = (value: unknown): string | null => {
+          if (typeof value === 'string') return value
+          if (value && typeof (value as any).getText === 'function') return (value as any).getText()
+          if (value && typeof (value as any).text === 'string') return (value as any).text
+          return null
+        }
+
+        zxingControls = await reader.decodeFromVideoElement(video, (result: any, _error: unknown, controls: any) => {
+          if (isHandlingBarcode) return
+          const text = maybeText(result)
+          if (!text) return
+
+          isHandlingBarcode = true
+          try {
+            controls?.stop?.()
+          } catch {
+            // no-op
+          }
+
+          void handleBarcodeDetected(text)
+        })
+      } catch (error) {
+        console.error('ZXing fallback failed:', error)
+        window.toast?.info(messages.noSupport)
+        closeScanner()
+        openManualModal()
+      }
     }
   } catch (error) {
     const value = error as { name?: string; message?: string } | undefined

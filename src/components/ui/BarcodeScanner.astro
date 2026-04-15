@@ -11,7 +11,7 @@ const msg = (Astro.props as Props).barcodeMessages ?? defaultMessages
 ---
 
 <!-- Barcode Scanner Button/Modal (mobile + desktop) -->
-<div id="barcode-scanner-container" class="fixed bottom-24 right-4 z-40 md:bottom-8 md:right-8">
+<div id="barcode-scanner-container" class="fixed right-4 z-40 md:bottom-8 md:right-8">
   <!-- Scanner Button (FAB) -->
   <button
     id="barcode-scanner-btn"
@@ -181,6 +181,10 @@ const msg = (Astro.props as Props).barcodeMessages ?? defaultMessages
     transform: scale(0.95);
   }
 
+  #barcode-scanner-container {
+    bottom: calc(var(--mobile-scanner-fab-offset, 6rem) + env(safe-area-inset-bottom, 0px));
+  }
+
   #scanner-video-container {
     position: relative;
   }
@@ -213,4 +217,5 @@ const msg = (Astro.props as Props).barcodeMessages ?? defaultMessages
     pointer-events: auto;
     visibility: visible;
   }
+
 </style>

@@ -26,6 +26,10 @@ function getDeleteMessages(): Required<DeleteMessages> {
 }
 
 function animateCardRemoval(card: HTMLElement): void {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    card.remove()
+    return
+  }
   card.style.transition = 'all 0.3s ease'
   card.style.opacity = '0'
   card.style.transform = 'scale(0.9)'

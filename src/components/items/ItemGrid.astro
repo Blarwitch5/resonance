@@ -1,31 +1,24 @@
 ---
+import type { Item } from '@prisma/client'
 import ItemCard from './ItemCard.astro'
-import type { Item, ItemMetadata } from '@prisma/client'
 
 type ItemGridProps = {
-  items: Array<Item & { metadata: ItemMetadata | null }>
-  columns?: 2 | 3 | 4 | 5 | 6
-  actionLabels?: {
-    addToFavorites: string
-    moreActions: string
-  }
+  items: Item[]
+  columns?: 3 | 4 | 5 | 6
 }
 
-const props = Astro.props as ItemGridProps
-const columns = props.columns ?? 4
+const { items, columns = 4 } = Astro.props as ItemGridProps
 
-const gridClasses = {
-  2: 'grid-cols-2',
-  3: 'grid-cols-3',
-  4: 'grid-cols-2 md:grid-cols-4',
-  5: 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5',
-  6: 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6',
+const gridCols = {
+  3: 'grid-cols-3 md:grid-cols-3',
+  4: 'grid-cols-4 md:grid-cols-4',
+  5: 'grid-cols-4 md:grid-cols-5',
+  6: 'grid-cols-4 md:grid-cols-6',
 }
 ---
 
-<div class={`grid gap-4 ${gridClasses[columns]}`}>
-  {props.items.map((item) => (
-    <ItemCard item={item} actionLabels={props.actionLabels} />
+<div class={`grid gap-1.5 ${gridCols[columns]}`}>
+  {items.map((item) => (
+    <ItemCard item={item} />
   ))}
 </div>
-

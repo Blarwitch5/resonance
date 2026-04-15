@@ -29,11 +29,20 @@ const friendsWithRelease = currentUserId && !isOwner
   ? await shelfItemRepository.getFriendsWithRelease(currentUserId, release.id)
   : []
 
+const friendsLabel = friendsWithRelease.length === 1
+  ? '1 personne que tu suis a ce disque'
+  : friendsWithRelease.length + ' personnes que tu suis ont ce disque'
+
+const releaseTitle = release.artist + ' — ' + release.title
+
 // Community avg rating (show only if 3+ ratings)
 const showCommunityRating = (release.ratingCount ?? 0) >= 3
+
+type TrackItem = { position: string; title: string; duration?: string }
+const tracklist = Array.isArray(release.tracklist) ? (release.tracklist as unknown as TrackItem[]) : null
 ---
 
-<Layout title={`${release.artist} — ${release.title}`}>
+<Layout title={releaseTitle}>
   <div class="item-detail max-w-2xl mx-auto px-4 py-6">
 
     <!-- Cover + meta -->
@@ -42,7 +51,7 @@ const showCommunityRating = (release.ratingCount ?? 0) >= 3
         {release.coverUrl
           ? <img
               src={release.coverUrl}
-              alt={`${release.artist} — ${release.title}`}
+              alt={releaseTitle}
               width="120"
               height="120"
               class="rounded-lg w-28 h-28 object-cover shadow"
@@ -82,11 +91,7 @@ const showCommunityRating = (release.ratingCount ?? 0) >= 3
     <!-- Social: friends who have this -->
     {friendsWithRelease.length > 0 && (
       <div class="friends-section mb-4 p-3 bg-surface-raised rounded-lg">
-        <p class="text-xs text-muted mb-2">
-          {friendsWithRelease.length === 1
-            ? '1 personne que tu suis a ce disque'
-            : `${friendsWithRelease.length} personnes que tu suis ont ce disque`}
-        </p>
+        <p class="text-xs text-muted mb-2">{friendsLabel}</p>
         <div class="flex -space-x-2">
           {friendsWithRelease.slice(0, 5).map((f) => (
             <a href={`/u/${f.user.username}`} aria-label={f.user.name ?? f.user.username ?? ''}>
@@ -126,11 +131,11 @@ const showCommunityRating = (release.ratingCount ?? 0) >= 3
     )}
 
     <!-- Tracklist -->
-    {release.tracklist && Array.isArray(release.tracklist) && release.tracklist.length > 0 && (
+    {tracklist && tracklist.length > 0 && (
       <section class="tracklist mb-6" aria-labelledby="tracklist-heading">
         <h2 id="tracklist-heading" class="text-sm font-medium text-muted mb-2">Tracklist</h2>
         <ol class="space-y-1">
-          {(release.tracklist as Array<{ position: string; title: string; duration?: string }>).map((track) => (
+          {tracklist.map((track) => (
             <li class="flex items-center justify-between text-sm py-1 border-b border-border/50 last:border-0">
               <span class="text-muted w-8 flex-shrink-0">{track.position}</span>
               <span class="flex-1">{track.title}</span>

@@ -12,6 +12,19 @@
   display: flex;
 }
 
+/* Variables globales d'offset mobile (FAB + barre basse) */
+:root {
+  --mobile-bottom-nav-height: 5.5rem;
+  --mobile-scanner-fab-offset: 6rem;
+  --mobile-bulk-fab-offset: 9.75rem;
+}
+
+body.has-global-audio {
+  --mobile-scanner-fab-offset: 10rem;
+  --mobile-bulk-fab-offset: 13.75rem;
+}
+
+
 /* Empêcher le scroll horizontal sur mobile */
 html,
 body {
@@ -215,9 +228,16 @@ html.transitioning * {
   animation: fadeInUp 0.5s ease-out 0.3s both;
 }
 
-/* Remonter le bouton scan quand la barre d’extrait audio est visible (éviter la superposition) */
-body.has-global-audio #barcode-scanner-container {
-  bottom: 10rem;
+/* Utilitaire : texte sur surface glass/image (garantit lisibilité minimale) */
+.text-on-glass {
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.6),
+    0 0 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Scrim garanti sous tout texte positionné sur une cover/image */
+.cover-text-scrim {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%);
 }
 
 /* Respect prefers-reduced-motion (WCAG 2.3.3) */
