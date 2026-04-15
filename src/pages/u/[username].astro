@@ -48,6 +48,13 @@ const [followers, following, shelfCount, recentItems, pinnedCollections, wantCou
 if (isPrivate) {
   Astro.response.headers.set('X-Robots-Tag', 'noindex')
 }
+
+// Cache headers
+if (!isPrivate) {
+  Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
+} else {
+  Astro.response.headers.set('Cache-Control', 'no-store')
+}
 ---
 
 <Layout title={profileUser.name ?? username}>
