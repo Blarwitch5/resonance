@@ -1,0 +1,171 @@
+---
+export const prerender = false
+import Layout from '../components/layouts/Layout.astro'
+import { exploreRepository } from '../repositories/explore-repository'
+import { blockRepository } from '../repositories/block-repository'
+
+const currentUser = Astro.locals.user
+const currentUserId = currentUser?.id ?? null
+
+let excludeIds: string[] = []
+if (currentUserId) {
+  const [blocked, blockedBy] = await Promise.all([
+    blockRepository.getBlockedIds(currentUserId),
+    blockRepository.getBlockedByIds(currentUserId),
+  ])
+  excludeIds = [...blocked, ...blockedBy, currentUserId]
+}
+
+const [trending, newMembers] = await Promise.all([
+  exploreRepository.getTrending(10),
+  exploreRepository.getNewActiveMembers(excludeIds, 8),
+])
+
+// Public page — set cache headers
+Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
+---
+
+<Layout title="Explorer">
+  <div class="explore-page max-w-2xl mx-auto px-4 py-4">
+
+    <!-- Search bar -->
+    <div class="search-section mb-6">
+      <form role="search" id="explore-search-form">
+        <label for="explore-search" class="sr-only">Rechercher un disque (artiste, titre, label)</label>
+        <div class="relative">
+          <input
+            type="search"
+            id="explore-search"
+            name="q"
+            placeholder="Artiste, titre, label…"
+            class="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            autocomplete="off"
+          />
+          <svg class="absolute left-3 top-3.5 w-4 h-4 text-muted" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+      </form>
+      <div id="search-results" class="mt-2 space-y-2" role="region" aria-live="polite" aria-label="Résultats de recherche"></div>
+    </div>
+
+    <!-- Trending -->
+    {trending.length > 0 && (
+      <section class="mb-8" aria-labelledby="trending-heading">
+        <h2 id="trending-heading" class="text-sm font-medium text-muted mb-3">Tendances cette semaine</h2>
+        <div class="grid grid-cols-2 gap-3">
+          {trending.map((release) => release && (
+            <a
+              href={`/explore/${release.discogsId}`}
+              class="flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-surface-raised transition-colors"
+            >
+              {release.coverUrl
+                ? <img src={release.coverUrl} alt={`${release.artist} — ${release.title}`} width="48" height="48" class="w-12 h-12 rounded object-cover flex-shrink-0" loading="lazy" />
+                : <div class="w-12 h-12 rounded bg-surface-raised flex items-center justify-center flex-shrink-0 text-xs text-muted">—</div>
+              }
+              <div class="min-w-0">
+                <p class="text-sm font-medium truncate">{release.title}</p>
+                <p class="text-xs text-muted truncate">{release.artist}</p>
+                <p class="text-xs text-accent mt-0.5">{release.addCount} ajout{release.addCount !== 1 ? 's' : ''}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- New active members -->
+    {newMembers.length > 0 && (
+      <section aria-labelledby="members-heading">
+        <h2 id="members-heading" class="text-sm font-medium text-muted mb-3">Nouveaux membres actifs</h2>
+        <ul class="space-y-2">
+          {newMembers.map((member) => (
+            <li>
+              <a href={`/u/${member.username}`} class="flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-surface-raised transition-colors">
+                {member.imageUrl
+                  ? <img src={member.imageUrl} alt={member.name ?? ''} width="40" height="40" class="w-10 h-10 rounded-full object-cover flex-shrink-0" loading="lazy" />
+                  : <div class="w-10 h-10 rounded-full bg-surface-raised flex items-center justify-center font-medium text-sm flex-shrink-0">{(member.name ?? 'U')[0]}</div>
+                }
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium">{member.name}</p>
+                  <p class="text-xs text-muted">@{member.username} · {member._count.shelfItems} disque{member._count.shelfItems !== 1 ? 's' : ''}</p>
+                </div>
+                {currentUserId && (
+                  <button
+                    class="follow-btn-small text-xs text-accent border border-accent/30 px-3 py-1 rounded-full hover:bg-accent/10 transition-colors"
+                    data-username={member.username}
+                    aria-label={`Suivre ${member.name}`}
+                  >
+                    Suivre
+                  </button>
+                )}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+  </div>
+</Layout>
+
+<script>
+  // Debounced search
+  const input = document.getElementById('explore-search') as HTMLInputElement | null
+  const resultsEl = document.getElementById('search-results')
+  let timer: ReturnType<typeof setTimeout>
+
+  input?.addEventListener('input', () => {
+    clearTimeout(timer)
+    const q = input.value.trim()
+    if (!q || q.length < 2) {
+      if (resultsEl) resultsEl.innerHTML = ''
+      return
+    }
+    timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/discogs/search?q=${encodeURIComponent(q)}`)
+        const data = await res.json()
+        if (!resultsEl) return
+        if (!data.results?.length) {
+          resultsEl.innerHTML = '<p class="text-sm text-muted py-2">Aucun résultat.</p>'
+          return
+        }
+        resultsEl.innerHTML = data.results
+          .slice(0, 8)
+          .map(
+            (r: { id: string; title: string; thumb?: string }) => `
+            <a href="/explore/${r.id}" class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-raised transition-colors">
+              ${r.thumb ? `<img src="${r.thumb}" alt="" width="40" height="40" class="w-10 h-10 rounded object-cover" loading="lazy" />` : '<div class="w-10 h-10 rounded bg-surface-raised"></div>'}
+              <span class="text-sm">${r.title}</span>
+            </a>`,
+          )
+          .join('')
+      } catch {
+        if (resultsEl) resultsEl.innerHTML = '<p class="text-sm text-muted py-2">Erreur de recherche.</p>'
+      }
+    }, 350)
+  })
+
+  // Inline follow buttons
+  document.querySelectorAll<HTMLButtonElement>('.follow-btn-small').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault()
+      const username = btn.dataset.username
+      btn.disabled = true
+      try {
+        const res = await fetch(`/api/users/${username}/follow`, { method: 'POST' })
+        const data = await res.json()
+        if (data.following) {
+          btn.textContent = 'Abonné'
+          btn.classList.add('opacity-60')
+          btn.disabled = true
+        } else {
+          btn.textContent = 'Suivre'
+          btn.disabled = false
+        }
+      } catch {
+        btn.disabled = false
+      }
+    })
+  })
+</script>
