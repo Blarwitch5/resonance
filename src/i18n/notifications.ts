@@ -1,0 +1,26 @@
+export const notificationsI18n = {
+  fr: {
+    title: 'Notifications',
+    unreadCount: (n: number) => `${n} non lu${n !== 1 ? 'es' : 'e'}`,
+    empty: "Aucune notification pour l'instant.",
+    newFollower: (name: string) => `${name} a commencé à te suivre.`,
+    newShelfAddSingle: (name: string) => `${name} a ajouté un disque à sa shelf.`,
+    newShelfAddMultiple: (name: string, n: number) => `${name} a ajouté ${n} disques à sa shelf.`,
+    activityLike: (name: string) => `${name} a aimé ton activité.`,
+    activityComment: (name: string) => `${name} a commenté ton activité.`,
+    viewProfile: 'Voir profil',
+    view: 'Voir',
+  },
+  en: {
+    title: 'Notifications',
+    unreadCount: (n: number) => `${n} unread`,
+    empty: 'No notifications yet.',
+    newFollower: (name: string) => `${name} started following you.`,
+    newShelfAddSingle: (name: string) => `${name} added a record to their shelf.`,
+    newShelfAddMultiple: (name: string, n: number) => `${name} added ${n} records to their shelf.`,
+    activityLike: (name: string) => `${name} liked your activity.`,
+    activityComment: (name: string) => `${name} commented on your activity.`,
+    viewProfile: 'View profile',
+    view: 'View',
+  },
+} as const

@@ -1,0 +1,26 @@
+export const exploreI18n = {
+  fr: {
+    title: 'Explorer',
+    searchPlaceholder: 'Artiste, titre, label…',
+    noResults: 'Aucun résultat.',
+    searchError: 'Erreur de recherche.',
+    trending: 'Tendances cette semaine',
+    trendingAdds: (n: number) => `${n} ajout${n !== 1 ? 's' : ''}`,
+    newMembers: 'Nouveaux membres actifs',
+    follow: 'Suivre',
+    following: 'Abonné',
+    records: (n: number) => `${n} disque${n !== 1 ? 's' : ''}`,
+  },
+  en: {
+    title: 'Explore',
+    searchPlaceholder: 'Artist, title, label…',
+    noResults: 'No results.',
+    searchError: 'Search error.',
+    trending: 'Trending this week',
+    trendingAdds: (n: number) => `${n} add${n !== 1 ? 's' : ''}`,
+    newMembers: 'New active members',
+    follow: 'Follow',
+    following: 'Following',
+    records: (n: number) => `${n} record${n !== 1 ? 's' : ''}`,
+  },
+} as const
