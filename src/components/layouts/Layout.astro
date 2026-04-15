@@ -143,10 +143,13 @@ const layoutT = getLayoutMessages(locale)
       {showBottomBar && (
         <BottomBar
           mainNavAria={layoutT.bottomBar.mainNavAria}
-          libraryLabel={layoutT.bottomBar.library}
+          shelfLabel={layoutT.bottomBar.shelf}
+          feedLabel={layoutT.bottomBar.feed}
+          addLabel={layoutT.bottomBar.add}
           exploreLabel={layoutT.bottomBar.explore}
           profileLabel={layoutT.bottomBar.profile}
           userName={user?.name ?? null}
+          userUsername={user?.username ?? null}
           userEmail={user?.email ?? null}
           userImageUrl={user?.imageUrl ?? user?.image ?? null}
         />
@@ -170,4 +173,10 @@ const layoutT = getLayoutMessages(locale)
 </script>
 <script>
   import './Layout.client'
+</script>
+<script>
+  // Initialize push notifications in Capacitor context
+  import('../../capacitor/push').then(({ initPushNotifications }) => {
+    initPushNotifications()
+  }).catch(() => {})
 </script>
