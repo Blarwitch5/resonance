@@ -1,83 +1,47 @@
 ---
-import { collectionRepository } from '../../repositories/collection-repository'
-import DashboardLayout from '../../components/layouts/DashboardLayout.astro'
-import CollectionCard from '../../components/collections/CollectionCard.astro'
-import EmptyState from '../../components/ui/EmptyState.astro'
-import { getCollectionsMessages } from '../../i18n/collections'
-import { normalizeLocale } from '../../i18n/config'
-import Plus from '@lucide/astro/icons/plus'
-import FolderOpen from '@lucide/astro/icons/folder-open'
-
 export const prerender = false
+import Layout from '../../components/layouts/Layout.astro'
+import { collectionRepository } from '../../repositories/collection-repository'
 
-// Utiliser la session depuis le middleware (Astro.locals)
-const session = Astro.locals.session
-if (!session) return Astro.redirect('/login')
+const user = Astro.locals.user
+if (!user) return Astro.redirect('/login', 302)
 
-const locale = normalizeLocale(Astro.locals.userPreferences?.locale ?? Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
-const collectionT = getCollectionsMessages(locale)
-
-const MAX_COLLECTIONS = 2
-const collections = await collectionRepository.findByUserIdWithStats(Astro.locals.user!.id)
-const canCreateNewCollection = collections.length < MAX_COLLECTIONS
+const collections = await collectionRepository.findByUser(user.id)
+const username = user.username ?? user.id
 ---
 
-<DashboardLayout title={collectionT.meta.title}>
-  <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold">{collectionT.index.title}</h1>
-        <p class="text-muted">
-          {collections.length === 1 ? collectionT.index.count.replace('{count}', String(collections.length)) : collectionT.index.countPlural.replace('{count}', String(collections.length))} / {MAX_COLLECTIONS} {collectionT.index.max}
-        </p>
-      </div>
-      {canCreateNewCollection ? (
-        <a
-          href="/collections/new"
-          class="btn-primary-gradient flex items-center gap-2 rounded-xl px-4 py-2"
-        >
-          <Plus size={20} />
-          <span class="hidden sm:inline">{collectionT.index.newCollection}</span>
-        </a>
-      ) : (
-        <a
-          href="/collections/new"
-          class="btn-secondary-surface flex items-center gap-2 rounded-xl px-4 py-2 opacity-50 cursor-not-allowed pointer-events-none"
-          aria-disabled="true"
-        >
-          <Plus size={20} />
-          <span class="hidden sm:inline">{collectionT.index.limitReached.replace('{max}', String(MAX_COLLECTIONS))}</span>
-        </a>
-      )}
-    </div>
+<Layout title="Mes collections">
+  <div class="collections-page max-w-2xl mx-auto px-4 py-6">
+    <header class="flex items-center justify-between mb-6">
+      <h1 class="text-xl font-semibold">Mes collections</h1>
+      <a href="/collections/new" class="btn-primary text-sm">Nouvelle</a>
+    </header>
 
-    {collections.length === 0 ? (
-      <EmptyState
-        title={collectionT.index.empty.title}
-        description={collectionT.index.empty.description}
-        icon={FolderOpen}
-        action={{
-          label: collectionT.index.empty.action,
-          href: '/collections/new',
-        }}
-      />
-    ) : (
-      <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {collections.map((collection) => (
-          <CollectionCard collection={collection} cardLabels={collectionT.card} />
-        ))}
+    {collections.length === 0 && (
+      <div class="text-center py-12">
+        <p class="text-muted mb-4">Aucune collection pour l'instant.</p>
+        <a href="/collections/new" class="btn-secondary">Créer ma première collection</a>
       </div>
     )}
+
+    <ul class="space-y-2" role="list">
+      {collections.map((col) => (
+        <li>
+          <a
+            href={`/u/${username}/collections/${col.slug}`}
+            class="flex items-center justify-between p-4 rounded-xl border border-border hover:bg-surface-raised transition-colors"
+          >
+            <div class="flex items-center gap-2 min-w-0">
+              {col.isPinned && <span aria-label="Épinglée" title="Épinglée sur le profil">📌</span>}
+              <span class="font-medium truncate">{col.name}</span>
+              {!col.isPublic && <span class="text-xs text-muted">(Privée)</span>}
+            </div>
+            <span class="text-sm text-muted flex-shrink-0 ml-2">
+              {col._count.items} disque{col._count.items !== 1 ? 's' : ''}
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
   </div>
-</DashboardLayout>
-
-<style>
-  .glass-card {
-    transition: all 0.3s ease;
-  }
-
-  .glass-card:hover {
-    transform: translateY(-2px);
-  }
-</style>
-
+</Layout>
