@@ -17,11 +17,18 @@
     "covers:update": "tsx scripts/update-covers-hq.ts",
     "covers:clean": "tsx scripts/clean-covers.ts",
     "seed:test": "tsx scripts/seed-test-data.ts",
-    "clean:cache": "pkill -f 'astro dev' || true && rm -rf .astro node_modules/.astro node_modules/.vite .vite dist"
+    "clean:cache": "pkill -f 'astro dev' || true && rm -rf .astro node_modules/.astro node_modules/.vite .vite dist",
+    "cap:sync": "astro build && cap sync",
+    "cap:ios": "pnpm cap:sync && cap open ios",
+    "cap:android": "pnpm cap:sync && cap open android"
   },
   "dependencies": {
     "@astrojs/node": "^10.0.4",
     "@astrojs/vercel": "^10.0.4",
+    "@capacitor/camera": "^8.1.0",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/push-notifications": "^8.0.3",
     "@lucide/astro": "^0.562.0",
     "@prisma/client": "^6.19.3",
     "@vercel/blob": "^0.26.0",
@@ -37,6 +44,8 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/ios": "^8.3.0",
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.2.1",
     "@tailwindcss/vite": "^4.2.1",
