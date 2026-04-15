@@ -7,6 +7,13 @@ import { followRepository } from '../repositories/follow-repository'
 const currentUser = Astro.locals.user
 if (!currentUser) return Astro.redirect('/login', 302)
 
+import { db } from '../lib/db'
+const dbUser = await db.user.findUnique({
+  where: { id: currentUser.id },
+  select: { onboardingCompleted: true },
+})
+if (!dbUser?.onboardingCompleted) return Astro.redirect('/onboarding', 302)
+
 const { activities, nextCursor } = await activityRepository.getFeedForUser(currentUser.id, { take: 20 })
 
 // For empty feed: check if user follows anyone

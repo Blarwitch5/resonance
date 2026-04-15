@@ -1,0 +1,205 @@
+---
+export const prerender = false
+import Layout from '../components/layouts/Layout.astro'
+import { db } from '../lib/db'
+
+const currentUser = Astro.locals.user
+if (!currentUser) return Astro.redirect('/login', 302)
+
+// Skip onboarding if already completed
+const user = await db.user.findUnique({
+  where: { id: currentUser.id },
+  select: { onboardingCompleted: true },
+})
+if (user?.onboardingCompleted) return Astro.redirect('/feed', 302)
+---
+
+<Layout title="Bienvenue sur Resonance">
+  <div class="onboarding max-w-lg mx-auto px-6 py-10">
+
+    <!-- Step indicator -->
+    <div class="step-indicator flex items-center gap-2 justify-center mb-8" aria-label="Étapes">
+      {[1, 2, 3].map((n) => (
+        <div
+          class={`step-dot w-2 h-2 rounded-full transition-colors ${n === 1 ? 'bg-accent' : 'bg-border'}`}
+          data-step={n}
+          aria-label={`Étape ${n}`}
+        />
+      ))}
+    </div>
+
+    <!-- Step 1: Formats -->
+    <section id="step-1" class="onboarding-step">
+      <h1 class="text-2xl font-bold mb-2">Quels formats collectonnes-tu ?</h1>
+      <p class="text-muted mb-6">Tu pourras changer ça dans les settings plus tard.</p>
+      <div class="flex gap-3 flex-wrap mb-8">
+        {['Vinyl', 'CD', 'Cassette'].map((fmt) => (
+          <label class="format-option cursor-pointer">
+            <input
+              type="checkbox"
+              name="formats"
+              value={fmt}
+              class="sr-only"
+              data-format={fmt}
+              checked={fmt === 'Vinyl'}
+            />
+            <span
+              class="px-5 py-3 rounded-xl border-2 border-border text-sm font-medium transition-colors block"
+              data-label-for={fmt}
+            >
+              {fmt}
+            </span>
+          </label>
+        ))}
+      </div>
+      <button class="btn-primary w-full" id="next-1">Continuer →</button>
+      <button class="btn-ghost w-full mt-2 text-sm skip-btn" data-skip="true">Passer</button>
+    </section>
+
+    <!-- Step 2: Find friends -->
+    <section id="step-2" class="onboarding-step hidden">
+      <h2 class="text-2xl font-bold mb-2">Trouve des amis</h2>
+      <p class="text-muted mb-6">Suis des collectionneurs pour voir leur activité dans ton feed.</p>
+      <div class="relative mb-4">
+        <input
+          type="search"
+          id="friend-search"
+          placeholder="Rechercher par username ou email…"
+          class="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+        />
+        <svg class="absolute left-3 top-3.5 w-4 h-4 text-muted" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+      <div id="friend-results" class="space-y-2 mb-6 min-h-[80px]" role="region" aria-live="polite"></div>
+      <button class="btn-primary w-full" id="next-2">Continuer →</button>
+      <button class="btn-ghost w-full mt-2 text-sm skip-btn" data-skip="true">Passer</button>
+    </section>
+
+    <!-- Step 3: First add -->
+    <section id="step-3" class="onboarding-step hidden">
+      <h2 class="text-2xl font-bold mb-2">Ajoute ton premier disque</h2>
+      <p class="text-muted mb-6">Scan le code-barres ou recherche un titre pour commencer ta collection.</p>
+      <div class="flex gap-3 mb-8">
+        <a href="/shelf" class="btn-primary flex-1 text-center">Scanner / Rechercher</a>
+      </div>
+      <button class="btn-ghost w-full text-sm" id="finish-onboarding">Passer et aller au feed</button>
+    </section>
+
+  </div>
+</Layout>
+
+<script>
+  // Format option toggle
+  document.querySelectorAll<HTMLInputElement>('input[name="formats"]').forEach((checkbox) => {
+    const label = document.querySelector(`[data-label-for="${checkbox.dataset.format}"]`)
+    const update = () => {
+      label?.classList.toggle('border-accent', checkbox.checked)
+      label?.classList.toggle('bg-accent/10', checkbox.checked)
+    }
+    update()
+    checkbox.addEventListener('change', update)
+  })
+
+  // Step navigation
+  function goToStep(n: number) {
+    document.querySelectorAll('.onboarding-step').forEach((el, i) => {
+      el.classList.toggle('hidden', i + 1 !== n)
+    })
+    document.querySelectorAll<HTMLElement>('[data-step]').forEach((dot, i) => {
+      dot.classList.toggle('bg-accent', i + 1 === n)
+      dot.classList.toggle('bg-border', i + 1 !== n)
+    })
+  }
+
+  // Save formats + go to step 2
+  document.getElementById('next-1')?.addEventListener('click', async () => {
+    const checked = Array.from(
+      document.querySelectorAll<HTMLInputElement>('input[name="formats"]:checked'),
+    ).map((c) => c.value)
+    if (checked.length > 0) {
+      await fetch('/api/profile/preferences', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activeFormats: checked }),
+      }).catch(() => {})
+    }
+    goToStep(2)
+  })
+
+  // Step 2 → Step 3
+  document.getElementById('next-2')?.addEventListener('click', () => goToStep(3))
+
+  // Complete onboarding
+  async function completeOnboarding() {
+    await fetch('/api/onboarding/complete', { method: 'POST' }).catch(() => {})
+    window.location.href = '/feed'
+  }
+
+  document.getElementById('finish-onboarding')?.addEventListener('click', completeOnboarding)
+
+  // Skip buttons
+  let currentStep = 1
+  document.querySelectorAll<HTMLButtonElement>('.skip-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      currentStep++
+      if (currentStep > 3) {
+        await completeOnboarding()
+      } else {
+        goToStep(currentStep)
+      }
+    })
+  })
+
+  // Friend search
+  let timer: ReturnType<typeof setTimeout>
+  const friendInput = document.getElementById('friend-search') as HTMLInputElement | null
+  const friendResults = document.getElementById('friend-results')
+
+  friendInput?.addEventListener('input', () => {
+    clearTimeout(timer)
+    const q = friendInput.value.trim()
+    if (!q || q.length < 2) {
+      if (friendResults) friendResults.innerHTML = ''
+      return
+    }
+    timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`)
+        const data = await res.json()
+        if (!friendResults) return
+        if (!data.users?.length) {
+          friendResults.innerHTML = '<p class="text-sm text-muted">Aucun résultat.</p>'
+          return
+        }
+        friendResults.innerHTML = data.users
+          .map(
+            (u: { username: string; name: string; imageUrl?: string }) => `
+            <div class="flex items-center justify-between p-3 rounded-xl border border-border">
+              <div class="flex items-center gap-2">
+                ${u.imageUrl ? `<img src="${u.imageUrl}" alt="" width="32" height="32" class="w-8 h-8 rounded-full object-cover" />` : `<div class="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-sm">${(u.name ?? 'U')[0]}</div>`}
+                <span class="text-sm font-medium">${u.name ?? u.username}</span>
+              </div>
+              <button
+                class="follow-onboarding-btn text-xs text-accent border border-accent/30 px-3 py-1 rounded-full"
+                data-username="${u.username}"
+                aria-label="Suivre ${u.name ?? u.username}"
+              >Suivre</button>
+            </div>`,
+          )
+          .join('')
+
+        friendResults.querySelectorAll<HTMLButtonElement>('.follow-onboarding-btn').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            btn.disabled = true
+            const res = await fetch(`/api/users/${btn.dataset.username}/follow`, { method: 'POST' })
+            const data = await res.json()
+            btn.textContent = data.following ? 'Abonné ✓' : 'Suivre'
+          })
+        })
+      } catch {
+        if (friendResults) friendResults.innerHTML = '<p class="text-sm text-muted">Erreur de recherche.</p>'
+      }
+    }, 350)
+  })
+</script>
