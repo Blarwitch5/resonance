@@ -21,6 +21,17 @@ if (!session || !user) {
   return Astro.redirect('/login')
 }
 
+import { db } from '../lib/db'
+const dbUser = await db.user.findUnique({
+  where: { id: user.id },
+  select: { isPrivate: true, notificationPrefs: true },
+})
+const isPrivate = dbUser?.isPrivate ?? false
+const notifPrefs = (dbUser?.notificationPrefs ?? {}) as {
+  push?: { follower?: boolean; shelfAdd?: boolean; like?: boolean; comment?: boolean }
+  email?: { follower?: boolean; comment?: boolean }
+}
+
 const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
 const t = getSettingsMessages(locale)
 const layoutT = getLayoutMessages(locale)
@@ -413,10 +424,66 @@ const userImage = resolveUserImageUrl(user as UserWithImageUrl)
       </div>
     </section>
 
-    <!-- Notifications (coming soon) -->
-    <section class="glass-card rounded-2xl border border-border/60 bg-surface p-6">
+    <!-- Privacy -->
+    <section class="glass-card rounded-2xl p-6">
+      <h2 class="text-xl font-semibold text-neutral mb-4">Confidentialité</h2>
+      <label class="flex items-center justify-between p-4 rounded-xl border border-border cursor-pointer">
+        <div>
+          <p class="text-sm font-medium">Compte privé</p>
+          <p class="text-xs text-muted mt-0.5">Seuls tes abonnés peuvent voir ta shelf et tes collections.</p>
+        </div>
+        <input
+          type="checkbox"
+          id="privacy-toggle"
+          class="sr-only"
+          checked={isPrivate}
+          aria-label="Activer le compte privé"
+        />
+        <div class={`w-10 h-6 rounded-full border-2 relative transition-colors ${isPrivate ? 'bg-accent border-accent' : 'border-border'}`} aria-hidden="true">
+          <div class={`w-4 h-4 rounded-full absolute top-0.5 transition-transform ${isPrivate ? 'bg-white translate-x-4' : 'bg-muted translate-x-0.5'}`}></div>
+        </div>
+      </label>
+      <div class="mt-4">
+        <p class="text-sm font-medium mb-2">Comptes bloqués</p>
+        <a href="/settings/blocked" class="text-sm text-accent hover:underline">Gérer les comptes bloqués →</a>
+      </div>
+    </section>
+
+    <!-- Notifications -->
+    <section class="glass-card rounded-2xl p-6">
       <h2 class="text-xl font-semibold text-neutral mb-4">{t.notifications.title}</h2>
-      <p class="text-sm text-muted">{t.notifications.comingSoon}</p>
+      <div class="space-y-6">
+        <div>
+          <h3 class="text-sm font-medium text-muted uppercase tracking-wide mb-3">Push</h3>
+          <div class="space-y-3">
+            {[
+              { key: 'follower', label: 'Nouveau follower', checked: notifPrefs.push?.follower !== false },
+              { key: 'shelfAdd', label: 'Ajout shelf (abonnés)', checked: notifPrefs.push?.shelfAdd !== false },
+              { key: 'like', label: 'Like sur mon activité', checked: notifPrefs.push?.like !== false },
+              { key: 'comment', label: 'Commentaire sur mon activité', checked: notifPrefs.push?.comment !== false },
+            ].map(({ key, label, checked }) => (
+              <label class="flex items-center justify-between">
+                <span class="text-sm">{label}</span>
+                <input type="checkbox" class="push-pref" data-key={key} checked={checked} aria-label={label} />
+              </label>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-muted uppercase tracking-wide mb-3">Email</h3>
+          <div class="space-y-3">
+            {[
+              { key: 'follower', label: 'Nouveau follower', checked: notifPrefs.email?.follower !== false },
+              { key: 'comment', label: 'Commentaire sur mon activité', checked: notifPrefs.email?.comment !== false },
+            ].map(({ key, label, checked }) => (
+              <label class="flex items-center justify-between">
+                <span class="text-sm">{label}</span>
+                <input type="checkbox" class="email-pref" data-key={key} checked={checked} aria-label={label} />
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- About section -->
@@ -439,5 +506,41 @@ const userImage = resolveUserImageUrl(user as UserWithImageUrl)
 
 <script>
   import './Settings.client'
+</script>
+
+<script>
+  // Privacy toggle
+  const privacyToggle = document.getElementById('privacy-toggle') as HTMLInputElement | null
+  privacyToggle?.addEventListener('change', async () => {
+    await fetch('/api/profile/privacy', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isPrivate: privacyToggle.checked }),
+    })
+  })
+
+  // Notification prefs — debounce saves
+  let prefTimer: ReturnType<typeof setTimeout>
+  function saveNotifPrefs() {
+    clearTimeout(prefTimer)
+    prefTimer = setTimeout(async () => {
+      const pushPrefs: Record<string, boolean> = {}
+      document.querySelectorAll<HTMLInputElement>('.push-pref').forEach((cb) => {
+        if (cb.dataset.key) pushPrefs[cb.dataset.key] = cb.checked
+      })
+      const emailPrefs: Record<string, boolean> = {}
+      document.querySelectorAll<HTMLInputElement>('.email-pref').forEach((cb) => {
+        if (cb.dataset.key) emailPrefs[cb.dataset.key] = cb.checked
+      })
+      await fetch('/api/profile/notification-prefs', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ push: pushPrefs, email: emailPrefs }),
+      })
+    }, 800)
+  }
+  document.querySelectorAll('.push-pref, .email-pref').forEach((el) =>
+    el.addEventListener('change', saveNotifPrefs),
+  )
 </script>
 
