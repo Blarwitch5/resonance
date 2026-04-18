@@ -1,9 +1,8 @@
 import type { APIRoute } from 'astro'
-import { collectionRepository } from '../../../../repositories/collection-repository'
+import { shelfItemRepository } from '../../../../repositories/shelf-item-repository'
 import { safeErrorMessage } from '../../../../lib/api-error'
-import { db } from '../../../../lib/db'
 
-// DELETE /api/collections/[id]
+// DELETE /api/shelf-items/[id]/delete
 export const DELETE: APIRoute = async ({ params, locals }) => {
   const currentUser = locals.user
   if (!currentUser) {
@@ -15,26 +14,20 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
 
   const { id } = params
   if (!id) {
-    return new Response(JSON.stringify({ error: 'Missing collection ID' }), {
+    return new Response(JSON.stringify({ error: 'Missing item ID' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     })
   }
 
   try {
-    const existing = await collectionRepository.findById(id, currentUser.id)
-    if (!existing) {
-      return new Response(JSON.stringify({ error: 'Collection not found or unauthorized' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
-
-    await db.collection.delete({ where: { id } })
-    return new Response(null, { status: 204 })
+    await shelfItemRepository.delete(id, currentUser.id)
+    return new Response(JSON.stringify({ ok: true }), {
+      headers: { 'Content-Type': 'application/json' },
+    })
   } catch (error) {
     return new Response(JSON.stringify({ error: safeErrorMessage(error) }), {
-      status: 500,
+      status: error instanceof Error && error.message === 'Item not found or unauthorized' ? 404 : 500,
       headers: { 'Content-Type': 'application/json' },
     })
   }

@@ -1,6 +1,0 @@
----
-export const prerender = false
-const user = Astro.locals.user
-if (!user) return Astro.redirect('/login', 302)
-return Astro.redirect(`/u/${user.username}`, 301)
----

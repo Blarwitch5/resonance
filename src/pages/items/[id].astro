@@ -192,7 +192,7 @@ const tracklist = Array.isArray(release.tracklist) ? (release.tracklist as unkno
   deleteBtn?.addEventListener('click', async () => {
     if (!confirm('Supprimer ce disque de ta shelf ?')) return
     const id = deleteBtn.dataset.id
-    const res = await fetch(`/api/items/${id}/delete`, { method: 'DELETE' })
+    const res = await fetch('/api/shelf-items/' + id + '/delete', { method: 'DELETE' })
     if (res.ok) window.location.href = '/shelf'
   })
 </script>

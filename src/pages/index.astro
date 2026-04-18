@@ -1,320 +1,56 @@
 ---
-import CassetteTape from '@lucide/astro/icons/cassette-tape'
-import BarChart3 from '@lucide/astro/icons/chart-bar'
-import Disc from '@lucide/astro/icons/disc'
-import Disc3 from '@lucide/astro/icons/disc-3'
-import Heart from '@lucide/astro/icons/heart'
-import Plus from '@lucide/astro/icons/plus'
-import Search from '@lucide/astro/icons/scan-search'
-import User from '@lucide/astro/icons/user'
-import LogOut from '@lucide/astro/icons/log-out'
-import DashboardLayout from '../components/layouts/DashboardLayout.astro'
-import { statsService } from '../services/stats-service'
-import { itemRepository } from '../repositories/item-repository'
-import { getHomeMessages } from '../i18n/home'
-import { normalizeLocale } from '../i18n/config'
-
 export const prerender = false
-
-// Utiliser la session depuis le middleware (Astro.locals)
-const session = Astro.locals.session
-const isLoggedIn = !!session
-const user = Astro.locals.user
+import { db } from '../lib/db'
 
 // Redirect logged-in users to feed
-if (session && user) return Astro.redirect('/feed', 302)
-const locale = normalizeLocale(Astro.locals.userPreferences?.locale ?? Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
-const t = getHomeMessages(locale)
+const user = Astro.locals.user
+if (user) return Astro.redirect('/feed', 302)
 
-// Récupérer les vraies statistiques depuis la base de données
-let stats = {
-  vinyls: 0,
-  cassettes: 0,
-  cds: 0,
-}
-let recentItems: Array<{
-  id: string
-  title: string
-  artist: string
-  format: string
-  year: number | null
-  coverUrl: string | null
-}> = []
-
-if (isLoggedIn && user?.id) {
-  const userStats = await statsService.getUserStats(user.id)
-  stats = {
-    vinyls: userStats.vinyls,
-    cassettes: userStats.cassettes,
-    cds: userStats.cds,
-  }
-  
-  const recentItemsData = await itemRepository.getRecentItems(user.id, 4)
-  recentItems = recentItemsData.map((item) => ({
-    id: item.id,
-    title: item.title,
-    artist: item.artist,
-    format: item.format,
-    year: item.year,
-    coverUrl: item.coverUrl ?? null,
-  }))
-}
+// Public stats for landing page
+const [memberCount, recordCount] = await Promise.all([
+  db.user.count(),
+  db.shelfItem.count(),
+]).catch(() => [0, 0])
 ---
 
-<DashboardLayout title={t.meta.title}>
-  <div class="space-y-8">
-    <!-- Hero Section -->
-    <div class="py-12 text-center">
-      <div class="mx-auto max-w-4xl">
-        <h1 class="font-display mb-6 text-4xl font-bold md:text-6xl">
-          <span class="text-gradient-resonance">Resonance</span>
-        </h1>
-        <p class="text-muted mb-8 text-xl leading-relaxed md:text-2xl">
-          {t.tagline}
-        </p>
-        <p class="text-muted mx-auto max-w-2xl text-lg">
-          {t.subtitle}
-        </p>
-      </div>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Resonance — Ta collection musicale, partagée</title>
+  <meta name="description" content="Resonance te permet de cataloguer ta collection vinyle, CD et cassette et de la partager avec une communauté de passionnés." />
+  <link rel="stylesheet" href="/src/styles/global.css" />
+</head>
+<body>
+  <main class="min-h-screen flex flex-col items-center justify-center px-6 py-16 text-center">
+
+    <h1 class="text-4xl font-bold tracking-tight mb-4">
+      Ta collection musicale,<br />partagée.
+    </h1>
+    <p class="text-lg text-muted max-w-md mb-8">
+      Catalogue tes vinyles, CD et cassettes. Suis des collectionneurs passionnés.
+      Découvre de nouvelles pépites.
+    </p>
+
+    <div class="flex gap-3 flex-wrap justify-center">
+      <a href="/signup" class="btn-primary px-6 py-3 text-base">Créer un compte</a>
+      <a href="/login" class="btn-secondary px-6 py-3 text-base">Se connecter</a>
     </div>
 
-    <!-- Quick Navigation -->
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-      <!-- Collection -->
-      <a
-        href={isLoggedIn ? '/library' : '/login?redirectTo=/library'}
-        class="group glass-card hover-resonance rounded-2xl p-8 transition-all duration-300"
-        aria-label={isLoggedIn ? t.quickNav.libraryAria : t.quickNav.libraryAriaGuest}
-      >
-        <div class="text-center">
-          <div
-            class="from-primary to-primary/80 group-hover:animate-resonance-pulse mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br"
-          >
-            <Disc3 size={32} class="text-white" />
-          </div>
-          <h2 class="font-display text-neutral mb-2 text-xl font-semibold">
-            {t.quickNav.library}
-          </h2>
-          <p class="text-muted text-sm">
-            {isLoggedIn ? t.quickNav.libraryDescription : t.quickNav.libraryDescriptionGuest}
-          </p>
-        </div>
-      </a>
-
-      <div class="flex flex-col gap-6">
-        <!-- Explorer -->
-        <a
-          href={isLoggedIn ? '/explorer' : '/login?redirectTo=/explorer'}
-          class="group glass-card hover-resonance flex items-center gap-4 rounded-2xl p-6 transition-all duration-300"
-          aria-label={isLoggedIn ? t.quickNav.exploreAria : t.quickNav.exploreAriaGuest}
-        >
-          <div
-            class="from-accent to-accent/80 group-hover:animate-resonance-vibrato flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br"
-          >
-            <Search size={24} class="text-white" />
-          </div>
-          <div>
-            <h2 class="font-display text-neutral font-semibold">{t.quickNav.explore}</h2>
-            <p class="text-muted text-sm">
-              {isLoggedIn ? t.quickNav.exploreDescription : t.quickNav.exploreDescriptionGuest}
-            </p>
-          </div>
-        </a>
-
-        <!-- Profile -->
-        <a
-          href={isLoggedIn ? '/profile' : '/login?redirectTo=/profile'}
-          class="group glass-card hover-resonance flex items-center gap-4 rounded-2xl p-6 transition-all duration-300"
-          aria-label={isLoggedIn ? t.quickNav.profileAria : t.quickNav.profileAriaGuest}
-        >
-          <div
-            class="from-accent to-accent/80 group-hover:animate-resonance-vibrato flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br"
-          >
-            <User size={24} class="text-white" />
-          </div>
-          <div>
-            <h2 class="font-display text-neutral font-semibold">{t.quickNav.profile}</h2>
-            <p class="text-muted text-sm">
-              {isLoggedIn ? t.quickNav.profileDescription : t.quickNav.profileDescriptionGuest}
-            </p>
-          </div>
-        </a>
-      </div>
-    </div>
-
-    {isLoggedIn && (
-      <!-- Welcome message for signed-in user -->
-      <div class="glass-card rounded-2xl p-6 bg-gradient-resonance-subtle border border-primary/20">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-        <h2 class="font-display text-neutral text-xl font-semibold mb-1">
-              {t.welcome.title.replace('{name}', user?.name || user?.email || '')}
-        </h2>
-            <p class="text-muted text-sm">{t.welcome.subtitle}</p>
-          </div>
-          <button
-            type="button"
-            id="sign-out-btn"
-            class="p-2 rounded-lg hover:bg-surface transition-colors"
-            aria-label={t.welcome.signOutAria}
-          >
-            <LogOut size={20} class="text-muted" />
-          </button>
-        </div>
-      </div>
+    {(memberCount > 0 || recordCount > 0) && (
+      <p class="mt-12 text-sm text-muted">
+        Rejoins <strong>{memberCount.toLocaleString('fr-FR')}</strong> membres
+        et <strong>{recordCount.toLocaleString('fr-FR')}</strong> disques enregistrés.
+      </p>
     )}
 
-    {isLoggedIn && (
-      <!-- Quick stats -->
-      <div class="glass-card rounded-2xl p-6">
-        <h2 class="font-display text-neutral mb-4 text-lg font-semibold">
-          {t.stats.yourCollection}
-        </h2>
-        <div class="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <div class="text-format-vinyl text-2xl font-bold">
-              {stats.vinyls}
-            </div>
-            <div class="text-muted text-sm">{t.stats.vinyl}</div>
-          </div>
-          <div>
-            <div class="text-format-cassette text-2xl font-bold">
-              {stats.cassettes}
-            </div>
-            <div class="text-muted text-sm">{t.stats.cassette}</div>
-          </div>
-          <div>
-            <div class="text-format-cd text-2xl font-bold">
-              {stats.cds}
-            </div>
-            <div class="text-muted text-sm">{t.stats.cd}</div>
-          </div>
-        </div>
-      </div>
-    )}
+  </main>
 
-    {isLoggedIn && recentItems.length > 0 && (
-      <!-- Recent Albums -->
-      <div class="glass-card rounded-2xl p-6">
-        <h2 class="font-display text-neutral mb-4 text-lg font-semibold">
-          {t.recentAlbums}
-        </h2>
-        <div class="space-y-3">
-          {recentItems.map((item) => (
-            <a
-              href={`/library?format=${item.format}`}
-              class="flex items-center gap-4 rounded-xl p-3 no-underline transition-colors hover:bg-surface/50"
-            >
-              {item.coverUrl ? (
-                <img
-                  src={item.coverUrl}
-                  alt={item.title}
-                  loading="lazy"
-                  width={48}
-                  height={48}
-                  class="h-12 w-12 shrink-0 rounded-lg object-cover"
-                />
-              ) : (
-                <div
-                  class="shrink-0 w-12 h-12 rounded-lg bg-linear-to-br from-primary to-secondary flex items-center justify-center"
-                >
-                  <Disc3 size={24} class="text-white opacity-80" />
-                </div>
-              )}
-              <div class="flex-1 min-w-0">
-                <p class="font-medium text-neutral truncate">{item.title}</p>
-                <p class="text-sm text-muted truncate">
-                  {item.artist}{item.year ? ` · ${item.year}` : ''}
-                </p>
-              </div>
-              <span
-                class="px-2 py-1 text-xs font-medium rounded-md bg-primary/10 text-primary"
-              >
-                {item.format}
-              </span>
-            </a>
-          ))}
-        </div>
-      </div>
-    )}
-
-    <!-- Quick actions -->
-    <div class="flex flex-col gap-4 sm:flex-row">
-      <a
-        href={isLoggedIn ? '/explorer' : '/login?redirectTo=/explorer'}
-        aria-label={isLoggedIn ? t.actions.addAlbumAria : t.actions.addAlbumAriaGuest}
-        class="btn-primary-gradient flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3"
-      >
-        <Plus size={20} />
-        <span>{isLoggedIn ? t.actions.addAlbum : t.actions.addAlbumGuest}</span>
-      </a>
-
-      <a
-        href={isLoggedIn ? '/profile?tab=statistics' : '/login?redirectTo=/profile?tab=statistics'}
-        aria-label={isLoggedIn ? t.actions.viewStatisticsAria : t.actions.viewStatisticsAriaGuest}
-        class="btn-secondary-surface flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3"
-      >
-        <BarChart3 size={20} />
-        <span>{isLoggedIn ? t.actions.viewStatistics : t.actions.viewStatisticsGuest}</span>
-      </a>
-    </div>
-
-    {!isLoggedIn && (
-      <!-- Welcome Message -->
-      <div class="py-8 text-center">
-        <div class="text-muted inline-flex items-center gap-2">
-          <Heart size={20} class="fill-none stroke-2 text-primary stroke-primary" />
-          <span class="text-sm italic">{t.guest.message}</span>
-        </div>
-        <div class="mt-4">
-          <a
-            href="/login"
-            class="btn-primary-gradient inline-block py-2 px-6 rounded-xl"
-          >
-            {t.guest.signIn}
-          </a>
-        </div>
-      </div>
-    )}
-  </div>
-</DashboardLayout>
-
-<style>
-  /* Animations spécifiques à la page d'accueil */
-  .group:hover .group-hover\:animate-resonance-pulse {
-    animation: resonance-pulse 1s ease-in-out infinite;
-  }
-
-  .group:hover .group-hover\:animate-resonance-vibrato {
-    animation: resonance-vibrato 0.3s ease-in-out;
-  }
-
-  /* Effet de parallaxe subtil */
-  @media (prefers-reduced-motion: no-preference) {
-    .glass-card {
-      transition: transform 0.3s ease;
-    }
-  }
-
-  @media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
-    .glass-card:hover {
-      transform: translateY(-4px) scale(1.02);
-    }
-  }
-
-  /* Responsive adjustments */
-  @media (max-width: 640px) {
-    .grid-cols-3 {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    .grid-cols-3 > div:last-child {
-      grid-column: span 2;
-    }
-  }
-</style>
-
-<script type="text/plain" id="index-toasts-messages" data-encoding="base64" set:html={Buffer.from(JSON.stringify(t.toasts), 'utf8').toString('base64')}></script>
-<script>
-  import './Index.client'
-</script>
+  <footer class="py-8 text-center text-xs text-muted">
+    <a href="/legal" class="hover:underline">Mentions légales</a>
+    {' · '}
+    <a href="/privacy" class="hover:underline">Confidentialité</a>
+  </footer>
+</body>
+</html>
