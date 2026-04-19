@@ -1,6 +1,10 @@
 # Claude / Superpowers tooling
 .superpowers/
 
+# Capacitor native builds (regenerated via pnpm cap:sync)
+ios/
+android/
+
 # build output
 dist/
 # generated types
