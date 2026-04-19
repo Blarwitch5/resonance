@@ -13,12 +13,16 @@ model User {
   username            String?    @unique
   name                String?    // nom d'affichage (ex. "Romain B.")
   email               String     @unique
-  imageUrl            String?
+  emailVerified       Boolean    @default(false) // required by better-auth
+  image               String?    // required by better-auth (avatar URL)
+  imageUrl            String?    // app-level avatar (synced from image)
   bio                 String?    @db.VarChar(280)
   isPrivate           Boolean    @default(false)
   onboardingCompleted Boolean    @default(false)
   lastExportAt        DateTime?
   notificationPrefs   Json?
+  preferredLocale     String?    @default("fr")
+  preferredTheme      String?
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
 
