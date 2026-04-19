@@ -24,7 +24,7 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: true,
+    requireEmailVerification: false, // no email provider configured yet
   },
   secret: import.meta.env.BETTER_AUTH_SECRET,
   baseURL:
