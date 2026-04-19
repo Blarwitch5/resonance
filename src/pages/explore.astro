@@ -3,6 +3,11 @@ export const prerender = false
 import Layout from '../components/layouts/Layout.astro'
 import { exploreRepository } from '../repositories/explore-repository'
 import { blockRepository } from '../repositories/block-repository'
+import { exploreI18n } from '../i18n/explore'
+import { normalizeLocale } from '../i18n/config'
+
+const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const t = exploreI18n[locale]
 
 const currentUser = Astro.locals.user
 const currentUserId = currentUser?.id ?? null
@@ -25,19 +30,19 @@ const [trending, newMembers] = await Promise.all([
 Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
 ---
 
-<Layout title="Explorer">
+<Layout title={t.title}>
   <div class="explore-page max-w-2xl mx-auto px-4 py-4">
 
     <!-- Search bar -->
     <div class="search-section mb-6">
       <form role="search" id="explore-search-form">
-        <label for="explore-search" class="sr-only">Rechercher un disque (artiste, titre, label)</label>
+        <label for="explore-search" class="sr-only">{t.searchPlaceholder}</label>
         <div class="relative">
           <input
             type="search"
             id="explore-search"
             name="q"
-            placeholder="Artiste, titre, label…"
+            placeholder={t.searchPlaceholder}
             class="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             autocomplete="off"
           />
@@ -46,13 +51,13 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
           </svg>
         </div>
       </form>
-      <div id="search-results" class="mt-2 space-y-2" role="region" aria-live="polite" aria-label="Résultats de recherche"></div>
+      <div id="search-results" class="mt-2 space-y-2" role="region" aria-live="polite" aria-label={t.searchPlaceholder} data-text-no-results={t.noResults} data-text-error={t.searchError}></div>
     </div>
 
     <!-- Trending -->
     {trending.length > 0 && (
       <section class="mb-8" aria-labelledby="trending-heading">
-        <h2 id="trending-heading" class="text-sm font-medium text-muted mb-3">Tendances cette semaine</h2>
+        <h2 id="trending-heading" class="text-sm font-medium text-muted mb-3">{t.trending}</h2>
         <div class="grid grid-cols-2 gap-3">
           {trending.map((release) => release && (
             <a
@@ -66,7 +71,7 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
               <div class="min-w-0">
                 <p class="text-sm font-medium truncate">{release.title}</p>
                 <p class="text-xs text-muted truncate">{release.artist}</p>
-                <p class="text-xs text-accent mt-0.5">{release.addCount} ajout{release.addCount !== 1 ? 's' : ''}</p>
+                <p class="text-xs text-accent mt-0.5">{t.trendingAdds(release.addCount)}</p>
               </div>
             </a>
           ))}
@@ -77,7 +82,7 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
     <!-- New active members -->
     {newMembers.length > 0 && (
       <section aria-labelledby="members-heading">
-        <h2 id="members-heading" class="text-sm font-medium text-muted mb-3">Nouveaux membres actifs</h2>
+        <h2 id="members-heading" class="text-sm font-medium text-muted mb-3">{t.newMembers}</h2>
         <ul class="space-y-2">
           {newMembers.map((member) => (
             <li>
@@ -88,15 +93,17 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
                 }
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium">{member.name}</p>
-                  <p class="text-xs text-muted">@{member.username} · {member._count.shelfItems} disque{member._count.shelfItems !== 1 ? 's' : ''}</p>
+                  <p class="text-xs text-muted">@{member.username} · {t.records(member._count.shelfItems)}</p>
                 </div>
                 {currentUserId && (
                   <button
                     class="follow-btn-small text-xs text-accent border border-accent/30 px-3 py-1 rounded-full hover:bg-accent/10 transition-colors"
                     data-username={member.username}
-                    aria-label={`Suivre ${member.name}`}
+                    data-text-follow={t.follow}
+                    data-text-following={t.following}
+                    aria-label={`${t.follow} ${member.name}`}
                   >
-                    Suivre
+                    {t.follow}
                   </button>
                 )}
               </a>
@@ -127,7 +134,7 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
         const data = await res.json()
         if (!resultsEl) return
         if (!data.results?.length) {
-          resultsEl.innerHTML = '<p class="text-sm text-muted py-2">Aucun résultat.</p>'
+          resultsEl.innerHTML = `<p class="text-sm text-muted py-2">${resultsEl.dataset.textNoResults ?? 'Aucun résultat.'}</p>`
           return
         }
         resultsEl.innerHTML = data.results
@@ -141,7 +148,7 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
           )
           .join('')
       } catch {
-        if (resultsEl) resultsEl.innerHTML = '<p class="text-sm text-muted py-2">Erreur de recherche.</p>'
+        if (resultsEl) resultsEl.innerHTML = `<p class="text-sm text-muted py-2">${resultsEl.dataset.textError ?? 'Erreur de recherche.'}</p>`
       }
     }, 350)
   })
@@ -156,11 +163,11 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
         const res = await fetch(`/api/users/${username}/follow`, { method: 'POST' })
         const data = await res.json()
         if (data.following) {
-          btn.textContent = 'Abonné'
+          btn.textContent = btn.dataset.textFollowing ?? 'Abonné'
           btn.classList.add('opacity-60')
           btn.disabled = true
         } else {
-          btn.textContent = 'Suivre'
+          btn.textContent = btn.dataset.textFollow ?? 'Suivre'
           btn.disabled = false
         }
       } catch {

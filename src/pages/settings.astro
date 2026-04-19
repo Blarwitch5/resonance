@@ -426,26 +426,26 @@ const userImage = resolveUserImageUrl(user as UserWithImageUrl)
 
     <!-- Privacy -->
     <section class="glass-card rounded-2xl p-6">
-      <h2 class="text-xl font-semibold text-neutral mb-4">Confidentialité</h2>
+      <h2 class="text-xl font-semibold text-neutral mb-4">{t.privacy.title}</h2>
       <label class="flex items-center justify-between p-4 rounded-xl border border-border cursor-pointer">
         <div>
-          <p class="text-sm font-medium">Compte privé</p>
-          <p class="text-xs text-muted mt-0.5">Seuls tes abonnés peuvent voir ta shelf et tes collections.</p>
+          <p class="text-sm font-medium">{t.privacy.privateAccount}</p>
+          <p class="text-xs text-muted mt-0.5">{t.privacy.privateAccountHint}</p>
         </div>
         <input
           type="checkbox"
           id="privacy-toggle"
           class="sr-only"
           checked={isPrivate}
-          aria-label="Activer le compte privé"
+          aria-label={t.privacy.privateAccountAria}
         />
         <div class={`w-10 h-6 rounded-full border-2 relative transition-colors ${isPrivate ? 'bg-accent border-accent' : 'border-border'}`} aria-hidden="true">
           <div class={`w-4 h-4 rounded-full absolute top-0.5 transition-transform ${isPrivate ? 'bg-white translate-x-4' : 'bg-muted translate-x-0.5'}`}></div>
         </div>
       </label>
       <div class="mt-4">
-        <p class="text-sm font-medium mb-2">Comptes bloqués</p>
-        <a href="/settings/blocked" class="text-sm text-accent hover:underline">Gérer les comptes bloqués →</a>
+        <p class="text-sm font-medium mb-2">{t.privacy.blockedAccounts}</p>
+        <a href="/settings/blocked" class="text-sm text-accent hover:underline">{t.privacy.manageBlocked}</a>
       </div>
     </section>
 
@@ -457,10 +457,10 @@ const userImage = resolveUserImageUrl(user as UserWithImageUrl)
           <h3 class="text-sm font-medium text-muted uppercase tracking-wide mb-3">Push</h3>
           <div class="space-y-3">
             {[
-              { key: 'follower', label: 'Nouveau follower', checked: notifPrefs.push?.follower !== false },
-              { key: 'shelfAdd', label: 'Ajout shelf (abonnés)', checked: notifPrefs.push?.shelfAdd !== false },
-              { key: 'like', label: 'Like sur mon activité', checked: notifPrefs.push?.like !== false },
-              { key: 'comment', label: 'Commentaire sur mon activité', checked: notifPrefs.push?.comment !== false },
+              { key: 'follower', label: t.privacy.notifFollower, checked: notifPrefs.push?.follower !== false },
+              { key: 'shelfAdd', label: t.privacy.notifShelfAdd, checked: notifPrefs.push?.shelfAdd !== false },
+              { key: 'like', label: t.privacy.notifLike, checked: notifPrefs.push?.like !== false },
+              { key: 'comment', label: t.privacy.notifComment, checked: notifPrefs.push?.comment !== false },
             ].map(({ key, label, checked }) => (
               <label class="flex items-center justify-between">
                 <span class="text-sm">{label}</span>
@@ -473,8 +473,8 @@ const userImage = resolveUserImageUrl(user as UserWithImageUrl)
           <h3 class="text-sm font-medium text-muted uppercase tracking-wide mb-3">Email</h3>
           <div class="space-y-3">
             {[
-              { key: 'follower', label: 'Nouveau follower', checked: notifPrefs.email?.follower !== false },
-              { key: 'comment', label: 'Commentaire sur mon activité', checked: notifPrefs.email?.comment !== false },
+              { key: 'follower', label: t.privacy.notifFollower, checked: notifPrefs.email?.follower !== false },
+              { key: 'comment', label: t.privacy.notifComment, checked: notifPrefs.email?.comment !== false },
             ].map(({ key, label, checked }) => (
               <label class="flex items-center justify-between">
                 <span class="text-sm">{label}</span>

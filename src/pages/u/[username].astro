@@ -5,6 +5,11 @@ import { userRepository } from '../../repositories/user-repository'
 import { followRepository } from '../../repositories/follow-repository'
 import { shelfItemRepository } from '../../repositories/shelf-item-repository'
 import { collectionRepository } from '../../repositories/collection-repository'
+import { profileI18n } from '../../i18n/profile'
+import { normalizeLocale } from '../../i18n/config'
+
+const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const t = profileI18n[locale]
 
 const { username } = Astro.params
 if (!username) return Astro.redirect('/explore')
@@ -78,18 +83,20 @@ if (!isPrivate) {
               class="btn-primary follow-btn"
               data-username={username}
               data-following={isFollowing ? 'true' : 'false'}
+              data-text-follow={t.follow}
+              data-text-unfollow={t.unfollow}
               aria-pressed={isFollowing}
             >
-              {isFollowing ? 'Abonné' : 'Suivre'}
+              {isFollowing ? t.unfollow : t.follow}
             </button>
           )}
           {!isSelf && currentUserId && (
-            <button class="btn-ghost p-2 context-menu-btn" aria-label="Plus d'actions" data-username={username}>
+            <button class="btn-ghost p-2 context-menu-btn" aria-label={t.moreActions} data-username={username} data-text-block-confirm={t.blockConfirm(username)}>
               ⋯
             </button>
           )}
           {isSelf && (
-            <a href="/settings" class="btn-secondary text-sm">Modifier le profil</a>
+            <a href="/settings" class="btn-secondary text-sm">{t.editProfile}</a>
           )}
         </div>
       </div>
@@ -99,30 +106,30 @@ if (!isPrivate) {
     <div class="stats-grid grid grid-cols-5 gap-2 mb-6 text-center">
       <div>
         <p class="text-lg font-bold">{canViewFull ? shelfCount : '—'}</p>
-        <p class="text-xs text-muted">Disques</p>
+        <p class="text-xs text-muted">{t.records}</p>
       </div>
       <div>
         <p class="text-lg font-bold">{canViewFull ? pinnedCollections.length : '—'}</p>
-        <p class="text-xs text-muted">Collections</p>
+        <p class="text-xs text-muted">{t.collections}</p>
       </div>
       <div>
         <p class="text-lg font-bold">{followers.length}</p>
-        <p class="text-xs text-muted">Followers</p>
+        <p class="text-xs text-muted">{t.followers}</p>
       </div>
       <div>
         <p class="text-lg font-bold">{following.length}</p>
-        <p class="text-xs text-muted">Following</p>
+        <p class="text-xs text-muted">{t.following}</p>
       </div>
       <div>
         <p class="text-lg font-bold">{canViewFull ? wantCount : '—'}</p>
-        <p class="text-xs text-muted">Wants</p>
+        <p class="text-xs text-muted">{t.wants}</p>
       </div>
     </div>
 
     {!canViewFull && isPrivate && (
       <div class="private-notice text-center py-12 border border-border rounded-xl">
-        <p class="font-medium mb-1">Compte privé</p>
-        <p class="text-sm text-muted">Suis {profileUser.name ?? username} pour voir sa collection.</p>
+        <p class="font-medium mb-1">{t.privateAccount}</p>
+        <p class="text-sm text-muted">{t.privateHint(profileUser.name ?? username)}</p>
       </div>
     )}
 
@@ -131,7 +138,7 @@ if (!isPrivate) {
         <!-- Recent items -->
         {recentItems.length > 0 && (
           <section class="mb-6" aria-labelledby="recent-heading">
-            <h2 id="recent-heading" class="text-sm font-medium text-muted mb-3">Récemment ajoutés</h2>
+            <h2 id="recent-heading" class="text-sm font-medium text-muted mb-3">{t.recentlyAdded}</h2>
             <div class="grid grid-cols-3 gap-2">
               {recentItems.map((item) => (
                 <a href={`/items/${item.id}`} class="aspect-square rounded overflow-hidden bg-surface-raised hover:opacity-90 transition-opacity">
@@ -178,7 +185,9 @@ if (!isPrivate) {
       const data = await res.json()
       followBtn.dataset.following = data.following ? 'true' : 'false'
       followBtn.setAttribute('aria-pressed', String(data.following))
-      followBtn.textContent = data.following ? 'Abonné' : 'Suivre'
+      followBtn.textContent = data.following
+        ? (followBtn.dataset.textUnfollow ?? 'Abonné')
+        : (followBtn.dataset.textFollow ?? 'Suivre')
     } catch {
       // no-op
     } finally {
@@ -190,7 +199,8 @@ if (!isPrivate) {
   const contextBtn = document.querySelector('.context-menu-btn') as HTMLButtonElement | null
   contextBtn?.addEventListener('click', async () => {
     const username = contextBtn.dataset.username
-    if (!confirm(`Bloquer @${username} ?`)) return
+    const confirmMsg = contextBtn.dataset.textBlockConfirm ?? `Bloquer @${username} ?`
+    if (!confirm(confirmMsg)) return
 
     const res = await fetch(`/api/users/${username}/block`, { method: 'POST' })
     if (res.ok) window.location.href = '/feed'

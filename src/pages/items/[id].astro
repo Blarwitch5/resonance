@@ -3,6 +3,11 @@ export const prerender = false
 import Layout from '../../components/layouts/Layout.astro'
 import { shelfItemRepository } from '../../repositories/shelf-item-repository'
 import { followRepository } from '../../repositories/follow-repository'
+import { itemsI18n } from '../../i18n/items'
+import { normalizeLocale } from '../../i18n/config'
+
+const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const t = itemsI18n[locale]
 
 const { id } = Astro.params
 if (!id) return Astro.redirect('/shelf')
@@ -56,7 +61,7 @@ const tracklist = Array.isArray(release.tracklist) ? (release.tracklist as unkno
               height="120"
               class="rounded-lg w-28 h-28 object-cover shadow"
             />
-          : <div class="w-28 h-28 rounded-lg bg-surface-raised flex items-center justify-center text-muted text-xs">No cover</div>
+          : <div class="w-28 h-28 rounded-lg bg-surface-raised flex items-center justify-center text-muted text-xs">{t.nocover}</div>
         }
       </div>
       <div class="flex-1 min-w-0">
@@ -81,8 +86,7 @@ const tracklist = Array.isArray(release.tracklist) ? (release.tracklist as unkno
         <!-- Community rating -->
         {showCommunityRating && (
           <p class="text-xs text-muted mt-1">
-            Moyenne communauté : {release.avgRating?.toFixed(1)}/5
-            ({release.ratingCount} notes)
+            {t.communityRating(release.avgRating?.toFixed(1) ?? '0', release.ratingCount ?? 0)}
           </p>
         )}
       </div>
@@ -91,7 +95,7 @@ const tracklist = Array.isArray(release.tracklist) ? (release.tracklist as unkno
     <!-- Social: friends who have this -->
     {friendsWithRelease.length > 0 && (
       <div class="friends-section mb-4 p-3 bg-surface-raised rounded-lg">
-        <p class="text-xs text-muted mb-2">{friendsLabel}</p>
+        <p class="text-xs text-muted mb-2">{t.friendsHaveIt(friendsWithRelease.length)}</p>
         <div class="flex -space-x-2">
           {friendsWithRelease.slice(0, 5).map((f) => (
             <a href={`/u/${f.user.username}`} aria-label={f.user.name ?? f.user.username ?? ''}>
@@ -108,21 +112,21 @@ const tracklist = Array.isArray(release.tracklist) ? (release.tracklist as unkno
     <!-- Personal info (owner only) -->
     {isOwner && (
       <section class="personal-info mb-6 p-4 bg-surface border border-border rounded-xl">
-        <h2 class="text-sm font-medium mb-3">Ma collection</h2>
+        <h2 class="text-sm font-medium mb-3">{t.ownerSection}</h2>
         <dl class="space-y-2 text-sm">
           <div class="flex justify-between">
-            <dt class="text-muted">État</dt>
+            <dt class="text-muted">{t.condition}</dt>
             <dd>{shelfItem.condition}</dd>
           </div>
           {shelfItem.acquiredAt && (
             <div class="flex justify-between">
-              <dt class="text-muted">Acquis le</dt>
+              <dt class="text-muted">{t.acquiredAt}</dt>
               <dd>{new Date(shelfItem.acquiredAt).toLocaleDateString('fr-FR')}</dd>
             </div>
           )}
           {shelfItem.note && (
             <div>
-              <dt class="text-muted mb-1">Note personnelle</dt>
+              <dt class="text-muted mb-1">{t.personalNote}</dt>
               <dd class="text-sm">{shelfItem.note}</dd>
             </div>
           )}
@@ -133,7 +137,7 @@ const tracklist = Array.isArray(release.tracklist) ? (release.tracklist as unkno
     <!-- Tracklist -->
     {tracklist && tracklist.length > 0 && (
       <section class="tracklist mb-6" aria-labelledby="tracklist-heading">
-        <h2 id="tracklist-heading" class="text-sm font-medium text-muted mb-2">Tracklist</h2>
+        <h2 id="tracklist-heading" class="text-sm font-medium text-muted mb-2">{t.tracklist}</h2>
         <ol class="space-y-1">
           {tracklist.map((track) => (
             <li class="flex items-center justify-between text-sm py-1 border-b border-border/50 last:border-0">
@@ -152,14 +156,16 @@ const tracklist = Array.isArray(release.tracklist) ? (release.tracklist as unkno
         <button
           class="btn-secondary want-btn"
           data-release-id={release.id}
+          data-text-want={t.addWant}
+          data-text-in-wants={t.inWants}
         >
-          + Want
+          {t.addWant}
         </button>
       )}
       {isOwner && (
         <>
-          <a href={`/items/${id}/edit`} class="btn-secondary">Modifier</a>
-          <button class="btn-ghost text-red-500 delete-btn" data-id={id}>Supprimer</button>
+          <a href={`/items/${id}/edit`} class="btn-secondary">{t.edit}</a>
+          <button class="btn-ghost text-red-500 delete-btn" data-id={id} data-text-confirm={t.deleteConfirm}>{t.delete}</button>
         </>
       )}
     </div>
@@ -179,7 +185,7 @@ const tracklist = Array.isArray(release.tracklist) ? (release.tracklist as unkno
         body: JSON.stringify({ releaseId }),
       })
       if (res.ok) {
-        wantBtn.textContent = '✓ Dans mes Wants'
+        wantBtn.textContent = wantBtn.dataset.textInWants ?? '✓ Dans mes Wants'
         wantBtn.disabled = true
       }
     } catch {
@@ -190,7 +196,7 @@ const tracklist = Array.isArray(release.tracklist) ? (release.tracklist as unkno
   // Delete button
   const deleteBtn = document.querySelector('.delete-btn') as HTMLButtonElement | null
   deleteBtn?.addEventListener('click', async () => {
-    if (!confirm('Supprimer ce disque de ta shelf ?')) return
+    if (!confirm(deleteBtn.dataset.textConfirm ?? 'Supprimer ce disque de ta shelf ?')) return
     const id = deleteBtn.dataset.id
     const res = await fetch('/api/shelf-items/' + id + '/delete', { method: 'DELETE' })
     if (res.ok) window.location.href = '/shelf'

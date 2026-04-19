@@ -2,6 +2,11 @@
 export const prerender = false
 import Layout from '../components/layouts/Layout.astro'
 import { db } from '../lib/db'
+import { onboardingI18n } from '../i18n/onboarding'
+import { normalizeLocale } from '../i18n/config'
+
+const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const t = onboardingI18n[locale]
 
 const currentUser = Astro.locals.user
 if (!currentUser) return Astro.redirect('/login', 302)
@@ -30,8 +35,8 @@ if (user?.onboardingCompleted) return Astro.redirect('/feed', 302)
 
     <!-- Step 1: Formats -->
     <section id="step-1" class="onboarding-step">
-      <h1 class="text-2xl font-bold mb-2">Quels formats collectonnes-tu ?</h1>
-      <p class="text-muted mb-6">Tu pourras changer ça dans les settings plus tard.</p>
+      <h1 class="text-2xl font-bold mb-2">{t.step1Title}</h1>
+      <p class="text-muted mb-6">{t.step1Hint}</p>
       <div class="flex gap-3 flex-wrap mb-8">
         {['Vinyl', 'CD', 'Cassette'].map((fmt) => (
           <label class="format-option cursor-pointer">
@@ -52,38 +57,38 @@ if (user?.onboardingCompleted) return Astro.redirect('/feed', 302)
           </label>
         ))}
       </div>
-      <button class="btn-primary w-full" id="next-1">Continuer →</button>
-      <button class="btn-ghost w-full mt-2 text-sm skip-btn" data-skip="true">Passer</button>
+      <button class="btn-primary w-full" id="next-1">{t.next}</button>
+      <button class="btn-ghost w-full mt-2 text-sm skip-btn" data-skip="true">{t.skip}</button>
     </section>
 
     <!-- Step 2: Find friends -->
     <section id="step-2" class="onboarding-step hidden">
-      <h2 class="text-2xl font-bold mb-2">Trouve des amis</h2>
-      <p class="text-muted mb-6">Suis des collectionneurs pour voir leur activité dans ton feed.</p>
+      <h2 class="text-2xl font-bold mb-2">{t.step2Title}</h2>
+      <p class="text-muted mb-6">{t.step2Hint}</p>
       <div class="relative mb-4">
         <input
           type="search"
           id="friend-search"
-          placeholder="Rechercher par username ou email…"
+          placeholder={t.searchPlaceholder}
           class="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-accent"
         />
         <svg class="absolute left-3 top-3.5 w-4 h-4 text-muted" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
       </div>
-      <div id="friend-results" class="space-y-2 mb-6 min-h-[80px]" role="region" aria-live="polite"></div>
-      <button class="btn-primary w-full" id="next-2">Continuer →</button>
-      <button class="btn-ghost w-full mt-2 text-sm skip-btn" data-skip="true">Passer</button>
+      <div id="friend-results" class="space-y-2 mb-6 min-h-[80px]" role="region" aria-live="polite" data-text-follow={t.follow} data-text-following={t.following} data-text-no-results={t.noResults} data-text-error={t.searchError}></div>
+      <button class="btn-primary w-full" id="next-2">{t.next}</button>
+      <button class="btn-ghost w-full mt-2 text-sm skip-btn" data-skip="true">{t.skip}</button>
     </section>
 
     <!-- Step 3: First add -->
     <section id="step-3" class="onboarding-step hidden">
-      <h2 class="text-2xl font-bold mb-2">Ajoute ton premier disque</h2>
-      <p class="text-muted mb-6">Scan le code-barres ou recherche un titre pour commencer ta collection.</p>
+      <h2 class="text-2xl font-bold mb-2">{t.step3Title}</h2>
+      <p class="text-muted mb-6">{t.step3Hint}</p>
       <div class="flex gap-3 mb-8">
-        <a href="/shelf" class="btn-primary flex-1 text-center">Scanner / Rechercher</a>
+        <a href="/shelf" class="btn-primary flex-1 text-center">{t.scanSearch}</a>
       </div>
-      <button class="btn-ghost w-full text-sm" id="finish-onboarding">Passer et aller au feed</button>
+      <button class="btn-ghost w-full text-sm" id="finish-onboarding">{t.finish}</button>
     </section>
 
   </div>
@@ -168,8 +173,10 @@ if (user?.onboardingCompleted) return Astro.redirect('/feed', 302)
         const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`)
         const data = await res.json()
         if (!friendResults) return
+        const textFollow = friendResults.dataset.textFollow ?? 'Suivre'
+        const textFollowing = friendResults.dataset.textFollowing ?? 'Abonné ✓'
         if (!data.users?.length) {
-          friendResults.innerHTML = '<p class="text-sm text-muted">Aucun résultat.</p>'
+          friendResults.innerHTML = `<p class="text-sm text-muted">${friendResults.dataset.textNoResults ?? 'Aucun résultat.'}</p>`
           return
         }
         friendResults.innerHTML = data.users
@@ -183,8 +190,8 @@ if (user?.onboardingCompleted) return Astro.redirect('/feed', 302)
               <button
                 class="follow-onboarding-btn text-xs text-accent border border-accent/30 px-3 py-1 rounded-full"
                 data-username="${u.username}"
-                aria-label="Suivre ${u.name ?? u.username}"
-              >Suivre</button>
+                aria-label="${textFollow} ${u.name ?? u.username}"
+              >${textFollow}</button>
             </div>`,
           )
           .join('')
@@ -194,11 +201,11 @@ if (user?.onboardingCompleted) return Astro.redirect('/feed', 302)
             btn.disabled = true
             const res = await fetch(`/api/users/${btn.dataset.username}/follow`, { method: 'POST' })
             const data = await res.json()
-            btn.textContent = data.following ? 'Abonné ✓' : 'Suivre'
+            btn.textContent = data.following ? textFollowing : textFollow
           })
         })
       } catch {
-        if (friendResults) friendResults.innerHTML = '<p class="text-sm text-muted">Erreur de recherche.</p>'
+        if (friendResults) friendResults.innerHTML = `<p class="text-sm text-muted">${friendResults.dataset.textError ?? 'Erreur de recherche.'}</p>`
       }
     }, 350)
   })

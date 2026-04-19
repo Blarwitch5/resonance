@@ -215,3 +215,37 @@ export function getProfileMessages(locale: Locale): ProfileMessages {
   return messages[locale] as ProfileMessages
 }
 
+// Social profile page (u/[username].astro)
+export const profileI18n = {
+  fr: {
+    records: 'Disques',
+    collections: 'Collections',
+    followers: 'Followers',
+    following: 'Following',
+    wants: 'Wants',
+    recentlyAdded: 'Récemment ajoutés',
+    editProfile: 'Modifier le profil',
+    follow: 'Suivre',
+    unfollow: 'Abonné',
+    moreActions: 'Plus d\'actions',
+    blockConfirm: (username: string) => `Bloquer @${username} ?`,
+    privateAccount: 'Compte privé',
+    privateHint: (name: string) => `Suis ${name} pour voir sa collection.`,
+  },
+  en: {
+    records: 'Records',
+    collections: 'Collections',
+    followers: 'Followers',
+    following: 'Following',
+    wants: 'Wants',
+    recentlyAdded: 'Recently added',
+    editProfile: 'Edit profile',
+    follow: 'Follow',
+    unfollow: 'Following',
+    moreActions: 'More actions',
+    blockConfirm: (username: string) => `Block @${username}?`,
+    privateAccount: 'Private account',
+    privateHint: (name: string) => `Follow ${name} to see their collection.`,
+  },
+} as const
+
