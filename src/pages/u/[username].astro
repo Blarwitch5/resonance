@@ -12,13 +12,22 @@ const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.reque
 const t = profileI18n[locale]
 
 const { username } = Astro.params
-if (!username) return Astro.redirect('/explore')
+// Validate username format before hitting DB (prevents enumeration via timing)
+const USERNAME_RE = /^[a-z0-9_-]{3,20}$/
+if (!username || !USERNAME_RE.test(username)) {
+  Astro.response.status = 404
+  return Astro.redirect('/404')
+}
 
 const currentUser = Astro.locals.user
 const currentUserId = currentUser?.id ?? null
 
 const profileUser = await userRepository.findByUsername(username)
-if (!profileUser) return Astro.redirect('/explore')
+// Same 404 for not-found and private (no enumeration)
+if (!profileUser) {
+  Astro.response.status = 404
+  return Astro.redirect('/404')
+}
 
 // Privacy: if account is private and viewer is not a follower (and not self), show limited view
 const isSelf = currentUserId === profileUser.id
