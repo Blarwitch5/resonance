@@ -39,7 +39,7 @@ const displayName = profileUser.name || profileUser.username
         class="rounded-2xl shrink-0"
       />
       <div class="min-w-0">
-        <h1 class="truncate text-xl font-bold text-neutral sm:text-2xl">{displayName}</h1>
+        <h1 class="font-serif truncate text-xl font-normal text-neutral sm:text-2xl">{displayName}</h1>
         <p class="text-sm text-muted">@{profileUser.username}</p>
         {profileUser.bio && (
           <p class="mt-1 text-sm text-neutral line-clamp-2">{profileUser.bio}</p>
@@ -70,17 +70,15 @@ const displayName = profileUser.name || profileUser.username
           data-is-following={isFollowing ? 'true' : 'false'}
           aria-pressed={isFollowing ? 'true' : 'false'}
         >
-          {isFollowing ? (
-            <>
-              <UserMinus size={16} class="stroke-2 shrink-0" />
-              <span>Abonné</span>
-            </>
-          ) : (
-            <>
-              <UserPlus size={16} class="stroke-2 shrink-0" />
-              <span>Suivre</span>
-            </>
-          )}
+          {/* Les deux états sont pré-rendus ; JS toggle la classe hidden */}
+          <span data-follow-state="following" class={isFollowing ? 'contents' : 'hidden'}>
+            <UserMinus size={16} class="stroke-2 shrink-0" aria-hidden="true" />
+            <span>Abonné</span>
+          </span>
+          <span data-follow-state="not-following" class={isFollowing ? 'hidden' : 'contents'}>
+            <UserPlus size={16} class="stroke-2 shrink-0" aria-hidden="true" />
+            <span>Suivre</span>
+          </span>
         </button>
       )}
     </div>
@@ -147,13 +145,13 @@ const displayName = profileUser.name || profileUser.username
         followButton.dataset.isFollowing = isNowFollowing ? 'true' : 'false'
         followButton.setAttribute('aria-pressed', isNowFollowing ? 'true' : 'false')
 
-        // Mettre à jour le contenu du bouton
-        const userMinusIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="22" x2="16" y1="11" y2="11"/></svg>'
-        const userPlusIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>'
-
-        followButton.innerHTML = isNowFollowing
-          ? `${userMinusIcon}<span>Abonné</span>`
-          : `${userPlusIcon}<span>Suivre</span>`
+        // Basculer les états pré-rendus (pas d'innerHTML ni de SVG inline)
+        const followingEl = followButton.querySelector('[data-follow-state="following"]')
+        const notFollowingEl = followButton.querySelector('[data-follow-state="not-following"]')
+        followingEl?.classList.toggle('hidden', !isNowFollowing)
+        followingEl?.classList.toggle('contents', isNowFollowing)
+        notFollowingEl?.classList.toggle('hidden', isNowFollowing)
+        notFollowingEl?.classList.toggle('contents', !isNowFollowing)
 
         // Mettre à jour les classes
         followButton.className = followButton.className

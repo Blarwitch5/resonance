@@ -22,7 +22,7 @@ const shelfItems = await shelfItemRepository.findByUser(user.id, {
 })
 ---
 
-<Layout title="Ma shelf">
+<Layout title="Ma shelf" showBottomBar={true}>
   <div class="shelf-page max-w-2xl mx-auto px-4 py-4">
 
     <header class="flex items-center justify-between mb-4">

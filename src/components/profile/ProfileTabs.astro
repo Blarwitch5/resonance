@@ -38,56 +38,56 @@ const {
       <button
         type="button"
         data-tab="favorites"
-        class="tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3"
+        class={`tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3 ${activeTab === 'favorites' ? 'active' : ''}`}
         role="tab"
         id="tab-favorites"
         aria-controls="panel-favorites"
-        aria-selected="false"
-        tabindex="-1"
+        aria-selected={activeTab === 'favorites' ? 'true' : 'false'}
+        tabindex={activeTab === 'favorites' ? 0 : -1}
       >
-        <Heart size={18} class="fill-none stroke-2" />
+        <Heart size={18} class="fill-none stroke-2" aria-hidden="true" />
         <span>{favoritesLabel}</span>
       </button>
 
       <button
         type="button"
         data-tab="wishlist"
-        class="tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3"
+        class={`tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3 ${activeTab === 'wishlist' ? 'active' : ''}`}
         role="tab"
         id="tab-wishlist"
         aria-controls="panel-wishlist"
-        aria-selected="false"
-        tabindex="-1"
+        aria-selected={activeTab === 'wishlist' ? 'true' : 'false'}
+        tabindex={activeTab === 'wishlist' ? 0 : -1}
       >
-        <Bookmark size={18} class="fill-none stroke-2" />
+        <Bookmark size={18} class="fill-none stroke-2" aria-hidden="true" />
         <span>{wishlistLabel}</span>
       </button>
 
       <button
         type="button"
         data-tab="statistics"
-        class="tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3"
+        class={`tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3 ${activeTab === 'statistics' ? 'active' : ''}`}
         role="tab"
         id="tab-statistics"
         aria-controls="panel-statistics"
-        aria-selected="false"
-        tabindex="-1"
+        aria-selected={activeTab === 'statistics' ? 'true' : 'false'}
+        tabindex={activeTab === 'statistics' ? 0 : -1}
       >
-        <BarChart size={18} class="fill-none stroke-2" />
+        <BarChart size={18} class="fill-none stroke-2" aria-hidden="true" />
         <span>{statisticsLabel}</span>
       </button>
 
       <button
         type="button"
         data-tab="all-formats"
-        class="tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3"
+        class={`tab-btn flex shrink-0 items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-all hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background md:rounded-t-lg md:border-b-2 md:border-b-transparent md:border-none md:px-6 md:py-3 ${activeTab === 'all-formats' ? 'active' : ''}`}
         role="tab"
         id="tab-all-formats"
         aria-controls="panel-all-formats"
-        aria-selected="false"
-        tabindex="-1"
+        aria-selected={activeTab === 'all-formats' ? 'true' : 'false'}
+        tabindex={activeTab === 'all-formats' ? 0 : -1}
       >
-        <Library size={18} class="fill-none stroke-2" />
+        <Library size={18} class="fill-none stroke-2" aria-hidden="true" />
         <span>{allFormatsLabel}</span>
       </button>
     </div>
@@ -101,7 +101,7 @@ const {
       role="tabpanel"
       aria-labelledby="tab-favorites"
       tabindex="0"
-      style="display: none;"
+      class={activeTab === 'favorites' ? 'active' : ''}
     >
       <slot name="favorites" />
     </div>
@@ -111,7 +111,7 @@ const {
       role="tabpanel"
       aria-labelledby="tab-wishlist"
       tabindex="0"
-      style="display: none;"
+      style={activeTab === 'wishlist' ? undefined : 'display: none;'}
     >
       <slot name="wishlist" />
     </div>
@@ -121,7 +121,7 @@ const {
       role="tabpanel"
       aria-labelledby="tab-statistics"
       tabindex="0"
-      style="display: none;"
+      style={activeTab === 'statistics' ? undefined : 'display: none;'}
     >
       <slot name="statistics" />
     </div>
@@ -131,7 +131,7 @@ const {
       role="tabpanel"
       aria-labelledby="tab-all-formats"
       tabindex="0"
-      style="display: none;"
+      style={activeTab === 'all-formats' ? undefined : 'display: none;'}
     >
       <slot name="all-formats" />
     </div>
@@ -194,10 +194,6 @@ const {
     display: block !important;
   }
   
-  /* Fallback: afficher le premier slot (favorites) par défaut si le script ne s'exécute pas */
-  #tab-content > [data-tab-content="favorites"]:not(.active),
-  #tab-content > [slot="favorites"]:not(.active) {
-    display: block;
-  }
+  /* Le panel actif par défaut est rendu visible côté serveur via l'absence de style="display:none" */
 </style>
 

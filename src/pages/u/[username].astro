@@ -1,6 +1,7 @@
 ---
 export const prerender = false
 import Layout from '../../components/layouts/Layout.astro'
+import Avatar from '../../components/ui/Avatar.astro'
 import { userRepository } from '../../repositories/user-repository'
 import { followRepository } from '../../repositories/follow-repository'
 import { shelfItemRepository } from '../../repositories/shelf-item-repository'
@@ -71,16 +72,13 @@ if (!isPrivate) {
 }
 ---
 
-<Layout title={profileUser.name ?? username}>
+<Layout title={profileUser.name ?? username} showBottomBar={true}>
   {isPrivate && <meta name="robots" content="noindex" slot="head" />}
 
   <div class="profile-page max-w-2xl mx-auto px-4 py-6">
     <!-- Header -->
     <div class="flex items-start gap-4 mb-6">
-      {profileUser.image
-        ? <img src={profileUser.image} alt={profileUser.name ?? username} width="80" height="80" class="rounded-full w-20 h-20 object-cover" />
-        : <div class="w-20 h-20 rounded-full bg-surface-raised flex items-center justify-center text-2xl font-bold">{(profileUser.name ?? username)[0]}</div>
-      }
+      <Avatar userName={profileUser.name ?? username} imageUrl={profileUser.imageUrl ?? profileUser.image} size="2xl" />
       <div class="flex-1 min-w-0">
         <h1 class="text-xl font-semibold">{profileUser.name ?? username}</h1>
         <p class="text-sm text-muted">@{username}</p>
@@ -150,7 +148,7 @@ if (!isPrivate) {
             <h2 id="recent-heading" class="text-sm font-medium text-muted mb-3">{t.recentlyAdded}</h2>
             <div class="grid grid-cols-3 gap-2">
               {recentItems.map((item) => (
-                <a href={`/items/${item.id}`} class="aspect-square rounded overflow-hidden bg-surface-raised hover:opacity-90 transition-opacity">
+                <a href={`/items/${item.id}`} class="card-link aspect-square rounded overflow-hidden bg-surface-raised hover:opacity-90 transition-opacity">
                   {item.release.coverUrl
                     ? <img src={item.release.coverUrl} alt={`${item.release.artist} — ${item.release.title}`} width="120" height="120" class="w-full h-full object-cover" loading="lazy" />
                     : <div class="w-full h-full flex items-center justify-center text-xs text-muted p-2 text-center">{item.release.title}</div>
@@ -168,7 +166,7 @@ if (!isPrivate) {
             <ul class="space-y-2">
               {pinnedCollections.map((col) => (
                 <li>
-                  <a href={`/u/${username}/collections/${col.slug}`} class="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-surface-raised transition-colors">
+                  <a href={`/u/${username}/collections/${col.slug}`} class="card-link flex items-center justify-between p-3 rounded-lg border border-border hover:bg-surface-raised transition-colors">
                     <span class="font-medium text-sm">{col.name}</span>
                     <span class="text-xs text-muted">{col._count?.items ?? 0} disques</span>
                   </a>

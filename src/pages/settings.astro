@@ -10,6 +10,7 @@ import X from '@lucide/astro/icons/x'
 import ArrowLeft from '@lucide/astro/icons/arrow-left'
 import Eye from '@lucide/astro/icons/eye'
 import EyeOff from '@lucide/astro/icons/eye-off'
+import TriangleAlert from '@lucide/astro/icons/triangle-alert'
 import { getSettingsMessages } from '../i18n/settings'
 import { getLayoutMessages } from '../i18n/layout'
 import { normalizeLocale } from '../i18n/config'
@@ -58,9 +59,7 @@ const userImage = resolveUserImageUrl(user as UserWithImageUrl)
         role="alert"
         aria-live="polite"
       >
-        <svg class="mt-0.5 h-5 w-5 shrink-0 text-amber-500" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-        </svg>
+        <TriangleAlert size={20} class="mt-0.5 shrink-0 text-amber-500" aria-hidden="true" />
         <div>
           <p class="text-sm font-medium text-amber-800 dark:text-amber-200">
             {locale === 'fr' ? 'Ton username n\'est pas encore défini.' : 'Your username is not set yet.'}
