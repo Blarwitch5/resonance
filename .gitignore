@@ -39,3 +39,5 @@ public/uploads/avatars/
 
 # gstack security reports (local only)
 .gstack/
+scripts/check-releases.ts
+test-results/
