@@ -44,7 +44,11 @@ const {
 } = Astro.props as BottomBarProps
 
 const hasUser = Boolean((userName && userName.trim().length > 0) || (userEmail && userEmail.trim().length > 0))
-const profileHref = hasUser && userUsername ? `/u/${userUsername}` : '/login'
+const profileHref = hasUser && userUsername
+  ? `/u/${userUsername}`
+  : hasUser
+    ? '/settings?complete=username'
+    : '/login'
 ---
 
 <!-- Barre flottante style Floating Bottom Navigation (mobile uniquement) -->
@@ -65,7 +69,7 @@ const profileHref = hasUser && userUsername ? `/u/${userUsername}` : '/login'
       <div class={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${activeTab === 'shelf' ? 'bg-primary/90 text-white shadow-[0_6px_16px_-10px_rgba(99,102,241,0.7)]' : 'bg-surface/90 text-primary/80 group-hover:bg-primary/12 group-hover:text-primary'}`}>
         <Library size={19} class={`bottom-bar-icon fill-none stroke-2 shrink-0 ${activeTab === 'shelf' ? 'text-white stroke-white' : 'text-primary/80 stroke-primary/80 group-hover:text-primary group-hover:stroke-primary'}`} aria-hidden="true" />
       </div>
-      <span class="max-w-17 truncate text-center text-[0.625rem] font-medium leading-tight text-current">{shelfLabel}</span>
+      <span class="max-w-17 truncate text-center text-xs font-medium leading-tight text-current">{shelfLabel}</span>
     </a>
 
     <!-- Feed -->
@@ -78,7 +82,7 @@ const profileHref = hasUser && userUsername ? `/u/${userUsername}` : '/login'
       <div class={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${activeTab === 'feed' ? 'bg-primary/90 text-white shadow-[0_6px_16px_-10px_rgba(99,102,241,0.7)]' : 'bg-surface/90 text-primary/80 group-hover:bg-primary/12 group-hover:text-primary'}`}>
         <Activity size={19} class={`bottom-bar-icon fill-none stroke-2 shrink-0 ${activeTab === 'feed' ? 'text-white stroke-white' : 'text-primary/80 stroke-primary/80 group-hover:text-primary group-hover:stroke-primary'}`} aria-hidden="true" />
       </div>
-      <span class="max-w-17 truncate text-center text-[0.625rem] font-medium leading-tight text-current">{feedLabel}</span>
+      <span class="max-w-17 truncate text-center text-xs font-medium leading-tight text-current">{feedLabel}</span>
     </a>
 
     <!-- FAB central -->
@@ -103,7 +107,7 @@ const profileHref = hasUser && userUsername ? `/u/${userUsername}` : '/login'
       <div class={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${activeTab === 'explore' ? 'bg-primary/90 text-white shadow-[0_6px_16px_-10px_rgba(99,102,241,0.7)]' : 'bg-surface/90 text-primary/80 group-hover:bg-primary/12 group-hover:text-primary'}`}>
         <Search size={19} class={`bottom-bar-icon fill-none stroke-2 shrink-0 ${activeTab === 'explore' ? 'text-white stroke-white' : 'text-primary/80 stroke-primary/80 group-hover:text-primary group-hover:stroke-primary'}`} aria-hidden="true" />
       </div>
-      <span class="max-w-17 truncate text-center text-[0.625rem] font-medium leading-tight text-current">{exploreLabel}</span>
+      <span class="max-w-17 truncate text-center text-xs font-medium leading-tight text-current">{exploreLabel}</span>
     </a>
 
     <!-- Profile -->
@@ -120,7 +124,7 @@ const profileHref = hasUser && userUsername ? `/u/${userUsername}` : '/login'
           <User size={19} class={`bottom-bar-icon fill-none stroke-2 shrink-0 ${activeTab === 'profile' ? 'text-white stroke-white' : 'text-primary/80 stroke-primary/80 group-hover:text-primary group-hover:stroke-primary'}`} aria-hidden="true" />
         )}
       </div>
-      <span class="max-w-17 truncate text-center text-[0.625rem] font-medium leading-tight text-current">{profileLabel}</span>
+      <span class="max-w-17 truncate text-center text-xs font-medium leading-tight text-current">{profileLabel}</span>
     </a>
   </div>
 </nav>
@@ -137,8 +141,14 @@ const profileHref = hasUser && userUsername ? `/u/${userUsername}` : '/login'
     color: var(--color-primary);
   }
 
-  :global(html[data-theme='light']) .bottom-bar .bottom-bar-icon {
+  :global(html[data-theme='light']) .bottom-bar .bottom-bar-link:not([aria-current='page']) .bottom-bar-icon {
     color: var(--color-primary);
     stroke: var(--color-primary);
+  }
+
+  :global(html[data-theme='light']) .bottom-bar .bottom-bar-link[aria-current='page'] .bottom-bar-icon,
+  :global(html[data-theme='dark']) .bottom-bar .bottom-bar-link[aria-current='page'] .bottom-bar-icon {
+    color: white !important;
+    stroke: white !important;
   }
 </style>

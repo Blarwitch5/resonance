@@ -2,32 +2,27 @@
 import X from '@lucide/astro/icons/x'
 import Camera from '@lucide/astro/icons/camera'
 import Pencil from '@lucide/astro/icons/pencil'
+import ScanBarcode from '@lucide/astro/icons/scan-barcode'
 import { getLayoutMessages } from '../../i18n/layout'
 
 type BarcodeMessages = ReturnType<typeof getLayoutMessages>['barcodeScanner']
-type Props = { barcodeMessages?: BarcodeMessages }
+type Props = { barcodeMessages?: BarcodeMessages; hideFab?: boolean }
 const defaultMessages = getLayoutMessages('en').barcodeScanner
-const msg = (Astro.props as Props).barcodeMessages ?? defaultMessages
+const { barcodeMessages, hideFab = false } = Astro.props as Props
+const msg = barcodeMessages ?? defaultMessages
 ---
 
 <!-- Barcode Scanner Button/Modal (mobile + desktop) -->
-<div id="barcode-scanner-container" class="fixed right-4 z-40 md:bottom-8 md:right-8">
+<div id="barcode-scanner-container" class={`fixed right-4 z-40 md:bottom-8 md:right-8${hideFab ? ' hidden' : ''}`}>
   <!-- Scanner Button (FAB) -->
   <button
     id="barcode-scanner-btn"
     type="button"
-    class="barcode-fab bg-gradient-resonance hover:bg-gradient-resonance-hover flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-300 hover:scale-110 md:h-12 md:w-12"
+    class="barcode-fab flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white transition-all duration-300 hover:scale-110 hover:bg-primary-hover md:h-12 md:w-12"
+    style="box-shadow: 0 4px 16px rgba(107,63,245,.4), 0 2px 8px rgba(0,0,0,.15)"
     aria-label={msg.scanAria}
   >
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-white stroke-white md:h-5 md:w-5" aria-hidden="true">
-      <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
-      <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
-      <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
-      <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
-      <path d="M8 7v10"/>
-      <path d="M12 7v10"/>
-      <path d="M17 7v10"/>
-    </svg>
+    <ScanBarcode size={24} class="h-6 w-6 md:h-5 md:w-5" aria-hidden="true" />
   </button>
 </div>
 

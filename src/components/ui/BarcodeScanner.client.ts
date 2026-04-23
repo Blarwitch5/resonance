@@ -172,20 +172,20 @@ async function handleBarcodeDetected(barcodeValue: string) {
         window.toast?.success(messages.albumFound)
       } else {
         closeScanner()
-        window.location.href = `/explorer?discogs=${data.result.id}`
+        window.location.href = `/explore/${data.result.id}`
       }
       return
     }
 
     window.toast?.info(messages.albumNotFound)
     setTimeout(() => {
-      window.location.href = `/explorer?barcode=${encodeURIComponent(barcodeValue)}`
+      window.location.href = `/explore`
       closeScanner()
     }, 2000)
   } catch {
     window.toast?.error(messages.searchError)
     setTimeout(() => {
-      window.location.href = `/explorer?barcode=${encodeURIComponent(barcodeValue)}`
+      window.location.href = `/explore`
       closeScanner()
     }, 2000)
   }
@@ -346,7 +346,7 @@ function initListeners() {
         return
       }
       closeManualModal()
-      window.location.href = `/explorer?barcode=${encodeURIComponent(value)}`
+      window.location.href = `/explore`
       return
     }
 
