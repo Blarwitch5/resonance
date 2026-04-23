@@ -1,6 +1,8 @@
 ---
 export const prerender = false
+import Search from '@lucide/astro/icons/search'
 import Layout from '../components/layouts/Layout.astro'
+import Avatar from '../components/ui/Avatar.astro'
 import { exploreRepository } from '../repositories/explore-repository'
 import { blockRepository } from '../repositories/block-repository'
 import { exploreI18n } from '../i18n/explore'
@@ -30,7 +32,7 @@ const [trending, newMembers] = await Promise.all([
 Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
 ---
 
-<Layout title={t.title}>
+<Layout title={t.title} showBottomBar={true}>
   <div class="explore-page max-w-2xl mx-auto px-4 py-4">
 
     <!-- Search bar -->
@@ -46,17 +48,24 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
             class="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             autocomplete="off"
           />
-          <svg class="absolute left-3 top-3.5 w-4 h-4 text-muted" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+          <Search size={16} class="absolute left-3 top-3.5 text-muted" aria-hidden="true" />
         </div>
       </form>
       <div id="search-results" class="mt-2 space-y-2" role="region" aria-live="polite" aria-label={t.searchPlaceholder} data-text-no-results={t.noResults} data-text-error={t.searchError}></div>
     </div>
 
+    <!-- Template for search result items (populated by JS) -->
+    <template id="search-result-tpl">
+      <a data-role="result-link" href="#" class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-raised transition-colors">
+        <img data-role="result-thumb" src="" alt="" width="40" height="40" class="w-10 h-10 rounded object-cover flex-shrink-0" loading="lazy" />
+        <div data-role="result-thumb-placeholder" class="w-10 h-10 rounded bg-surface-raised flex-shrink-0 hidden"></div>
+        <span data-role="result-title" class="text-sm"></span>
+      </a>
+    </template>
+
     <!-- Trending -->
     {trending.length > 0 && (
-      <section class="mb-8" aria-labelledby="trending-heading">
+      <section id="trending-section" class="mb-8" aria-labelledby="trending-heading">
         <h2 id="trending-heading" class="text-sm font-medium text-muted mb-3">{t.trending}</h2>
         <div class="grid grid-cols-2 gap-3">
           {trending.map((release) => release && (
@@ -81,16 +90,13 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
 
     <!-- New active members -->
     {newMembers.length > 0 && (
-      <section aria-labelledby="members-heading">
+      <section id="members-section" aria-labelledby="members-heading">
         <h2 id="members-heading" class="text-sm font-medium text-muted mb-3">{t.newMembers}</h2>
         <ul class="space-y-2">
           {newMembers.map((member) => (
             <li>
               <a href={`/u/${member.username}`} class="flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-surface-raised transition-colors">
-                {member.imageUrl
-                  ? <img src={member.imageUrl} alt={member.name ?? ''} width="40" height="40" class="w-10 h-10 rounded-full object-cover flex-shrink-0" loading="lazy" />
-                  : <div class="w-10 h-10 rounded-full bg-surface-raised flex items-center justify-center font-medium text-sm flex-shrink-0">{(member.name ?? 'U')[0]}</div>
-                }
+                <Avatar userName={member.name} imageUrl={member.imageUrl} size="md" class="flex-shrink-0" />
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium">{member.name}</p>
                   <p class="text-xs text-muted">@{member.username} · {t.records(member._count.shelfItems)}</p>
@@ -116,39 +122,88 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
 </Layout>
 
 <script>
-  // Debounced search
-  const input = document.getElementById('explore-search') as HTMLInputElement | null
-  const resultsEl = document.getElementById('search-results')
-  let timer: ReturnType<typeof setTimeout>
+  // Debounced Discogs search
+  const searchInput = document.getElementById('explore-search') as HTMLInputElement | null
+  const resultsContainer = document.getElementById('search-results')
+  const trendingSection = document.getElementById('trending-section')
+  const membersSection = document.getElementById('members-section')
+  const resultTemplate = document.getElementById('search-result-tpl') as HTMLTemplateElement | null
+  let debounceTimer: ReturnType<typeof setTimeout>
 
-  input?.addEventListener('input', () => {
-    clearTimeout(timer)
-    const q = input.value.trim()
-    if (!q || q.length < 2) {
-      if (resultsEl) resultsEl.innerHTML = ''
+  function showDiscoverySections() {
+    trendingSection?.classList.remove('hidden')
+    membersSection?.classList.remove('hidden')
+  }
+
+  function hideDiscoverySections() {
+    trendingSection?.classList.add('hidden')
+    membersSection?.classList.add('hidden')
+  }
+
+  function clearResults() {
+    if (resultsContainer) resultsContainer.textContent = ''
+  }
+
+  function renderNoResults() {
+    if (!resultsContainer) return
+    const message = document.createElement('p')
+    message.className = 'text-sm text-muted py-2'
+    message.textContent = resultsContainer.dataset.textNoResults ?? 'Aucun résultat.'
+    resultsContainer.textContent = ''
+    resultsContainer.appendChild(message)
+  }
+
+  function renderError() {
+    if (!resultsContainer) return
+    const message = document.createElement('p')
+    message.className = 'text-sm text-muted py-2'
+    message.textContent = resultsContainer.dataset.textError ?? 'Erreur de recherche.'
+    resultsContainer.textContent = ''
+    resultsContainer.appendChild(message)
+  }
+
+  function renderResults(results: { id: string; title: string; thumb?: string }[]) {
+    if (!resultsContainer || !resultTemplate) return
+    resultsContainer.textContent = ''
+    for (const result of results.slice(0, 8)) {
+      const clone = resultTemplate.content.cloneNode(true) as DocumentFragment
+      const link = clone.querySelector('[data-role="result-link"]') as HTMLAnchorElement
+      const thumb = clone.querySelector('[data-role="result-thumb"]') as HTMLImageElement
+      const placeholder = clone.querySelector('[data-role="result-thumb-placeholder"]') as HTMLElement
+      const title = clone.querySelector('[data-role="result-title"]') as HTMLElement
+      link.href = `/explore/${result.id}`
+      if (result.thumb) {
+        thumb.src = result.thumb
+        placeholder.classList.add('hidden')
+      } else {
+        thumb.classList.add('hidden')
+        placeholder.classList.remove('hidden')
+      }
+      title.textContent = result.title
+      resultsContainer.appendChild(clone)
+    }
+  }
+
+  searchInput?.addEventListener('input', () => {
+    clearTimeout(debounceTimer)
+    const query = searchInput.value.trim()
+    if (!query || query.length < 2) {
+      clearResults()
+      showDiscoverySections()
       return
     }
-    timer = setTimeout(async () => {
+    hideDiscoverySections()
+    debounceTimer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/discogs/search?q=${encodeURIComponent(q)}`)
-        const data = await res.json()
-        if (!resultsEl) return
+        const response = await fetch(`/api/discogs/search?q=${encodeURIComponent(query)}`)
+        const data = await response.json() as { results?: { id: string; title: string; thumb?: string }[] }
         if (!data.results?.length) {
-          resultsEl.innerHTML = `<p class="text-sm text-muted py-2">${resultsEl.dataset.textNoResults ?? 'Aucun résultat.'}</p>`
+          renderNoResults()
           return
         }
-        resultsEl.innerHTML = data.results
-          .slice(0, 8)
-          .map(
-            (r: { id: string; title: string; thumb?: string }) => `
-            <a href="/explore/${r.id}" class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-raised transition-colors">
-              ${r.thumb ? `<img src="${r.thumb}" alt="" width="40" height="40" class="w-10 h-10 rounded object-cover" loading="lazy" />` : '<div class="w-10 h-10 rounded bg-surface-raised"></div>'}
-              <span class="text-sm">${r.title}</span>
-            </a>`,
-          )
-          .join('')
+        renderResults(data.results)
       } catch {
-        if (resultsEl) resultsEl.innerHTML = `<p class="text-sm text-muted py-2">${resultsEl.dataset.textError ?? 'Erreur de recherche.'}</p>`
+        renderError()
       }
     }, 350)
   })

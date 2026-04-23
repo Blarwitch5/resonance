@@ -39,7 +39,7 @@ const tracklist = Array.isArray(release.tracklist) ? (release.tracklist as unkno
 Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
 ---
 
-<Layout title={releaseTitle}>
+<Layout title={releaseTitle} showBottomBar={true}>
   <div class="release-detail max-w-2xl mx-auto px-4 py-6">
 
     <!-- Cover + meta -->

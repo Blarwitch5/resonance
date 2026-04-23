@@ -1,6 +1,7 @@
 ---
 export const prerender = false
 import Layout from '../components/layouts/Layout.astro'
+import Avatar from '../components/ui/Avatar.astro'
 import { activityRepository } from '../repositories/activity-repository'
 import { followRepository } from '../repositories/follow-repository'
 import { feedI18n } from '../i18n/feed'
@@ -27,7 +28,7 @@ const { activities, nextCursor } = await activityRepository.getFeedForUser(curre
 const followingCount = (await followRepository.getFollowing(currentUser.id)).length
 ---
 
-<Layout title="Feed">
+<Layout title="Feed" showBottomBar={true}>
   <div class="feed-page max-w-2xl mx-auto px-4 py-4">
 
     {activities.length === 0 && followingCount === 0 && (
@@ -48,11 +49,8 @@ const followingCount = (await followRepository.getFollowing(currentUser.id)).len
       {activities.map((activity) => (
         <li class="feed-card bg-surface border border-border rounded-xl p-4">
           <div class="flex items-start gap-3">
-            <a href={`/u/${activity.user.username}`} aria-label={activity.user.name ?? activity.user.username ?? ''}>
-              {activity.user.imageUrl
-                ? <img src={activity.user.imageUrl} alt={activity.user.name ?? ''} width="40" height="40" class="rounded-full w-10 h-10 object-cover" />
-                : <div class="w-10 h-10 rounded-full bg-surface-raised flex items-center justify-center text-sm font-medium">{(activity.user.name ?? 'U')[0]}</div>
-              }
+            <a href={`/u/${activity.user.username}`} aria-label={activity.user.name ?? activity.user.username ?? ''} class="flex-shrink-0">
+              <Avatar userName={activity.user.name} imageUrl={activity.user.imageUrl} size="md" />
             </a>
             <div class="flex-1 min-w-0">
               <p class="text-sm">
@@ -65,7 +63,7 @@ const followingCount = (await followRepository.getFollowing(currentUser.id)).len
                 {activity.type === 'FOLLOW_USER' && ` ${t.activityFollowUser}`}
               </p>
               {activity.shelfItem?.release && (
-                <a href={`/items/${activity.shelfItem.id}`} class="flex items-center gap-3 mt-2 p-2 rounded-lg hover:bg-surface-raised transition-colors">
+                <a href={`/items/${activity.shelfItem.id}`} class="card-link flex items-center gap-3 mt-2 p-2 rounded-lg hover:bg-surface-raised transition-colors">
                   {activity.shelfItem.release.coverUrl && (
                     <img
                       src={activity.shelfItem.release.coverUrl}
@@ -107,49 +105,177 @@ const followingCount = (await followRepository.getFollowing(currentUser.id)).len
         </button>
       </div>
     )}
+    <div
+      id="feed-i18n"
+      class="hidden"
+      aria-hidden="true"
+      data-locale={locale === 'fr' ? 'fr-FR' : 'en-US'}
+      data-activity-add-item={t.activityAddItem}
+      data-activity-add-want={t.activityAddWant}
+      data-activity-rate-item={t.activityRateItem}
+      data-activity-create-collection={t.activityCreateCollection}
+      data-activity-add-to-collection={t.activityAddToCollection}
+      data-activity-follow-user={t.activityFollowUser}
+      data-likes-one={t.likesCount(1)}
+      data-likes-many={t.likesCount(0).replace('0', '{n}')}
+      data-comments-one={t.commentsCount(1)}
+      data-comments-many={t.commentsCount(0).replace('0', '{n}')}
+    ></div>
+
+    <template id="feed-item-tpl">
+      <li class="feed-card bg-surface border border-border rounded-xl p-4">
+        <div class="flex items-start gap-3">
+          <a data-role="user-link" class="flex-shrink-0" href="#">
+            <img data-role="user-avatar" class="rounded-full w-10 h-10 object-cover" width="40" height="40" src="" alt="" style="display: none;" />
+            <div data-role="user-initials" class="w-10 h-10 rounded-full bg-gradient-resonance flex items-center justify-center text-sm font-medium text-white"></div>
+          </a>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm">
+              <a data-role="user-name-link" href="#" class="font-medium hover:underline"></a><span data-role="activity-label"></span>
+            </p>
+            <a data-role="release-link" href="#" class="flex items-center gap-3 mt-2 p-2 rounded-lg hover:bg-surface-raised transition-colors">
+              <img data-role="release-cover" class="rounded w-12 h-12 object-cover flex-shrink-0" width="48" height="48" src="" alt="" loading="lazy" />
+              <div>
+                <p data-role="release-title" class="text-sm font-medium"></p>
+                <p data-role="release-artist" class="text-xs text-muted"></p>
+              </div>
+            </a>
+            <div class="flex items-center gap-4 mt-2 text-xs text-muted">
+              <span data-role="activity-date"></span>
+              <span data-role="likes-count"></span>
+              <span data-role="comments-count"></span>
+            </div>
+          </div>
+        </div>
+      </li>
+    </template>
   </div>
 </Layout>
 
 <script>
-  const btn = document.getElementById('load-more-btn') as HTMLButtonElement | null
-  const list = document.getElementById('feed-list')
+  const loadMoreBtn = document.getElementById('load-more-btn') as HTMLButtonElement | null
+  const feedList = document.getElementById('feed-list')
+  const feedItemTpl = document.getElementById('feed-item-tpl') as HTMLTemplateElement | null
+  const i18nEl = document.getElementById('feed-i18n') as HTMLElement | null
 
-  btn?.addEventListener('click', async () => {
-    const cursor = btn.dataset.cursor
-    if (!cursor || !list) return
+  function getActivityLabel(type: string): string {
+    const labels: Record<string, string | undefined> = {
+      ADD_ITEM: i18nEl?.dataset.activityAddItem,
+      ADD_WANT: i18nEl?.dataset.activityAddWant,
+      RATE_ITEM: i18nEl?.dataset.activityRateItem,
+      CREATE_COLLECTION: i18nEl?.dataset.activityCreateCollection,
+      ADD_TO_COLLECTION: i18nEl?.dataset.activityAddToCollection,
+      FOLLOW_USER: i18nEl?.dataset.activityFollowUser,
+    }
+    return labels[type] ?? ''
+  }
 
-    btn.disabled = true
-    btn.textContent = btn.dataset.textLoading ?? 'Chargement…'
+  function formatLikesCount(count: number): string {
+    if (count === 1) return i18nEl?.dataset.likesOne ?? '1 like'
+    return (i18nEl?.dataset.likesMany ?? '{n} likes').replace('{n}', String(count))
+  }
+
+  function formatCommentsCount(count: number): string {
+    if (count === 1) return i18nEl?.dataset.commentsOne ?? '1 comment'
+    return (i18nEl?.dataset.commentsMany ?? '{n} comments').replace('{n}', String(count))
+  }
+
+  function getUserInitial(name: string | null | undefined): string {
+    if (!name) return 'U'
+    return name.trim()[0]?.toUpperCase() ?? 'U'
+  }
+
+  loadMoreBtn?.addEventListener('click', async () => {
+    const cursor = loadMoreBtn.dataset.cursor
+    if (!cursor || !feedList || !feedItemTpl) return
+
+    loadMoreBtn.disabled = true
+    loadMoreBtn.textContent = loadMoreBtn.dataset.textLoading ?? 'Chargement…'
 
     try {
       const res = await fetch(`/api/feed?cursor=${encodeURIComponent(cursor)}`)
       const data = await res.json()
 
       for (const activity of data.activities) {
-        const li = document.createElement('li')
-        li.className = 'feed-card bg-surface border border-border rounded-xl p-4'
-        li.innerHTML = `
-          <a href="/items/${activity.shelfItem?.id ?? '#'}" class="flex items-center gap-3">
-            ${activity.shelfItem?.release?.coverUrl ? `<img src="${activity.shelfItem.release.coverUrl}" alt="${activity.shelfItem.release.artist} — ${activity.shelfItem.release.title}" width="48" height="48" class="rounded w-12 h-12 object-cover" loading="lazy" />` : ''}
-            <div>
-              <p class="text-sm font-medium">${activity.shelfItem?.release?.title ?? ''}</p>
-              <p class="text-xs text-muted">${activity.shelfItem?.release?.artist ?? ''}</p>
-            </div>
-          </a>
-        `
-        list.appendChild(li)
+        const clone = feedItemTpl.content.cloneNode(true) as DocumentFragment
+
+        const userLink = clone.querySelector('[data-role="user-link"]') as HTMLAnchorElement | null
+        const userAvatar = clone.querySelector('[data-role="user-avatar"]') as HTMLImageElement | null
+        const userInitials = clone.querySelector('[data-role="user-initials"]') as HTMLElement | null
+        const userNameLink = clone.querySelector('[data-role="user-name-link"]') as HTMLAnchorElement | null
+        const activityLabelEl = clone.querySelector('[data-role="activity-label"]') as HTMLElement | null
+        const releaseLink = clone.querySelector('[data-role="release-link"]') as HTMLAnchorElement | null
+        const releaseCover = clone.querySelector('[data-role="release-cover"]') as HTMLImageElement | null
+        const releaseTitle = clone.querySelector('[data-role="release-title"]') as HTMLElement | null
+        const releaseArtist = clone.querySelector('[data-role="release-artist"]') as HTMLElement | null
+        const activityDateEl = clone.querySelector('[data-role="activity-date"]') as HTMLElement | null
+        const likesCountEl = clone.querySelector('[data-role="likes-count"]') as HTMLElement | null
+        const commentsCountEl = clone.querySelector('[data-role="comments-count"]') as HTMLElement | null
+
+        const userProfileUrl = `/u/${activity.user?.username ?? ''}`
+
+        if (userLink) {
+          userLink.setAttribute('href', userProfileUrl)
+          userLink.setAttribute('aria-label', activity.user?.name ?? '')
+        }
+        if (userNameLink) {
+          userNameLink.setAttribute('href', userProfileUrl)
+          userNameLink.textContent = activity.user?.name ?? ''
+        }
+
+        if (activity.user?.imageUrl) {
+          if (userAvatar) {
+            userAvatar.setAttribute('src', activity.user.imageUrl)
+            userAvatar.setAttribute('alt', activity.user.name ?? '')
+            userAvatar.style.display = ''
+          }
+          if (userInitials) userInitials.style.display = 'none'
+        } else {
+          if (userInitials) userInitials.textContent = getUserInitial(activity.user?.name)
+        }
+
+        if (activityLabelEl) activityLabelEl.textContent = ` ${getActivityLabel(activity.type)}`
+
+        if (activity.shelfItem?.release) {
+          const release = activity.shelfItem.release
+          if (releaseLink) releaseLink.setAttribute('href', `/items/${activity.shelfItem.id}`)
+          if (releaseTitle) releaseTitle.textContent = release.title ?? ''
+          if (releaseArtist) releaseArtist.textContent = release.artist ?? ''
+          if (release.coverUrl) {
+            if (releaseCover) {
+              releaseCover.setAttribute('src', release.coverUrl)
+              releaseCover.setAttribute('alt', `${release.artist} — ${release.title}`)
+            }
+          } else {
+            if (releaseCover) releaseCover.style.display = 'none'
+          }
+        } else {
+          if (releaseLink) releaseLink.style.display = 'none'
+        }
+
+        if (activityDateEl && activity.createdAt) {
+          const dateLocale = i18nEl?.dataset.locale ?? 'fr-FR'
+          activityDateEl.textContent = new Date(activity.createdAt).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })
+        }
+
+        const likesCount = activity._count?.likes ?? 0
+        const commentsCount = activity._count?.comments ?? 0
+        if (likesCountEl) likesCountEl.textContent = formatLikesCount(likesCount)
+        if (commentsCountEl) commentsCountEl.textContent = formatCommentsCount(commentsCount)
+
+        feedList.appendChild(clone)
       }
 
       if (data.nextCursor) {
-        btn.dataset.cursor = data.nextCursor
-        btn.disabled = false
-        btn.textContent = btn.dataset.textLoad ?? 'Charger plus'
+        loadMoreBtn.dataset.cursor = data.nextCursor
+        loadMoreBtn.disabled = false
+        loadMoreBtn.textContent = loadMoreBtn.dataset.textLoad ?? 'Charger plus'
       } else {
-        btn.closest('#load-more-trigger')?.remove()
+        loadMoreBtn.closest('#load-more-trigger')?.remove()
       }
     } catch {
-      btn.disabled = false
-      btn.textContent = btn.dataset.textRetry ?? 'Réessayer'
+      loadMoreBtn.disabled = false
+      loadMoreBtn.textContent = loadMoreBtn.dataset.textRetry ?? 'Réessayer'
     }
   })
 </script>
