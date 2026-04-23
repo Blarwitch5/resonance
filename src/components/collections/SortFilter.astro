@@ -135,25 +135,25 @@ function buildUrl(params: Record<string, string | null>) {
         <div class="flex flex-wrap items-center gap-2">
           {currentGenre && (
             <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-primary">
-              <Music size={12} />
+              <Music size={12} aria-hidden="true" />
               {currentGenre}
             </span>
           )}
           {currentYear && (
             <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-primary">
-              <Calendar size={12} />
+              <Calendar size={12} aria-hidden="true" />
               {currentYear}
             </span>
           )}
           {currentCollection && (
             <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-primary">
-              <Folder size={12} />
+              <Folder size={12} aria-hidden="true" />
               {isUncategorizedFilter ? sortFilter.uncategorized : collections.find((c) => c.id === currentCollection)?.name || sortFilter.collectionFallback}
             </span>
           )}
           {showFavorites && (
             <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-primary">
-              <Heart size={12} />
+              <Heart size={12} aria-hidden="true" />
               {sortFilter.favoritesOnly}
             </span>
           )}
@@ -179,8 +179,8 @@ function buildUrl(params: Record<string, string | null>) {
         </label>
         <select
           id="sort-select"
-          class="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-          onchange="window.location.href = this.value"
+          class="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-1"
+          data-nav-select
         >
           {sortOptions.map((option) => (
             <option value={buildUrl({ sort: option.value })} selected={currentSort === option.value}>
@@ -199,8 +199,8 @@ function buildUrl(params: Record<string, string | null>) {
           </label>
           <select
             id="genre-select"
-            class="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            onchange="window.location.href = this.value"
+            class="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-1"
+            data-nav-select
           >
             <option value={buildUrl({ genre: null })}>{sortFilter.allGenres}</option>
             {genres.map((genre) => (
@@ -221,8 +221,8 @@ function buildUrl(params: Record<string, string | null>) {
           </label>
           <select
             id="year-select"
-            class="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            onchange="window.location.href = this.value"
+            class="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-1"
+            data-nav-select
           >
             <option value={buildUrl({ year: null })}>{sortFilter.allYears}</option>
             {years
@@ -245,8 +245,8 @@ function buildUrl(params: Record<string, string | null>) {
           </label>
           <select
             id="collection-select"
-            class="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            onchange="window.location.href = this.value"
+            class="h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm text-neutral transition-all focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-1"
+            data-nav-select
           >
             <option value={buildUrl({ collection: null })} selected={!currentCollection}>{sortFilter.allCollections}</option>
             <option value={buildUrl({ collection: 'none' })} selected={isUncategorizedFilter}>{sortFilter.uncategorized}</option>
@@ -281,12 +281,10 @@ function buildUrl(params: Record<string, string | null>) {
           id="favorites-filter"
           checked={showFavorites}
           data-favorites-url={buildUrl({ favorites: showFavorites ? null : 'true' })}
-          onchange="window.location.href = this.dataset.favoritesUrl"
           class="peer sr-only"
-          role="switch"
-          aria-checked={showFavorites ? 'true' : 'false'}
+          data-nav-checkbox
         />
-        <div class="favorites-switch-track h-6 w-11 rounded-full border border-border transition-colors peer-checked:bg-primary peer-checked:border-primary peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20"></div>
+        <div class="favorites-switch-track h-6 w-11 rounded-full border border-border transition-colors peer-checked:bg-primary peer-checked:border-primary peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-primary/60 peer-focus-visible:ring-offset-1"></div>
         <div class="favorites-switch-thumb absolute left-1 top-1 h-4 w-4 rounded-full border border-border transition-transform peer-checked:translate-x-5"></div>
       </label>
     </div>
@@ -326,3 +324,36 @@ function buildUrl(params: Record<string, string | null>) {
     border-color: rgba(255, 255, 255, 0.32);
   }
 </style>
+
+<script>
+  // Navigate on select change with a short debounce so keyboard users can
+  // scroll through options without triggering navigation on every keypress.
+  // The checkbox navigates immediately on change (it has only two states).
+  function initSortFilter(): void {
+    const navSelects = document.querySelectorAll<HTMLSelectElement>('[data-nav-select]')
+    const navCheckbox = document.querySelector<HTMLInputElement>('[data-nav-checkbox]')
+
+    navSelects.forEach((select) => {
+      let timer: ReturnType<typeof setTimeout>
+      select.addEventListener('change', () => {
+        clearTimeout(timer)
+        timer = setTimeout(() => {
+          if (select.value) window.location.href = select.value
+        }, 300)
+      })
+    })
+
+    if (navCheckbox) {
+      navCheckbox.addEventListener('change', () => {
+        const url = navCheckbox.dataset.favoritesUrl
+        if (url) window.location.href = url
+      })
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSortFilter)
+  } else {
+    initSortFilter()
+  }
+</script>

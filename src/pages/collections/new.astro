@@ -1,0 +1,148 @@
+---
+export const prerender = false
+import Layout from '../../components/layouts/Layout.astro'
+
+const user = Astro.locals.user
+if (!user) return Astro.redirect('/login', 302)
+---
+
+<Layout title="Nouvelle collection" showBottomBar={true}>
+  <div class="new-collection-page max-w-xl mx-auto px-4 py-6">
+    <header class="mb-6">
+      <a href="/collections" class="text-sm text-muted hover:underline mb-3 inline-block">← Mes collections</a>
+      <h1 class="text-xl font-semibold">Nouvelle collection</h1>
+    </header>
+
+    <form id="new-collection-form" class="space-y-5" novalidate>
+      <div>
+        <label for="collection-name" class="block text-sm font-medium mb-1">
+          Nom <span aria-hidden="true">*</span>
+        </label>
+        <input
+          type="text"
+          id="collection-name"
+          name="name"
+          required
+          maxlength="100"
+          placeholder="Ex : Mes vinyles jazz"
+          class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+          autocomplete="off"
+        />
+        <p id="name-error" class="mt-1 text-xs text-error hidden" role="alert"></p>
+      </div>
+
+      <div>
+        <label for="collection-description" class="block text-sm font-medium mb-1">
+          Description <span class="text-muted font-normal">(optionnel)</span>
+        </label>
+        <textarea
+          id="collection-description"
+          name="description"
+          rows="3"
+          maxlength="500"
+          placeholder="Une courte description…"
+          class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary resize-none"
+        ></textarea>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          id="visibility-toggle"
+          role="switch"
+          aria-checked="true"
+          class="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
+        >
+          <span class="translate-x-6 inline-block h-4 w-4 rounded-full bg-white shadow transition-transform" id="toggle-thumb"></span>
+        </button>
+        <label for="visibility-toggle" class="text-sm cursor-pointer select-none">
+          <span id="visibility-label">Collection publique</span>
+          <p class="text-xs text-muted" id="visibility-hint">Visible sur ton profil public</p>
+        </label>
+        <input type="hidden" id="is-public-input" name="isPublic" value="true" />
+      </div>
+
+      <div class="flex gap-3 pt-2">
+        <button type="submit" id="submit-btn" class="btn-primary flex-1">
+          Créer la collection
+        </button>
+        <a href="/collections" class="btn-secondary flex-1 text-center">
+          Annuler
+        </a>
+      </div>
+
+      <p id="form-error" class="text-sm text-error hidden" role="alert"></p>
+    </form>
+  </div>
+</Layout>
+
+<script>
+  const form = document.getElementById('new-collection-form') as HTMLFormElement
+  const nameInput = document.getElementById('collection-name') as HTMLInputElement
+  const descriptionTextarea = document.getElementById('collection-description') as HTMLTextAreaElement
+  const nameError = document.getElementById('name-error') as HTMLElement
+  const formError = document.getElementById('form-error') as HTMLElement
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement
+  const visibilityToggle = document.getElementById('visibility-toggle') as HTMLButtonElement
+  const toggleThumb = document.getElementById('toggle-thumb') as HTMLSpanElement
+  const visibilityLabel = document.getElementById('visibility-label') as HTMLSpanElement
+  const visibilityHint = document.getElementById('visibility-hint') as HTMLSpanElement
+  const isPublicInput = document.getElementById('is-public-input') as HTMLInputElement
+
+  // Toggle visibilité publique/privée
+  visibilityToggle.addEventListener('click', () => {
+    const isCurrentlyPublic = visibilityToggle.getAttribute('aria-checked') === 'true'
+    const isNowPublic = !isCurrentlyPublic
+    visibilityToggle.setAttribute('aria-checked', String(isNowPublic))
+    visibilityToggle.classList.toggle('bg-primary', isNowPublic)
+    visibilityToggle.classList.toggle('bg-surface-raised', !isNowPublic)
+    toggleThumb.classList.toggle('translate-x-6', isNowPublic)
+    toggleThumb.classList.toggle('translate-x-1', !isNowPublic)
+    visibilityLabel.textContent = isNowPublic ? 'Collection publique' : 'Collection privée'
+    visibilityHint.textContent = isNowPublic ? 'Visible sur ton profil public' : 'Visible uniquement par toi'
+    isPublicInput.value = String(isNowPublic)
+  })
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    nameError.classList.add('hidden')
+    formError.classList.add('hidden')
+
+    const name = nameInput.value.trim()
+    if (!name) {
+      nameError.textContent = 'Le nom est obligatoire.'
+      nameError.classList.remove('hidden')
+      nameInput.focus()
+      return
+    }
+
+    submitBtn.disabled = true
+    submitBtn.textContent = 'Création…'
+
+    try {
+      const response = await fetch('/api/collections/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          description: descriptionTextarea.value.trim() || undefined,
+          isPublic: isPublicInput.value === 'true',
+        }),
+      })
+      const data = await response.json() as { collection?: { id: string }; error?: string }
+      if (response.ok && data.collection) {
+        window.location.href = '/collections'
+      } else {
+        formError.textContent = data.error ?? 'Une erreur est survenue.'
+        formError.classList.remove('hidden')
+        submitBtn.disabled = false
+        submitBtn.textContent = 'Créer la collection'
+      }
+    } catch {
+      formError.textContent = 'Erreur réseau, réessaie.'
+      formError.classList.remove('hidden')
+      submitBtn.disabled = false
+      submitBtn.textContent = 'Créer la collection'
+    }
+  })
+</script>

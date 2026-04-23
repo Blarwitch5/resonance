@@ -10,7 +10,7 @@ const collections = await collectionRepository.findByUser(user.id)
 const username = user.username ?? user.id
 ---
 
-<Layout title="Mes collections">
+<Layout title="Mes collections" showBottomBar={true}>
   <div class="collections-page max-w-2xl mx-auto px-4 py-6">
     <header class="flex items-center justify-between mb-6">
       <h1 class="text-xl font-semibold">Mes collections</h1>
@@ -29,7 +29,7 @@ const username = user.username ?? user.id
         <li>
           <a
             href={`/u/${username}/collections/${col.slug}`}
-            class="flex items-center justify-between p-4 rounded-xl border border-border hover:bg-surface-raised transition-colors"
+            class="card-link flex items-center justify-between p-4 rounded-xl border border-border hover:bg-surface-raised transition-colors"
           >
             <div class="flex items-center gap-2 min-w-0">
               {col.isPinned && <span aria-label="Épinglée" title="Épinglée sur le profil">📌</span>}
