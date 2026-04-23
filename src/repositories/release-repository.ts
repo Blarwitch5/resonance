@@ -103,18 +103,21 @@ export class ReleaseRepository {
 
   async findOrCreateFromDiscogs(discogsId: string) {
     const existing = await db.release.findUnique({ where: { discogsId } })
-    if (existing) return existing
+
+    // Only skip the Discogs API call if all essential fields are already populated
+    if (existing && existing.coverUrl && existing.tracklist && existing.label !== null && existing.year !== null) {
+      return existing
+    }
 
     const DISCOGS_TOKEN = import.meta.env.DISCOGS_TOKEN
-    const res = await fetch(`https://api.discogs.com/releases/${discogsId}`, {
-      headers: {
-        Authorization: `Discogs token=${DISCOGS_TOKEN}`,
-        'User-Agent': 'Resonance/1.0',
-      },
-    })
-    if (!res.ok) return null
+    const headers: HeadersInit = { 'User-Agent': 'Resonance/1.0' }
+    if (DISCOGS_TOKEN) headers['Authorization'] = `Discogs token=${DISCOGS_TOKEN}`
+
+    const res = await fetch(`https://api.discogs.com/releases/${discogsId}`, { headers })
+    if (!res.ok) return existing ?? null
 
     const data = await res.json()
+    const coverUrl: string | null = data.images?.[0]?.uri ?? null
     const format = this.resolveFormat(data.formats ?? [])
     const tracklist =
       data.tracklist?.map((t: { position: string; title: string; duration: string }) => ({
@@ -123,8 +126,10 @@ export class ReleaseRepository {
         duration: t.duration,
       })) ?? null
 
-    return db.release.create({
-      data: {
+    // Always upsert with full data to backfill any missing fields
+    return db.release.upsert({
+      where: { discogsId },
+      create: {
         discogsId,
         title: data.title ?? 'Unknown',
         artist: data.artists?.[0]?.name ?? 'Unknown',
@@ -132,7 +137,16 @@ export class ReleaseRepository {
         year: data.year ?? null,
         country: data.country ?? null,
         format,
-        coverUrl: data.images?.[0]?.uri ?? null,
+        coverUrl,
+        tracklist,
+      },
+      update: {
+        title: data.title ?? 'Unknown',
+        artist: data.artists?.[0]?.name ?? 'Unknown',
+        label: data.labels?.[0]?.name ?? null,
+        year: data.year ?? null,
+        country: data.country ?? null,
+        coverUrl,
         tracklist,
       },
     })
