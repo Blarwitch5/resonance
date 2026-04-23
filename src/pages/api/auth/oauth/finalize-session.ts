@@ -84,10 +84,22 @@ export const GET: APIRoute = async ({ url }) => {
       },
     })
 
+    // Signer le token de session avec HMAC-SHA256 — better-auth lit le cookie
+    // via getSignedCookie() qui attend le format encodeURIComponent("value.base64Sig")
+    const secret = import.meta.env.BETTER_AUTH_SECRET || ''
+    const hmac = crypto.createHmac('sha256', secret)
+    hmac.update(sessionToken)
+    const signature = hmac.digest('base64')
+    const signedToken = encodeURIComponent(`${sessionToken}.${signature}`)
+
     // Définir le cookie de session et rediriger
+    // Note: Response.redirect() exige une URL absolue en Node.js SSR
+    const baseURL = import.meta.env.BETTER_AUTH_URL || import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4321'
+    const absoluteCallback = `${baseURL}${safeCallback}`
+
     const cookieName = 'better-auth.session_token'
     const cookieOptions = [
-      `${cookieName}=${sessionToken}`,
+      `${cookieName}=${signedToken}`,
       'Path=/',
       'HttpOnly',
       'SameSite=Lax',
@@ -95,9 +107,13 @@ export const GET: APIRoute = async ({ url }) => {
       ...(import.meta.env.PROD ? ['Secure'] : []),
     ].join('; ')
 
-    const response = Response.redirect(safeCallback, 302)
-    response.headers.set('Set-Cookie', cookieOptions)
-    return response
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: absoluteCallback,
+        'Set-Cookie': cookieOptions,
+      },
+    })
   } catch (error) {
     console.error('Error finalizing session:', error)
     return new Response(

@@ -62,8 +62,6 @@ export const GET: APIRoute = async ({ params, url, request, cookies }) => {
 
   const authURL = getAuthURL(provider, clientId, redirectURI, state, callbackURL)
 
-  const response = Response.redirect(authURL, 302)
-  // Stocker le state dans un cookie HttpOnly pour vérification au retour du provider
   const stateCookieOptions = [
     `oauth_state=${state}`,
     'Path=/',
@@ -72,8 +70,14 @@ export const GET: APIRoute = async ({ params, url, request, cookies }) => {
     'Max-Age=600', // 10 minutes
     ...(import.meta.env.PROD ? ['Secure'] : []),
   ].join('; ')
-  response.headers.set('Set-Cookie', stateCookieOptions)
-  return response
+
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: authURL,
+      'Set-Cookie': stateCookieOptions,
+    },
+  })
 }
 
 function getClientId(provider: string): string | undefined {

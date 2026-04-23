@@ -41,6 +41,8 @@ export const auth = betterAuth({
     import.meta.env.PUBLIC_SITE_URL,
     'http://localhost:4321',
     'http://localhost:4322',
+    'http://localhost:5173',
+    'http://localhost:5174',
   ].filter(Boolean) as string[],
   hooks: {
     after: createAuthMiddleware(async (context) => {
