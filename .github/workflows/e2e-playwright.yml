@@ -14,8 +14,6 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # Skip if DATABASE_URL secret is not configured
-    if: ${{ secrets.DATABASE_URL != '' }}
 
     steps:
       - name: Checkout
