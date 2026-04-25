@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro'
 import { shelfItemRepository } from '../../../../repositories/shelf-item-repository'
 import { releaseRepository } from '../../../../repositories/release-repository'
 import { safeErrorMessage } from '../../../../lib/api-error'
+import { stripHtml } from '../../../../lib/sanitize'
 
 // PUT /api/shelf-items/[id]/update
 // Body: { condition?: string, note?: string | null, rating?: number | null, acquiredAt?: string | null }
@@ -62,7 +63,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
   }
 
   try {
-    const sanitizedNote = note ? note.replace(/<[^>]*>/g, '').trim() : note
+    const sanitizedNote = note ? stripHtml(note) : note
 
     // Update condition/note/acquiredAt
     const updateData: { condition?: string; note?: string | null; acquiredAt?: Date | null } = {}

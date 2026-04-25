@@ -5,6 +5,7 @@ import { activityRepository } from '../../../repositories/activity-repository'
 import { followRepository } from '../../../repositories/follow-repository'
 import { notificationRepository } from '../../../repositories/notification-repository'
 import { safeErrorMessage } from '../../../lib/api-error'
+import { stripHtml } from '../../../lib/sanitize'
 
 // POST /api/shelf-items/create
 // Body: { discogsId: string, condition: string, format: string, rating?: number, note?: string, acquiredAt?: string }
@@ -93,7 +94,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // 3. Create the ShelfItem
-    const sanitizedNote = note ? note.replace(/<[^>]*>/g, '').trim() : undefined
+    const sanitizedNote = note ? stripHtml(note) : undefined
     const shelfItem = await shelfItemRepository.create({
       userId: currentUser.id,
       releaseId: release.id,

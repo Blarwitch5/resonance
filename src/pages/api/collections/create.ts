@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro'
 import { collectionRepository } from '../../../repositories/collection-repository'
 import { safeErrorMessage } from '../../../lib/api-error'
+import { stripHtml } from '../../../lib/sanitize'
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const currentUser = locals.user
@@ -39,7 +40,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const sanitizedDesc = description ? description.replace(/<[^>]*>/g, '') : undefined
+    const sanitizedDesc = description ? stripHtml(description) : undefined
     const collection = await collectionRepository.createWithSlug({
       userId: currentUser.id,
       name,

@@ -4,6 +4,7 @@ import { blockRepository } from '../../../../repositories/block-repository'
 import { notificationRepository } from '../../../../repositories/notification-repository'
 import { db } from '../../../../lib/db'
 import { safeErrorMessage } from '../../../../lib/api-error'
+import { stripHtml } from '../../../../lib/sanitize'
 
 // POST /api/activities/[id]/comment
 export const POST: APIRoute = async ({ params, request, locals }) => {
@@ -48,8 +49,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     })
   }
 
-  // Sanitize: strip HTML tags
-  const sanitized = text.replace(/<[^>]*>/g, '')
+  const sanitized = stripHtml(text)
 
   try {
     const activity = await activityRepository.findById(activityId)
