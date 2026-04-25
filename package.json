@@ -22,7 +22,8 @@
     "clean:cache": "pkill -f 'astro dev' || true && rm -rf .astro node_modules/.astro node_modules/.vite .vite dist",
     "cap:sync": "astro build && cap sync",
     "cap:ios": "pnpm cap:sync && cap open ios",
-    "cap:android": "pnpm cap:sync && cap open android"
+    "cap:android": "pnpm cap:sync && cap open android",
+    "gen:index": "tsx scripts/gen-codebase-index.ts"
   },
   "dependencies": {
     "@astrojs/node": "^10.0.4",

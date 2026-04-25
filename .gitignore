@@ -1,5 +1,6 @@
 # Claude / Superpowers tooling
 .superpowers/
+codebase-index.md
 
 # Capacitor native builds (regenerated via pnpm cap:sync)
 ios/
