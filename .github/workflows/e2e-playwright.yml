@@ -14,6 +14,8 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Skip if DATABASE_URL secret is not configured
+    if: ${{ secrets.DATABASE_URL != '' }}
 
     steps:
       - name: Checkout
@@ -39,4 +41,9 @@ jobs:
 
       - name: Run Playwright smoke suite
         run: pnpm e2e:smoke
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          BETTER_AUTH_URL: http://127.0.0.1:4321
+          PUBLIC_APP_URL: http://127.0.0.1:4321
 
