@@ -157,7 +157,7 @@ runOnce('settings-page', () => onDomReady(() => {
       button.disabled = true
       button.textContent = msg.deleting
       try {
-        const response = await fetch('/api/dev/purge-collections', { method: 'DELETE' })
+        const response = await fetch('/api/collections/purge-all', { method: 'DELETE' })
         if (response.ok) {
           if (window.toast) window.toast.success(msg.allDataDeleted)
           setTimeout(function () {
