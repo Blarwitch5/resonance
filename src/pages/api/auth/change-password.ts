@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro'
 import { hashPassword, verifyPassword } from 'better-auth/crypto'
 import { db } from '../../../lib/db'
 import { safeErrorMessage } from '../../../lib/api-error'
+import { checkRateLimit, retryAfterSeconds } from '../../../lib/rate-limit'
 
 function validatePassword(password: string): { valid: boolean; error?: string } {
   if (password.length < 8) return { valid: false, error: 'Password must be at least 8 characters' }
@@ -17,6 +18,17 @@ function validatePassword(password: string): { valid: boolean; error?: string } 
 // POST /api/auth/change-password
 // Body: { currentPassword: string, newPassword: string }
 export const POST: APIRoute = async ({ request, locals }) => {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  if (!checkRateLimit(`change-password:${ip}`, 5, 60 * 60_000)) {
+    return new Response(JSON.stringify({ error: 'Too many requests' }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(retryAfterSeconds(`change-password:${ip}`)),
+      },
+    })
+  }
+
   const currentUser = locals.user
   if (!currentUser) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {

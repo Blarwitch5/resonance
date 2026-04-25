@@ -1,4 +1,5 @@
 import { safeErrorMessage } from '../../../lib/api-error'
+import { checkRateLimit, retryAfterSeconds } from '../../../lib/rate-limit'
 import type { APIRoute } from 'astro'
 import { auth } from '../../../lib/auth'
 import { db } from '../../../lib/db'
@@ -11,6 +12,17 @@ const RESERVED = new Set([
 ])
 
 export const POST: APIRoute = async ({ request }) => {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  if (!checkRateLimit(`profile-update:${ip}`, 20, 60_000)) {
+    return new Response(JSON.stringify({ error: 'Too many requests' }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(retryAfterSeconds(`profile-update:${ip}`)),
+      },
+    })
+  }
+
   try {
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) {
