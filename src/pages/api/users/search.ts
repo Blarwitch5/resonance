@@ -25,7 +25,6 @@ export const GET: APIRoute = async ({ url, locals }) => {
         id: { not: currentUser.id },
         OR: [
           { username: { contains: q, mode: 'insensitive' } },
-          { email: { equals: q, mode: 'insensitive' } },
           { name: { contains: q, mode: 'insensitive' } },
         ],
       },
