@@ -2,6 +2,11 @@
 export const prerender = false
 import Layout from '../../../components/layouts/Layout.astro'
 import { shelfItemRepository } from '../../../repositories/shelf-item-repository'
+import { itemsI18n } from '../../../i18n/items'
+import { normalizeLocale } from '../../../i18n/config'
+
+const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const t = itemsI18n[locale]
 
 const { id } = Astro.params
 if (!id) return Astro.redirect('/shelf')
@@ -19,12 +24,19 @@ const releaseTitle = `${release.artist} — ${release.title}`
 const acquiredAtValue = shelfItem.acquiredAt
   ? new Date(shelfItem.acquiredAt).toISOString().slice(0, 10)
   : ''
+
+const clientStrings = JSON.stringify({
+  saving: t.saving,
+  save: t.save,
+  errorGeneric: t.errorGeneric,
+  errorNetwork: t.errorNetwork,
+})
 ---
 
-<Layout title={`Modifier — ${releaseTitle}`} showBottomBar={true}>
+<Layout title={`${t.edit} — ${releaseTitle}`} showBottomBar={true}>
   <div class="edit-item-page max-w-xl mx-auto px-4 py-6">
     <header class="mb-6">
-      <a href={`/items/${id}`} class="text-sm text-muted hover:underline mb-3 inline-block">← Retour</a>
+      <a href={`/items/${id}`} class="text-sm text-muted hover:underline mb-3 inline-block">{t.back}</a>
       <div class="flex items-center gap-3">
         {release.coverUrl && (
           <img
@@ -47,7 +59,7 @@ const acquiredAtValue = shelfItem.acquiredAt
 
       <div>
         <label for="edit-condition" class="block text-sm font-medium mb-1">
-          État <span aria-hidden="true">*</span>
+          {t.condition} <span aria-hidden="true">*</span>
         </label>
         <select
           id="edit-condition"
@@ -69,13 +81,13 @@ const acquiredAtValue = shelfItem.acquiredAt
       </div>
 
       <div>
-        <label for="edit-rating" class="block text-sm font-medium mb-1">Note</label>
+        <label for="edit-rating" class="block text-sm font-medium mb-1">{t.rating}</label>
         <select
           id="edit-rating"
           name="rating"
           class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
         >
-          <option value="" selected={!shelfItem.rating}>— Pas de note</option>
+          <option value="" selected={!shelfItem.rating}>{t.ratingNone}</option>
           {[5, 4, 3, 2, 1].map((starCount) => (
             <option value={starCount} selected={shelfItem.rating === starCount}>
               {'★'.repeat(starCount)}{'☆'.repeat(5 - starCount)} {starCount}
@@ -86,7 +98,7 @@ const acquiredAtValue = shelfItem.acquiredAt
 
       <div>
         <label for="edit-acquired-at" class="block text-sm font-medium mb-1">
-          Date d'acquisition <span class="text-muted font-normal">(optionnel)</span>
+          {t.acquiredAtLabel} <span class="text-muted font-normal">{t.optional}</span>
         </label>
         <input
           type="date"
@@ -99,14 +111,14 @@ const acquiredAtValue = shelfItem.acquiredAt
 
       <div>
         <label for="edit-note" class="block text-sm font-medium mb-1">
-          Note personnelle <span class="text-muted font-normal">(optionnel)</span>
+          {t.personalNote} <span class="text-muted font-normal">{t.optional}</span>
         </label>
         <textarea
           id="edit-note"
           name="note"
           rows="4"
           maxlength="2000"
-          placeholder="Impressions, contexte d'acquisition…"
+          placeholder={t.notePlaceholder}
           class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary resize-none"
         >{shelfItem.note ?? ''}</textarea>
         <p class="text-xs text-muted mt-1 text-right">
@@ -116,10 +128,10 @@ const acquiredAtValue = shelfItem.acquiredAt
 
       <div class="flex gap-3 pt-2">
         <button type="submit" id="save-btn" class="btn-primary flex-1">
-          Enregistrer
+          {t.save}
         </button>
         <a href={`/items/${id}`} class="btn-secondary flex-1 text-center">
-          Annuler
+          {t.cancel}
         </a>
       </div>
 
@@ -128,7 +140,11 @@ const acquiredAtValue = shelfItem.acquiredAt
   </div>
 </Layout>
 
+<script type="application/json" id="edit-page-strings" set:html={clientStrings}></script>
+
 <script>
+  const strings = JSON.parse(document.getElementById('edit-page-strings')?.textContent ?? '{}')
+
   const form = document.getElementById('edit-item-form') as HTMLFormElement
   const itemId = (document.getElementById('item-id') as HTMLInputElement).value
   const conditionSelect = document.getElementById('edit-condition') as HTMLSelectElement
@@ -147,7 +163,7 @@ const acquiredAtValue = shelfItem.acquiredAt
     event.preventDefault()
     formError.classList.add('hidden')
     saveBtn.disabled = true
-    saveBtn.textContent = 'Enregistrement…'
+    saveBtn.textContent = strings.saving
 
     const ratingValue = ratingSelect.value ? Number(ratingSelect.value) : null
     const acquiredAtValue = acquiredAtInput.value || null
@@ -167,16 +183,16 @@ const acquiredAtValue = shelfItem.acquiredAt
       if (response.ok) {
         window.location.href = `/items/${itemId}`
       } else {
-        formError.textContent = data.error ?? 'Une erreur est survenue.'
+        formError.textContent = data.error ?? strings.errorGeneric
         formError.classList.remove('hidden')
         saveBtn.disabled = false
-        saveBtn.textContent = 'Enregistrer'
+        saveBtn.textContent = strings.save
       }
     } catch {
-      formError.textContent = 'Erreur réseau, réessaie.'
+      formError.textContent = strings.errorNetwork
       formError.classList.remove('hidden')
       saveBtn.disabled = false
-      saveBtn.textContent = 'Enregistrer'
+      saveBtn.textContent = strings.save
     }
   })
 </script>
