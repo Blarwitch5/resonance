@@ -3,6 +3,12 @@ export const prerender = false
 import Layout from '../../components/layouts/Layout.astro'
 import { releaseRepository } from '../../repositories/release-repository'
 import { shelfItemRepository } from '../../repositories/shelf-item-repository'
+import { getExplorerMessages } from '../../i18n/explorer'
+import { normalizeLocale } from '../../i18n/config'
+
+const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const t = getExplorerMessages(locale)
+const tr = t.release
 
 const { discogsId } = Astro.params
 if (!discogsId) return Astro.redirect('/explore')
@@ -25,18 +31,22 @@ const friendsWithRelease = currentUserId
   : []
 
 const showCommunityRating = (release.ratingCount ?? 0) >= 3
-
-const friendsLabel = friendsWithRelease.length === 1
-  ? '1 personne que tu suis a ce disque'
-  : friendsWithRelease.length + ' personnes que tu suis ont ce disque'
-
 const releaseTitle = release.artist + ' — ' + release.title
 const alreadyOwnedHref = alreadyOwned ? '/items/' + alreadyOwned.id : ''
+
 type TrackItem = { position: string; title: string; duration?: string }
 const tracklist = Array.isArray(release.tracklist) ? (release.tracklist as unknown as TrackItem[]) : null
 
 // Public page — cacheable
 Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
+
+// Serialize strings for client script
+const clientStrings = JSON.stringify({
+  dialogTitle: tr.dialog.title,
+  errorAdd: tr.dialog.errorAdd,
+  errorNetwork: tr.dialog.errorNetwork,
+  wantAdded: tr.wantAdded,
+})
 ---
 
 <Layout title={releaseTitle} showBottomBar={true}>
@@ -47,7 +57,7 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
       <div class="flex-shrink-0">
         {release.coverUrl
           ? <img src={release.coverUrl} alt={releaseTitle} width="120" height="120" class="rounded-lg w-28 h-28 object-cover shadow" />
-          : <div class="w-28 h-28 rounded-lg bg-surface-raised flex items-center justify-center text-muted text-xs">No cover</div>
+          : <div class="w-28 h-28 rounded-lg bg-surface-raised flex items-center justify-center text-muted text-xs">{tr.nocover}</div>
         }
       </div>
       <div class="flex-1 min-w-0">
@@ -61,7 +71,7 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
         </div>
         {showCommunityRating && (
           <p class="text-xs text-muted mt-1">
-            Moyenne : {release.avgRating?.toFixed(1)}/5 ({release.ratingCount} notes)
+            {tr.communityAvg(release.avgRating?.toFixed(1) ?? '0', release.ratingCount ?? 0)}
           </p>
         )}
       </div>
@@ -70,9 +80,7 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
     <!-- Friends who have it -->
     {friendsWithRelease.length > 0 && (
       <div class="friends-section mb-4 p-3 bg-surface-raised rounded-lg">
-        <p class="text-xs text-muted mb-2">
-          {friendsLabel}
-        </p>
+        <p class="text-xs text-muted mb-2">{tr.friendsHaveIt(friendsWithRelease.length)}</p>
         <div class="flex -space-x-2">
           {friendsWithRelease.slice(0, 5).map((f) => (
             <a href={'/u/' + f.user.username} aria-label={f.user.name ?? f.user.username ?? ''}>
@@ -95,13 +103,12 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
               id="add-to-shelf-btn"
               class="btn-primary"
               data-discogs-id={discogsId}
-              data-release-title={release.title}
             >
-              + Ajouter à ma shelf
+              {tr.addToShelf}
             </button>
           )
           : (
-            <a href={alreadyOwnedHref} class="btn-secondary">Voir dans ma shelf</a>
+            <a href={alreadyOwnedHref} class="btn-secondary">{tr.viewInShelf}</a>
           )
         }
         {!alreadyOwned && (
@@ -109,22 +116,23 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
             id="want-btn"
             class="btn-secondary"
             data-release-id={release.id}
+            data-text-added={tr.wantAdded}
           >
-            + Want
+            {tr.want}
           </button>
         )}
       </div>
     )}
     {!currentUserId && (
       <div class="mb-6">
-        <a href="/login" class="btn-primary">Se connecter pour ajouter</a>
+        <a href="/login" class="btn-primary">{tr.loginToAdd}</a>
       </div>
     )}
 
     <!-- Tracklist -->
     {tracklist && tracklist.length > 0 && (
       <section aria-labelledby="tracklist-heading">
-        <h2 id="tracklist-heading" class="text-sm font-medium text-muted mb-2">Tracklist</h2>
+        <h2 id="tracklist-heading" class="text-sm font-medium text-muted mb-2">{tr.tracklistTitle}</h2>
         <ol class="space-y-1">
           {tracklist.map((track) => (
             <li class="flex items-center gap-3 text-sm py-1 border-b border-border/50 last:border-0">
@@ -139,55 +147,63 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
   </div>
 
   <!-- Add to shelf modal -->
-<dialog id="add-shelf-dialog" class="rounded-2xl p-6 max-w-sm w-full shadow-xl backdrop:bg-black/40">
-  <h2 class="font-semibold mb-4" id="dialog-title">Ajouter à ma shelf</h2>
-  <form id="add-shelf-form" class="space-y-4">
-    <input type="hidden" id="dialog-discogs-id" name="discogsId" />
+  <dialog id="add-shelf-dialog" class="rounded-2xl p-6 max-w-sm w-full shadow-xl backdrop:bg-black/40">
+    <h2 class="font-semibold mb-4" id="dialog-title">{tr.dialog.title}</h2>
+    <form id="add-shelf-form" class="space-y-4">
+      <input type="hidden" id="dialog-discogs-id" name="discogsId" />
 
-    <div>
-      <label for="dialog-format" class="block text-sm font-medium mb-1">Format <span aria-hidden="true">*</span></label>
-      <select id="dialog-format" name="format" required class="w-full border border-border rounded-lg px-3 py-2 text-sm">
-        <option value="">Choisir…</option>
-        <option value="Vinyl">Vinyl</option>
-        <option value="CD">CD</option>
-        <option value="Cassette">Cassette</option>
-      </select>
-    </div>
+      <div>
+        <label for="dialog-format" class="block text-sm font-medium mb-1">
+          {tr.dialog.formatLabel} <span aria-hidden="true">*</span>
+        </label>
+        <select id="dialog-format" name="format" required class="w-full border border-border rounded-lg px-3 py-2 text-sm">
+          <option value="">{tr.dialog.formatPlaceholder}</option>
+          <option value="Vinyl">Vinyl</option>
+          <option value="CD">CD</option>
+          <option value="Cassette">Cassette</option>
+        </select>
+      </div>
 
-    <div>
-      <label for="dialog-condition" class="block text-sm font-medium mb-1">État <span aria-hidden="true">*</span></label>
-      <select id="dialog-condition" name="condition" required class="w-full border border-border rounded-lg px-3 py-2 text-sm">
-        <option value="">Choisir…</option>
-        <option value="Mint">Mint</option>
-        <option value="NM">Near Mint (NM)</option>
-        <option value="EX">Excellent (EX)</option>
-        <option value="VG+">Very Good+ (VG+)</option>
-        <option value="VG">Very Good (VG)</option>
-        <option value="G">Good (G)</option>
-      </select>
-    </div>
+      <div>
+        <label for="dialog-condition" class="block text-sm font-medium mb-1">
+          {tr.dialog.conditionLabel} <span aria-hidden="true">*</span>
+        </label>
+        <select id="dialog-condition" name="condition" required class="w-full border border-border rounded-lg px-3 py-2 text-sm">
+          <option value="">{tr.dialog.conditionPlaceholder}</option>
+          <option value="Mint">Mint</option>
+          <option value="NM">Near Mint (NM)</option>
+          <option value="EX">Excellent (EX)</option>
+          <option value="VG+">Very Good+ (VG+)</option>
+          <option value="VG">Very Good (VG)</option>
+          <option value="G">Good (G)</option>
+        </select>
+      </div>
 
-    <div>
-      <label for="dialog-rating" class="block text-sm font-medium mb-1">Note (optionnel)</label>
-      <select id="dialog-rating" name="rating" class="w-full border border-border rounded-lg px-3 py-2 text-sm">
-        <option value="">—</option>
-        <option value="5">★★★★★ 5</option>
-        <option value="4">★★★★ 4</option>
-        <option value="3">★★★ 3</option>
-        <option value="2">★★ 2</option>
-        <option value="1">★ 1</option>
-      </select>
-    </div>
+      <div>
+        <label for="dialog-rating" class="block text-sm font-medium mb-1">{tr.dialog.ratingLabel}</label>
+        <select id="dialog-rating" name="rating" class="w-full border border-border rounded-lg px-3 py-2 text-sm">
+          <option value="">—</option>
+          <option value="5">★★★★★ 5</option>
+          <option value="4">★★★★ 4</option>
+          <option value="3">★★★ 3</option>
+          <option value="2">★★ 2</option>
+          <option value="1">★ 1</option>
+        </select>
+      </div>
 
-    <div class="flex gap-2">
-      <button type="submit" class="btn-primary flex-1">Confirmer</button>
-      <button type="button" id="dialog-cancel" class="btn-ghost flex-1">Annuler</button>
-    </div>
-  </form>
-</dialog>
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary flex-1">{tr.dialog.submit}</button>
+        <button type="button" id="dialog-cancel" class="btn-ghost flex-1">{tr.dialog.cancel}</button>
+      </div>
+    </form>
+  </dialog>
 </Layout>
 
+<script type="application/json" id="release-page-strings" set:html={clientStrings}></script>
+
 <script>
+  const strings = JSON.parse(document.getElementById('release-page-strings')?.textContent ?? '{}')
+
   const addBtn = document.getElementById('add-to-shelf-btn') as HTMLButtonElement | null
   const dialog = document.getElementById('add-shelf-dialog') as HTMLDialogElement | null
   const cancelBtn = document.getElementById('dialog-cancel')
@@ -200,10 +216,10 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
   })
 
   cancelBtn?.addEventListener('click', () => dialog?.close())
-  dialog?.addEventListener('click', (e) => { if (e.target === dialog) dialog.close() })
+  dialog?.addEventListener('click', (event) => { if (event.target === dialog) dialog.close() })
 
-  form?.addEventListener('submit', async (e) => {
-    e.preventDefault()
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault()
     const formData = new FormData(form)
     const payload = {
       discogsId: formData.get('discogsId'),
@@ -223,14 +239,13 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
         dialog?.close()
         window.location.href = `/items/${data.shelfItem.id}`
       } else {
-        alert(data.error ?? "Erreur lors de l'ajout")
+        alert(data.error ?? strings.errorAdd)
       }
     } catch {
-      alert('Erreur réseau, réessaie.')
+      alert(strings.errorNetwork)
     }
   })
 
-  // Want button
   const wantBtn = document.getElementById('want-btn') as HTMLButtonElement | null
   wantBtn?.addEventListener('click', async () => {
     const releaseId = wantBtn.dataset.releaseId
@@ -242,7 +257,7 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
         body: JSON.stringify({ releaseId }),
       })
       if (res.ok) {
-        wantBtn.textContent = '✓ Dans mes Wants'
+        wantBtn.textContent = wantBtn.dataset.textAdded ?? strings.wantAdded
         wantBtn.disabled = true
       } else {
         wantBtn.disabled = false
