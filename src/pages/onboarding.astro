@@ -395,7 +395,7 @@ const clientStrings = JSON.stringify({
         const data = await res.json()
         if (!friendResults) return
         const textFollow = friendResults.dataset.textFollow ?? 'Suivre'
-        const textFollowing = friendResults.dataset.textFollowing ?? 'Abonné ✓'
+        const textFollowing = friendResults.dataset.textFollowing ?? 'Abonné'
         if (!data.users?.length) {
           friendResults.innerHTML = `<p class="text-sm text-muted">${friendResults.dataset.textNoResults ?? 'Aucun résultat.'}</p>`
           return
