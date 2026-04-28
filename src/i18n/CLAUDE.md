@@ -29,7 +29,7 @@ Translation files export `Record<Locale, T>` where T is an object of strings or 
 |---|---|
 | `layout.ts` | Layout.astro, DashboardLayout.astro — nav labels, generic UI |
 | `items.ts` | `/pages/items/[id].astro` — item detail page |
-| `library.ts` | `/pages/library.astro` — shelf/library page |
+| `shelf.ts` | `/pages/shelf.astro` — user's record shelf |
 | `collections.ts` | `/pages/collections/` — collection pages |
 | `explore.ts` / `explorer.ts` | `/pages/explorer*` — discovery pages |
 | `feed.ts` | `/pages/feed.astro` — activity feed |
