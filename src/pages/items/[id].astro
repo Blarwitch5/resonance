@@ -7,9 +7,10 @@ import { followRepository } from '../../repositories/follow-repository'
 import { collectionRepository } from '../../repositories/collection-repository'
 import { itemsI18n } from '../../i18n/items'
 import { normalizeLocale } from '../../i18n/config'
-import Play from '@lucide/astro/icons/play'
-import Pause from '@lucide/astro/icons/pause'
+import Check from '@lucide/astro/icons/check'
 import LoaderCircle from '@lucide/astro/icons/loader-circle'
+import Pause from '@lucide/astro/icons/pause'
+import Play from '@lucide/astro/icons/play'
 import Star from '@lucide/astro/icons/star'
 
 const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
@@ -49,10 +50,6 @@ const friendsWithRelease = currentUserId && !isOwner
   ? await shelfItemRepository.getFriendsWithRelease(currentUserId, release.id)
   : []
 
-const friendsLabel = friendsWithRelease.length === 1
-  ? '1 personne que tu suis a ce disque'
-  : friendsWithRelease.length + ' personnes que tu suis ont ce disque'
-
 const releaseTitle = release.artist + ' — ' + release.title
 
 // Community avg rating (show only if 3+ ratings)
@@ -67,6 +64,8 @@ const tracklist = Array.isArray(release.tracklist) && (release.tracklist as unkn
 const userCollections = isOwner && currentUserId
   ? await collectionRepository.findByUser(currentUserId)
   : []
+
+const clientStrings = JSON.stringify({ errorAdding: t.errorAdding })
 ---
 
 <Layout title={releaseTitle} showBottomBar={true}>
@@ -174,7 +173,7 @@ const userCollections = isOwner && currentUserId
                     class="track-play-btn flex-shrink-0 flex h-7 w-7 items-center justify-center rounded-full text-muted hover:text-primary hover:bg-primary/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                     data-artist={release.artist}
                     data-track={track.title}
-                    aria-label={`Écouter ${track.title}`}
+                    aria-label={t.listenTo(track.title)}
                   >
                     <Play size={13} class="play-icon" aria-hidden="true" />
                     <Pause size={13} class="pause-icon hidden" aria-hidden="true" />
@@ -195,24 +194,18 @@ const userCollections = isOwner && currentUserId
     <!-- Actions -->
     <div class="actions flex gap-2 flex-wrap">
       {!isOwner && currentUserId && (
-        <button
-          class="btn-secondary want-btn"
-          data-release-id={release.id}
-          data-text-want={t.addWant}
-          data-text-in-wants={t.inWants}
-        >
-          {t.addWant}
+        <button class="btn-secondary want-btn" data-release-id={release.id}>
+          <span class="want-state-default">{t.addWant}</span>
+          <span class="want-state-added hidden flex items-center gap-1">
+            <Check size={14} aria-hidden="true" />{t.inWants}
+          </span>
         </button>
       )}
       {isOwner && (
         <>
           {userCollections.length > 0 && (
-            <button
-              id="add-to-collection-btn"
-              class="btn-secondary"
-              aria-haspopup="dialog"
-            >
-              + Collection
+            <button id="add-to-collection-btn" class="btn-secondary" aria-haspopup="dialog">
+              {t.addCollectionBtn}
             </button>
           )}
           <a href={`/items/${id}/edit`} class="btn-secondary">{t.edit}</a>
@@ -228,8 +221,8 @@ const userCollections = isOwner && currentUserId
       id="add-to-collection-dialog"
       class="rounded-2xl p-6 max-w-sm w-full shadow-xl backdrop:bg-black/40"
     >
-      <h2 class="font-semibold mb-1">Ajouter à une collection</h2>
-      <p class="text-sm text-muted mb-4">Choisir une de tes collections</p>
+      <h2 class="font-semibold mb-1">{t.addToCollection}</h2>
+      <p class="text-sm text-muted mb-4">{t.chooseCollection}</p>
       <ul class="space-y-2 mb-4 max-h-72 overflow-y-auto">
         {userCollections.map((collection) => (
           <li>
@@ -238,18 +231,27 @@ const userCollections = isOwner && currentUserId
               data-collection-id={collection.id}
               data-shelf-item-id={id}
             >
-              <span class="font-medium text-sm">{collection.name}</span>
-              <span class="text-xs text-muted">{collection._count.items} disque{collection._count.items !== 1 ? 's' : ''}</span>
+              <span class="col-pick-default flex items-center justify-between w-full">
+                <span class="font-medium text-sm">{collection.name}</span>
+                <span class="text-xs text-muted">{collection._count.items} disque{collection._count.items !== 1 ? 's' : ''}</span>
+              </span>
+              <span class="col-pick-added hidden flex items-center gap-1 text-sm text-success">
+                <Check size={14} aria-hidden="true" />{t.addedToCollection}
+              </span>
             </button>
           </li>
         ))}
       </ul>
-      <button id="add-to-collection-close" class="btn-ghost w-full">Fermer</button>
+      <button id="add-to-collection-close" class="btn-ghost w-full">{t.closeDialog}</button>
     </dialog>
   )}
 </Layout>
 
+<script type="application/json" id="item-page-strings" set:html={clientStrings}></script>
+
 <script>
+  const strings = JSON.parse(document.getElementById('item-page-strings')?.textContent ?? '{}')
+
   // Want button
   const wantBtn = document.querySelector('.want-btn') as HTMLButtonElement | null
   wantBtn?.addEventListener('click', async () => {
@@ -262,7 +264,8 @@ const userCollections = isOwner && currentUserId
         body: JSON.stringify({ releaseId }),
       })
       if (res.ok) {
-        wantBtn.textContent = wantBtn.dataset.textInWants ?? '✓ Dans mes Wants'
+        wantBtn.querySelector('.want-state-default')?.classList.add('hidden')
+        wantBtn.querySelector('.want-state-added')?.classList.remove('hidden')
         wantBtn.disabled = true
       }
     } catch {
@@ -302,11 +305,12 @@ const userCollections = isOwner && currentUserId
           body: JSON.stringify({ shelfItemId }),
         })
         if (response.ok) {
-          btn.textContent = '✓ Ajouté'
+          btn.querySelector('.col-pick-default')?.classList.add('hidden')
+          btn.querySelector('.col-pick-added')?.classList.remove('hidden')
           btn.classList.add('opacity-60')
         } else {
           const data = await response.json() as { error?: string }
-          alert(data.error ?? 'Erreur lors de l\'ajout')
+          alert(data.error ?? strings.errorAdding)
           btn.disabled = false
         }
       } catch {
