@@ -1,26 +1,39 @@
 ---
 export const prerender = false
 import Layout from '../../components/layouts/Layout.astro'
+import Plus from '@lucide/astro/icons/plus'
+import Pin from '@lucide/astro/icons/pin'
 import { collectionRepository } from '../../repositories/collection-repository'
+import { getCollectionsMessages } from '../../i18n/collections'
+import { normalizeLocale } from '../../i18n/config'
+
+const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const t = getCollectionsMessages(locale)
 
 const user = Astro.locals.user
 if (!user) return Astro.redirect('/login', 302)
 
 const collections = await collectionRepository.findByUser(user.id)
 const username = user.username ?? user.id
+
+Astro.response.headers.set('Cache-Control', 'no-store')
 ---
 
-<Layout title="Mes collections" showBottomBar={true}>
+<Layout title={t.index.myCollections} showBottomBar={true}>
   <div class="collections-page max-w-2xl mx-auto px-4 py-6">
     <header class="flex items-center justify-between mb-6">
-      <h1 class="text-xl font-semibold">Mes collections</h1>
-      <a href="/collections/new" class="btn-primary text-sm">Nouvelle</a>
+      <h1 class="text-xl font-semibold">{t.index.myCollections}</h1>
+      <a href="/collections/new" class="btn-primary flex items-center gap-1.5 px-3 py-2 text-sm">
+        <Plus size={16} aria-hidden="true" />
+        {t.index.newShort}
+      </a>
     </header>
 
     {collections.length === 0 && (
       <div class="text-center py-12">
-        <p class="text-muted mb-4">Aucune collection pour l'instant.</p>
-        <a href="/collections/new" class="btn-secondary">Créer ma première collection</a>
+        <p class="text-muted mb-4">{t.index.empty.title}</p>
+        <p class="text-sm text-muted mb-6">{t.index.empty.description}</p>
+        <a href="/collections/new" class="btn-secondary">{t.index.empty.action}</a>
       </div>
     )}
 
@@ -32,12 +45,16 @@ const username = user.username ?? user.id
             class="card-link flex items-center justify-between p-4 rounded-xl border border-border hover:bg-surface-raised transition-colors"
           >
             <div class="flex items-center gap-2 min-w-0">
-              {col.isPinned && <span aria-label="Épinglée" title="Épinglée sur le profil">📌</span>}
+              {col.isPinned && (
+                <Pin size={14} class="text-accent flex-shrink-0" aria-label={t.index.pinnedAria} />
+              )}
               <span class="font-medium truncate">{col.name}</span>
-              {!col.isPublic && <span class="text-xs text-muted">(Privée)</span>}
+              {!col.isPublic && (
+                <span class="text-xs text-muted flex-shrink-0">({t.index.privateLabel})</span>
+              )}
             </div>
             <span class="text-sm text-muted flex-shrink-0 ml-2">
-              {col._count.items} disque{col._count.items !== 1 ? 's' : ''}
+              {t.index.records(col._count.items)}
             </span>
           </a>
         </li>
