@@ -1,0 +1,446 @@
+---
+export const prerender = false
+import AlertTriangle from '@lucide/astro/icons/triangle-alert'
+import ArrowLeft from '@lucide/astro/icons/arrow-left'
+import ArrowRight from '@lucide/astro/icons/arrow-right'
+import Check from '@lucide/astro/icons/check'
+import LoaderCircle from '@lucide/astro/icons/loader-circle'
+import Search from '@lucide/astro/icons/search'
+import X from '@lucide/astro/icons/x'
+import Layout from '../components/layouts/Layout.astro'
+import { db } from '../lib/db'
+import { onboardingI18n } from '../i18n/onboarding'
+import { normalizeLocale } from '../i18n/config'
+
+const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const t = onboardingI18n[locale]
+
+const currentUser = Astro.locals.user
+if (!currentUser) return Astro.redirect('/login', 302)
+
+const user = await db.user.findUnique({
+  where: { id: currentUser.id },
+  select: { onboardingCompleted: true },
+})
+if (user?.onboardingCompleted) return Astro.redirect('/feed', 302)
+
+const clientStrings = JSON.stringify({
+  stepPrefix: t.stepPrefix,
+  usernameChecking: t.usernameChecking,
+  usernameAvailable: t.usernameAvailable,
+  usernameTaken: t.usernameTaken,
+  usernameInvalid: t.usernameInvalid,
+  usernameReserved: t.usernameReserved,
+  usernameNetworkError: t.usernameNetworkError,
+})
+---
+
+<Layout title="Bienvenue sur Resonance">
+  <!-- Skip link a11y -->
+  <a href="#main-onboarding" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-accent focus:text-on-accent focus:rounded-lg">
+    Passer au contenu principal
+  </a>
+
+  <main id="main-onboarding" class="onboarding max-w-lg mx-auto px-6 py-10" tabindex="-1">
+
+    <!-- Step indicator -->
+    <div
+      class="step-indicator flex items-center gap-2 justify-center mb-2"
+      role="status"
+      aria-live="polite"
+      aria-label="Progression"
+      id="step-status"
+    >
+      {[1, 2, 3, 4].map((n) => (
+        <div
+          class={`step-dot w-2 h-2 rounded-full transition-colors ${n === 1 ? 'bg-accent' : 'bg-border'}`}
+          data-step={n}
+          aria-hidden="true"
+        />
+      ))}
+    </div>
+    <p class="text-center text-xs text-muted mb-8" id="step-label" aria-live="polite">
+      {t.stepOf(1, 4)}
+    </p>
+
+    <!-- Step 1: Username -->
+    <section id="step-1" class="onboarding-step" aria-labelledby="step1-heading">
+      <h1 id="step1-heading" class="text-2xl font-bold mb-2" tabindex="-1">{t.step1Title}</h1>
+      <p class="text-muted mb-6" id="step1-hint">{t.step1Hint}</p>
+
+      <div class="mb-6">
+        <label for="username-input" class="block text-sm font-medium mb-2">
+          {t.usernameLabel}
+        </label>
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm select-none" aria-hidden="true">@</span>
+          <input
+            type="text"
+            id="username-input"
+            name="username"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck={false}
+            placeholder={t.usernamePlaceholder}
+            maxlength={20}
+            pattern="[a-z0-9_-]{3,20}"
+            class="w-full pl-7 pr-10 py-3 rounded-xl border border-border bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            aria-describedby="username-feedback"
+            aria-required="true"
+          />
+          <!-- Status icons (pre-rendered, JS toggles visibility) -->
+          <span class="absolute right-3 top-1/2 -translate-y-1/2" aria-hidden="true">
+            <Check id="icon-check" size={14} class="text-success hidden" />
+            <X id="icon-x" size={14} class="text-error hidden" />
+            <LoaderCircle id="icon-loading" size={14} class="text-muted hidden animate-spin" />
+            <AlertTriangle id="icon-warning" size={14} class="text-warning hidden" />
+          </span>
+        </div>
+        <p
+          id="username-feedback"
+          class="mt-1.5 text-xs min-h-[1.25rem]"
+          aria-live="polite"
+          aria-atomic="true"
+        ></p>
+        <!-- Suggestions -->
+        <div id="username-suggestions" class="hidden mt-2" aria-live="polite">
+          <p class="text-xs text-muted mb-1">{t.usernameSuggestions}</p>
+          <div id="suggestions-list" class="flex gap-2 flex-wrap"></div>
+        </div>
+      </div>
+
+      <button class="btn-primary w-full" id="next-1" disabled aria-disabled="true">
+        <span id="next1-label" class="flex items-center justify-center gap-2">
+          {t.next}<ArrowRight size={16} aria-hidden="true" />
+        </span>
+        <span id="next1-loading" class="hidden">…</span>
+      </button>
+    </section>
+
+    <!-- Step 2: Formats -->
+    <section id="step-2" class="onboarding-step hidden" aria-labelledby="step2-heading">
+      <h1 id="step2-heading" class="text-2xl font-bold mb-2" tabindex="-1">{t.step2Title}</h1>
+      <p class="text-muted mb-6">{t.step2Hint}</p>
+      <div class="flex gap-3 flex-wrap mb-8" role="group" aria-label={t.step2Title}>
+        {['Vinyl', 'CD', 'Cassette'].map((fmt) => (
+          <label class="format-option cursor-pointer">
+            <input
+              type="checkbox"
+              name="formats"
+              value={fmt}
+              class="sr-only"
+              data-format={fmt}
+              checked={fmt === 'Vinyl'}
+              aria-label={fmt}
+            />
+            <span
+              class="px-5 py-3 rounded-xl border-2 border-border text-sm font-medium transition-colors block"
+              data-label-for={fmt}
+              aria-hidden="true"
+            >
+              {fmt}
+            </span>
+          </label>
+        ))}
+      </div>
+      <button class="btn-primary w-full flex items-center justify-center gap-2" id="next-2">
+        {t.next}<ArrowRight size={16} aria-hidden="true" />
+      </button>
+      <button class="btn-ghost w-full mt-2 text-sm flex items-center justify-center gap-2" id="back-2" aria-label={t.back}>
+        <ArrowLeft size={16} aria-hidden="true" />{t.back}
+      </button>
+    </section>
+
+    <!-- Step 3: Find friends -->
+    <section id="step-3" class="onboarding-step hidden" aria-labelledby="step3-heading">
+      <h1 id="step3-heading" class="text-2xl font-bold mb-2" tabindex="-1">{t.step3Title}</h1>
+      <p class="text-muted mb-6">{t.step3Hint}</p>
+      <div class="relative mb-4">
+        <label for="friend-search" class="sr-only">{t.searchPlaceholder}</label>
+        <input
+          type="search"
+          id="friend-search"
+          placeholder={t.searchPlaceholder}
+          class="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+          aria-describedby="friend-results"
+        />
+        <Search size={16} class="absolute left-3 top-3.5 text-muted" aria-hidden="true" />
+      </div>
+      <div
+        id="friend-results"
+        class="space-y-2 mb-6 min-h-[80px]"
+        role="region"
+        aria-live="polite"
+        aria-label="Résultats"
+        data-text-follow={t.follow}
+        data-text-following={t.following}
+        data-text-no-results={t.noResults}
+        data-text-error={t.searchError}
+      ></div>
+      <button class="btn-primary w-full flex items-center justify-center gap-2" id="next-3">
+        {t.next}<ArrowRight size={16} aria-hidden="true" />
+      </button>
+      <button class="btn-ghost w-full mt-2 text-sm flex items-center justify-center gap-2" id="back-3" aria-label={t.back}>
+        <ArrowLeft size={16} aria-hidden="true" />{t.back}
+      </button>
+      <button class="btn-ghost w-full mt-1 text-sm skip-btn" data-target="4">{t.skip}</button>
+    </section>
+
+    <!-- Step 4: First add -->
+    <section id="step-4" class="onboarding-step hidden" aria-labelledby="step4-heading">
+      <h1 id="step4-heading" class="text-2xl font-bold mb-2" tabindex="-1">{t.step4Title}</h1>
+      <p class="text-muted mb-6">{t.step4Hint}</p>
+      <div class="flex gap-3 mb-8">
+        <a href="/shelf" class="btn-primary flex-1 text-center">{t.scanSearch}</a>
+      </div>
+      <button class="btn-ghost w-full mt-2 text-sm flex items-center justify-center gap-2" id="back-4" aria-label={t.back}>
+        <ArrowLeft size={16} aria-hidden="true" />{t.back}
+      </button>
+      <button class="btn-ghost w-full mt-1 text-sm" id="finish-onboarding">{t.finish}</button>
+    </section>
+
+  </main>
+</Layout>
+
+<script type="application/json" id="onboarding-strings" set:html={clientStrings}></script>
+
+<script>
+  const strings = JSON.parse(document.getElementById('onboarding-strings')?.textContent ?? '{}')
+
+  const TOTAL_STEPS = 4
+  let currentStep = 1
+  let usernameValid = false
+
+  // ── Navigation helpers ────────────────────────────────────────────
+  function goToStep(n: number) {
+    currentStep = n
+    document.querySelectorAll('.onboarding-step').forEach((el, i) => {
+      el.classList.toggle('hidden', i + 1 !== n)
+    })
+    document.querySelectorAll<HTMLElement>('[data-step]').forEach((dot, i) => {
+      dot.classList.toggle('bg-accent', i + 1 === n)
+      dot.classList.toggle('bg-border', i + 1 !== n)
+    })
+    const label = document.getElementById('step-label')
+    if (label) label.textContent = `${strings.stepPrefix} ${n}/${TOTAL_STEPS}`
+
+    // Focus heading for screen readers
+    const heading = document.querySelector<HTMLElement>(`#step-${n} h1[tabindex="-1"]`)
+    heading?.focus()
+  }
+
+  // ── Step 1: Username ──────────────────────────────────────────────
+  const usernameInput = document.getElementById('username-input') as HTMLInputElement | null
+  const feedback = document.getElementById('username-feedback')
+  const suggestionsBox = document.getElementById('username-suggestions')
+  const suggestionsList = document.getElementById('suggestions-list')
+  const nextBtn1 = document.getElementById('next-1') as HTMLButtonElement | null
+
+  const USERNAME_RE = /^[a-z0-9_-]{3,20}$/
+
+  const iconIds = ['check', 'x', 'loading', 'warning'] as const
+
+  function setFeedback(msg: string, color: 'green' | 'red' | 'muted', iconState: '' | 'check' | 'x' | 'loading' | 'warning') {
+    if (feedback) {
+      feedback.textContent = msg
+      feedback.className = `mt-1.5 text-xs min-h-[1.25rem] ${color === 'green' ? 'text-green-600 dark:text-green-400' : color === 'red' ? 'text-red-500' : 'text-muted'}`
+    }
+    iconIds.forEach((state) => document.getElementById(`icon-${state}`)?.classList.add('hidden'))
+    if (iconState) document.getElementById(`icon-${iconState}`)?.classList.remove('hidden')
+  }
+
+  function setNextEnabled(enabled: boolean) {
+    usernameValid = enabled
+    if (!nextBtn1) return
+    nextBtn1.disabled = !enabled
+    nextBtn1.setAttribute('aria-disabled', String(!enabled))
+  }
+
+  let usernameTimer: ReturnType<typeof setTimeout>
+  usernameInput?.addEventListener('input', () => {
+    clearTimeout(usernameTimer)
+    const val = usernameInput.value.trim().toLowerCase()
+    suggestionsBox?.classList.add('hidden')
+    setNextEnabled(false)
+
+    if (!val) {
+      setFeedback('', 'muted', '')
+      return
+    }
+    if (!USERNAME_RE.test(val)) {
+      setFeedback(strings.usernameInvalid, 'red', 'x')
+      return
+    }
+
+    setFeedback(strings.usernameChecking, 'muted', 'loading')
+    usernameTimer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/profile/check-username?username=${encodeURIComponent(val)}`)
+        if (!res.ok) throw new Error('server error')
+        const data = await res.json()
+        if (data.available) {
+          setFeedback(strings.usernameAvailable, 'green', 'check')
+          setNextEnabled(true)
+        } else if (data.reason === 'invalid') {
+          setFeedback(strings.usernameInvalid, 'red', 'x')
+        } else if (data.reason === 'reserved') {
+          setFeedback(strings.usernameReserved, 'red', 'x')
+        } else {
+          setFeedback(strings.usernameTaken, 'red', 'x')
+          // Show suggestions
+          if (data.suggestions?.length && suggestionsBox && suggestionsList) {
+            suggestionsList.innerHTML = data.suggestions
+              .map((s: string) => `<button class="suggest-btn text-xs px-2 py-1 rounded-lg border border-accent/40 text-accent hover:bg-accent/10 transition-colors" data-suggestion="${s}">${s}</button>`)
+              .join('')
+            suggestionsBox.classList.remove('hidden')
+            suggestionsBox.querySelectorAll<HTMLButtonElement>('.suggest-btn').forEach((btn) => {
+              btn.addEventListener('click', () => {
+                if (usernameInput) {
+                  usernameInput.value = btn.dataset.suggestion ?? ''
+                  usernameInput.dispatchEvent(new Event('input'))
+                }
+              })
+            })
+          }
+        }
+      } catch {
+        setFeedback(strings.usernameNetworkError, 'red', 'warning')
+      }
+    }, 400)
+  })
+
+  function setNext1Loading(loading: boolean) {
+    document.getElementById('next1-label')?.classList.toggle('hidden', loading)
+    document.getElementById('next1-loading')?.classList.toggle('hidden', !loading)
+  }
+
+  nextBtn1?.addEventListener('click', async () => {
+    const val = usernameInput?.value.trim().toLowerCase() ?? ''
+    if (!usernameValid || !val) return
+    nextBtn1.disabled = true
+    setNext1Loading(true)
+    try {
+      const res = await fetch('/api/profile/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: val }),
+      })
+      if (res.status === 409) {
+        setFeedback(strings.usernameTaken, 'red', 'x')
+        setNextEnabled(false)
+        return
+      }
+      if (!res.ok) throw new Error('server error')
+      goToStep(2)
+    } catch {
+      setFeedback(strings.usernameNetworkError, 'red', 'warning')
+    } finally {
+      nextBtn1.disabled = false
+      setNext1Loading(false)
+    }
+  })
+
+  // ── Step 2: Formats ───────────────────────────────────────────────
+  document.querySelectorAll<HTMLInputElement>('input[name="formats"]').forEach((checkbox) => {
+    const label = document.querySelector(`[data-label-for="${checkbox.dataset.format}"]`)
+    const update = () => {
+      label?.classList.toggle('border-accent', checkbox.checked)
+      label?.classList.toggle('bg-accent/10', checkbox.checked)
+    }
+    update()
+    checkbox.addEventListener('change', update)
+  })
+
+  document.getElementById('next-2')?.addEventListener('click', async () => {
+    const checked = Array.from(
+      document.querySelectorAll<HTMLInputElement>('input[name="formats"]:checked'),
+    ).map((c) => c.value)
+    if (checked.length > 0) {
+      await fetch('/api/profile/preferences', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activeFormats: checked }),
+      }).catch(() => {})
+    }
+    goToStep(3)
+  })
+  document.getElementById('back-2')?.addEventListener('click', () => goToStep(1))
+
+  // ── Step 3: Friends ───────────────────────────────────────────────
+  document.getElementById('next-3')?.addEventListener('click', () => goToStep(4))
+  document.getElementById('back-3')?.addEventListener('click', () => goToStep(2))
+
+  document.querySelectorAll<HTMLButtonElement>('.skip-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const target = Number(btn.dataset.target ?? currentStep + 1)
+      if (target > TOTAL_STEPS) completeOnboarding()
+      else goToStep(target)
+    })
+  })
+
+  let friendTimer: ReturnType<typeof setTimeout>
+  const friendInput = document.getElementById('friend-search') as HTMLInputElement | null
+  const friendResults = document.getElementById('friend-results')
+
+  friendInput?.addEventListener('input', () => {
+    clearTimeout(friendTimer)
+    const q = friendInput.value.trim()
+    if (!q || q.length < 2) {
+      if (friendResults) friendResults.innerHTML = ''
+      return
+    }
+    friendTimer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`)
+        const data = await res.json()
+        if (!friendResults) return
+        const textFollow = friendResults.dataset.textFollow ?? 'Suivre'
+        const textFollowing = friendResults.dataset.textFollowing ?? 'Abonné'
+        if (!data.users?.length) {
+          friendResults.innerHTML = `<p class="text-sm text-muted">${friendResults.dataset.textNoResults ?? 'Aucun résultat.'}</p>`
+          return
+        }
+        friendResults.innerHTML = data.users
+          .map(
+            (u: { username: string; name: string; imageUrl?: string }) => `
+            <div class="flex items-center justify-between p-3 rounded-xl border border-border">
+              <div class="flex items-center gap-2">
+                ${u.imageUrl ? `<img src="${u.imageUrl}" alt="" width="32" height="32" class="w-8 h-8 rounded-full object-cover" />` : `<div class="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-sm" aria-hidden="true">${(u.name ?? 'U')[0]}</div>`}
+                <span class="text-sm font-medium">${u.name ?? u.username}</span>
+              </div>
+              <button
+                class="follow-onboarding-btn text-xs text-accent border border-accent/30 px-3 py-1 rounded-full transition-colors hover:bg-accent/10"
+                data-username="${u.username}"
+                aria-label="${textFollow} ${u.name ?? u.username}"
+              >${textFollow}</button>
+            </div>`,
+          )
+          .join('')
+
+        friendResults.querySelectorAll<HTMLButtonElement>('.follow-onboarding-btn').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            btn.disabled = true
+            try {
+              const r = await fetch(`/api/users/${btn.dataset.username}/follow`, { method: 'POST' })
+              const d = await r.json()
+              btn.textContent = d.following ? textFollowing : textFollow
+            } catch {
+              btn.disabled = false
+            }
+          })
+        })
+      } catch {
+        if (friendResults) friendResults.innerHTML = `<p class="text-sm text-muted" role="alert">${friendResults.dataset.textError ?? 'Erreur de recherche.'}</p>`
+      }
+    }, 350)
+  })
+
+  // ── Step 4: Finish ────────────────────────────────────────────────
+  document.getElementById('back-4')?.addEventListener('click', () => goToStep(3))
+
+  async function completeOnboarding() {
+    await fetch('/api/onboarding/complete', { method: 'POST' }).catch(() => {})
+    window.location.href = '/feed'
+  }
+  document.getElementById('finish-onboarding')?.addEventListener('click', completeOnboarding)
+</script>

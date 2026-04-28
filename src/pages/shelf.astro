@@ -1,0 +1,135 @@
+---
+export const prerender = false
+import Layout from '../components/layouts/Layout.astro'
+import Plus from '@lucide/astro/icons/plus'
+import { shelfItemRepository } from '../repositories/shelf-item-repository'
+import { getShelfMessages } from '../i18n/shelf'
+import { normalizeLocale } from '../i18n/config'
+
+const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const t = getShelfMessages(locale)
+
+const user = Astro.locals.user
+if (!user) return Astro.redirect('/login', 302)
+
+const formatParam = Astro.url.searchParams.get('format')
+const validFormats = ['Vinyl', 'CD', 'Cassette']
+const activeFormat = validFormats.includes(formatParam ?? '') ? formatParam : null
+
+const sort = Astro.url.searchParams.get('sort') ?? 'recent'
+const activeSort = sort === 'artist' ? 'artist' : 'recent'
+
+Astro.response.headers.set('Cache-Control', 'no-store')
+
+const shelfItems = await shelfItemRepository.findByUser(user.id, {
+  format: activeFormat ?? undefined,
+  sort: activeSort,
+})
+
+function sortHref(s: string) {
+  const params = new URLSearchParams()
+  if (activeFormat) params.set('format', activeFormat)
+  if (s !== 'recent') params.set('sort', s)
+  const qs = params.toString()
+  return `/shelf${qs ? `?${qs}` : ''}`
+}
+---
+
+<Layout title={t.title} showBottomBar={true}>
+  <div class="shelf-page max-w-2xl mx-auto px-4 py-4">
+
+    <header class="flex items-center justify-between mb-4">
+      <div>
+        <h1 class="text-xl font-semibold">{t.title}</h1>
+        <p class="text-sm text-muted">{t.records(shelfItems.length)}</p>
+      </div>
+      <a href="/explore" class="btn-primary flex items-center gap-1.5 px-3 py-2 text-sm" aria-label={t.addRecord}>
+        <Plus size={16} aria-hidden="true" />
+        {t.addRecord}
+      </a>
+    </header>
+
+    <!-- Format + sort filters -->
+    <div class="flex items-center justify-between gap-3 mb-4">
+      <nav class="format-pills flex gap-2 overflow-x-auto pb-1 flex-1" aria-label={t.filterAria}>
+        {[null, 'Vinyl', 'CD', 'Cassette'].map((fmt) => {
+          const params = new URLSearchParams()
+          if (fmt) params.set('format', fmt)
+          if (activeSort !== 'recent') params.set('sort', activeSort)
+          const href = `/shelf${params.toString() ? `?${params}` : ''}`
+          return (
+            <a
+              href={href}
+              class={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm border transition-colors ${
+                activeFormat === fmt
+                  ? 'bg-accent text-on-accent border-accent'
+                  : 'border-border hover:bg-surface-raised'
+              }`}
+              aria-current={activeFormat === fmt ? 'page' : undefined}
+            >
+              {fmt ?? t.filterAll}
+            </a>
+          )
+        })}
+      </nav>
+
+      <nav class="flex gap-1 flex-shrink-0" aria-label={t.sortAria}>
+        <a
+          href={sortHref('recent')}
+          class={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${
+            activeSort === 'recent' ? 'bg-primary text-on-primary border-primary' : 'border-border hover:bg-surface-raised'
+          }`}
+          aria-current={activeSort === 'recent' ? 'page' : undefined}
+        >
+          {t.sortRecent}
+        </a>
+        <a
+          href={sortHref('artist')}
+          class={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${
+            activeSort === 'artist' ? 'bg-primary text-on-primary border-primary' : 'border-border hover:bg-surface-raised'
+          }`}
+          aria-current={activeSort === 'artist' ? 'page' : undefined}
+        >
+          {t.sortArtist}
+        </a>
+      </nav>
+    </div>
+
+    {shelfItems.length === 0 && (
+      <div class="text-center py-16">
+        <p class="text-muted mb-4">
+          {activeFormat ? t.emptyFormat(activeFormat) : t.emptyShelf}
+        </p>
+        {!activeFormat && (
+          <a href="/explore" class="btn-primary">{t.addFirst}</a>
+        )}
+      </div>
+    )}
+
+    <div class="shelf-grid grid grid-cols-3 gap-3" role="list" aria-label={t.title}>
+      {shelfItems.map((item) => (
+        <div role="listitem">
+          <a
+            href={`/items/${item.id}`}
+            class="block rounded-xl overflow-hidden border border-border hover:opacity-90 transition-opacity"
+            aria-label={`${item.release.artist} — ${item.release.title}`}
+          >
+            {item.release.coverUrl
+              ? <img
+                  src={item.release.coverUrl}
+                  alt={`${item.release.artist} — ${item.release.title}`}
+                  width="160"
+                  height="160"
+                  class="w-full aspect-square object-cover"
+                  loading="lazy"
+                />
+              : <div class="w-full aspect-square bg-surface-raised flex items-center justify-center text-xs text-muted p-2 text-center">
+                  {item.release.title}
+                </div>
+            }
+          </a>
+        </div>
+      ))}
+    </div>
+  </div>
+</Layout>

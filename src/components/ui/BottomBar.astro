@@ -1,29 +1,16 @@
 ---
+import Activity from '@lucide/astro/icons/activity'
 import Library from '@lucide/astro/icons/library'
-import Search from '@lucide/astro/icons/scan-search'
+import Plus from '@lucide/astro/icons/plus'
+import Search from '@lucide/astro/icons/search'
 import User from '@lucide/astro/icons/user'
 import Avatar from './Avatar.astro'
 
-type TabItem = {
-  id: string
-  label: string
-  icon: typeof Library
-  href: string
-}
-
-// Fonction pour déterminer l'onglet actif
 function getActiveTab(path: string): string | null {
-  // Pas d'onglet actif sur la page d'accueil
-  if (path === '/' || path === '/index') return null
-  
-  // Collection (unified view with format selector)
-  if (path.includes('/library') || path.includes('/collection') || path.includes('/vinyl') || path.includes('/cassette') || path.includes('/cd')) {
-    return 'collection'
-  }
-  
-  if (path.includes('/explorer')) return 'explorer'
-  if (path.includes('/profile')) return 'profile'
-  
+  if (path === '/shelf' || path === '/') return 'shelf'
+  if (path === '/feed') return 'feed'
+  if (path.startsWith('/explore')) return 'explore'
+  if (path.startsWith('/u/')) return 'profile'
   return null
 }
 
@@ -32,46 +19,36 @@ const activeTab = getActiveTab(currentPath)
 
 type BottomBarProps = {
   mainNavAria?: string
-  libraryLabel?: string
+  shelfLabel?: string
+  feedLabel?: string
   exploreLabel?: string
   profileLabel?: string
+  addLabel?: string
   userName?: string | null
+  userUsername?: string | null
   userEmail?: string | null
   userImageUrl?: string | null
 }
 
 const {
   mainNavAria = 'Main navigation',
-  libraryLabel = 'Library',
+  shelfLabel = 'Shelf',
+  feedLabel = 'Feed',
   exploreLabel = 'Explore',
   profileLabel = 'Profile',
+  addLabel = 'Add',
   userName = null,
+  userUsername = null,
   userEmail = null,
   userImageUrl = null,
 } = Astro.props as BottomBarProps
 
 const hasUser = Boolean((userName && userName.trim().length > 0) || (userEmail && userEmail.trim().length > 0))
-
-const tabs: TabItem[] = [
-  {
-    id: 'collection',
-    label: libraryLabel,
-    icon: Library,
-    href: '/library',
-  },
-  {
-    id: 'explorer',
-    label: exploreLabel,
-    icon: Search,
-    href: '/explorer',
-  },
-  {
-    id: 'profile',
-    label: profileLabel,
-    icon: User,
-    href: '/profile',
-  },
-]
+const profileHref = hasUser && userUsername
+  ? `/u/${userUsername}`
+  : hasUser
+    ? '/settings?complete=username'
+    : '/login'
 ---
 
 <!-- Barre flottante style Floating Bottom Navigation (mobile uniquement) -->
@@ -82,70 +59,78 @@ const tabs: TabItem[] = [
   <div
     class="flex items-center justify-between gap-1 rounded-2xl border border-border/40 bg-surface-elevated/95 px-1.5 py-1.5 shadow-[0_6px_24px_-10px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.04)_inset] backdrop-blur-md transition-colors duration-200 dark:shadow-[0_8px_28px_-12px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.05)_inset]"
   >
-    {
-      tabs.map((tab: TabItem) => {
-        const IconComponent = tab.icon
-        const isActive = activeTab === tab.id
-        const tabHref = tab.id === 'profile' ? (hasUser ? '/profile' : '/login') : tab.href
+    <!-- Shelf -->
+    <a
+      href="/shelf"
+      class={`bottom-bar-link group relative flex min-h-13 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated ${activeTab === 'shelf' ? 'bg-primary/12 text-primary shadow-sm' : 'text-neutral hover:bg-primary/10 hover:text-primary active:scale-[0.98]'}`}
+      aria-label={shelfLabel}
+      aria-current={activeTab === 'shelf' ? 'page' : undefined}
+    >
+      <div class={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${activeTab === 'shelf' ? 'bg-primary/90 text-white shadow-[0_6px_16px_-10px_rgba(99,102,241,0.7)]' : 'bg-surface/90 text-primary/80 group-hover:bg-primary/12 group-hover:text-primary'}`}>
+        <Library size={19} class={`bottom-bar-icon fill-none stroke-2 shrink-0 ${activeTab === 'shelf' ? 'text-white stroke-white' : 'text-primary/80 stroke-primary/80 group-hover:text-primary group-hover:stroke-primary'}`} aria-hidden="true" />
+      </div>
+      <span class="max-w-17 truncate text-center text-xs font-medium leading-tight text-current">{shelfLabel}</span>
+    </a>
 
-        return (
-          <a
-            href={tabHref}
-            class={`bottom-bar-link group relative flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl px-2 py-1.5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated ${
-              isActive
-                ? 'bg-primary/12 text-primary shadow-sm'
-                : 'text-neutral hover:bg-primary/10 hover:text-primary active:scale-[0.98]'
-            }`}
-            aria-label={tab.label}
-            aria-current={isActive ? 'page' : undefined}
-          >
-            {tab.id === 'profile' && hasUser ? (
-              <div
-                class={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl transition-colors ${
-                  isActive
-                    ? 'bg-primary/90 text-white shadow-[0_6px_16px_-10px_rgba(99,102,241,0.7)]'
-                    : 'bg-surface/90 text-primary/80 group-hover:bg-primary/12 group-hover:text-primary'
-                }`}
-              >
-                <Avatar
-                  userName={userName}
-                  userEmail={userEmail}
-                  imageUrl={userImageUrl}
-                  size="sm"
-                  class="h-8 w-8 rounded-lg"
-                />
-              </div>
-            ) : (
-              <div
-                class={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${
-                  isActive
-                    ? 'bg-primary/90 text-white shadow-[0_6px_16px_-10px_rgba(99,102,241,0.7)]'
-                    : 'bg-surface/90 text-primary/80 group-hover:bg-primary/12 group-hover:text-primary'
-                }`}
-              >
-                <IconComponent
-                  size={19}
-                  class={`bottom-bar-icon fill-none stroke-2 shrink-0 ${
-                    isActive
-                      ? 'text-white stroke-white'
-                      : 'text-primary/80 stroke-primary/80 group-hover:text-primary group-hover:stroke-primary'
-                  }`}
-                  aria-hidden="true"
-                />
-              </div>
-            )}
-            <span class="text-sm font-medium whitespace-nowrap hidden sm:inline">
-              {tab.label}
-            </span>
-          </a>
-        )
-      })
-    }
+    <!-- Feed -->
+    <a
+      href="/feed"
+      class={`bottom-bar-link group relative flex min-h-13 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated ${activeTab === 'feed' ? 'bg-primary/12 text-primary shadow-sm' : 'text-neutral hover:bg-primary/10 hover:text-primary active:scale-[0.98]'}`}
+      aria-label={feedLabel}
+      aria-current={activeTab === 'feed' ? 'page' : undefined}
+    >
+      <div class={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${activeTab === 'feed' ? 'bg-primary/90 text-white shadow-[0_6px_16px_-10px_rgba(99,102,241,0.7)]' : 'bg-surface/90 text-primary/80 group-hover:bg-primary/12 group-hover:text-primary'}`}>
+        <Activity size={19} class={`bottom-bar-icon fill-none stroke-2 shrink-0 ${activeTab === 'feed' ? 'text-white stroke-white' : 'text-primary/80 stroke-primary/80 group-hover:text-primary group-hover:stroke-primary'}`} aria-hidden="true" />
+      </div>
+      <span class="max-w-17 truncate text-center text-xs font-medium leading-tight text-current">{feedLabel}</span>
+    </a>
+
+    <!-- FAB central -->
+    <button
+      id="fab-add"
+      aria-label={addLabel}
+      aria-haspopup="dialog"
+      class="group relative flex flex-col items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated"
+    >
+      <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-[0_6px_20px_-6px_rgba(99,102,241,0.7)] transition-all duration-200 group-hover:scale-105 group-hover:shadow-[0_8px_24px_-6px_rgba(99,102,241,0.8)] group-active:scale-95">
+        <Plus size={22} class="stroke-2" aria-hidden="true" />
+      </div>
+    </button>
+
+    <!-- Explore -->
+    <a
+      href="/explore"
+      class={`bottom-bar-link group relative flex min-h-13 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated ${activeTab === 'explore' ? 'bg-primary/12 text-primary shadow-sm' : 'text-neutral hover:bg-primary/10 hover:text-primary active:scale-[0.98]'}`}
+      aria-label={exploreLabel}
+      aria-current={activeTab === 'explore' ? 'page' : undefined}
+    >
+      <div class={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${activeTab === 'explore' ? 'bg-primary/90 text-white shadow-[0_6px_16px_-10px_rgba(99,102,241,0.7)]' : 'bg-surface/90 text-primary/80 group-hover:bg-primary/12 group-hover:text-primary'}`}>
+        <Search size={19} class={`bottom-bar-icon fill-none stroke-2 shrink-0 ${activeTab === 'explore' ? 'text-white stroke-white' : 'text-primary/80 stroke-primary/80 group-hover:text-primary group-hover:stroke-primary'}`} aria-hidden="true" />
+      </div>
+      <span class="max-w-17 truncate text-center text-xs font-medium leading-tight text-current">{exploreLabel}</span>
+    </a>
+
+    <!-- Profile -->
+    <a
+      href={profileHref}
+      class={`bottom-bar-link group relative flex min-h-13 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated ${activeTab === 'profile' ? 'bg-primary/12 text-primary shadow-sm' : 'text-neutral hover:bg-primary/10 hover:text-primary active:scale-[0.98]'}`}
+      aria-label={profileLabel}
+      aria-current={activeTab === 'profile' ? 'page' : undefined}
+    >
+      <div class={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl transition-colors ${activeTab === 'profile' ? 'bg-primary/90 text-white shadow-[0_6px_16px_-10px_rgba(99,102,241,0.7)]' : 'bg-surface/90 text-primary/80 group-hover:bg-primary/12 group-hover:text-primary'}`}>
+        {hasUser ? (
+          <Avatar userName={userName} userEmail={userEmail} imageUrl={userImageUrl} size="sm" class="h-8 w-8 rounded-lg" />
+        ) : (
+          <User size={19} class={`bottom-bar-icon fill-none stroke-2 shrink-0 ${activeTab === 'profile' ? 'text-white stroke-white' : 'text-primary/80 stroke-primary/80 group-hover:text-primary group-hover:stroke-primary'}`} aria-hidden="true" />
+        )}
+      </div>
+      <span class="max-w-17 truncate text-center text-xs font-medium leading-tight text-current">{profileLabel}</span>
+    </a>
   </div>
 </nav>
 
-<!-- Espace réservé pour la barre flottante (éviter que le contenu passe en dessous) -->
-<div class="md:hidden" aria-hidden="true" style="height: calc(4.75rem + env(safe-area-inset-bottom));"></div>
+<!-- Espace réservé pour la barre flottante -->
+<div class="md:hidden" aria-hidden="true" style="height: calc(var(--mobile-bottom-nav-height, 5.5rem) + env(safe-area-inset-bottom));"></div>
 
 <style>
   :global(html[data-theme='light']) .bottom-bar .bottom-bar-link {
@@ -156,8 +141,14 @@ const tabs: TabItem[] = [
     color: var(--color-primary);
   }
 
-  :global(html[data-theme='light']) .bottom-bar .bottom-bar-icon {
+  :global(html[data-theme='light']) .bottom-bar .bottom-bar-link:not([aria-current='page']) .bottom-bar-icon {
     color: var(--color-primary);
     stroke: var(--color-primary);
+  }
+
+  :global(html[data-theme='light']) .bottom-bar .bottom-bar-link[aria-current='page'] .bottom-bar-icon,
+  :global(html[data-theme='dark']) .bottom-bar .bottom-bar-link[aria-current='page'] .bottom-bar-icon {
+    color: white !important;
+    stroke: white !important;
   }
 </style>

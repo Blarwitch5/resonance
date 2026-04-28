@@ -1,15 +1,30 @@
 ---
+import Check from '@lucide/astro/icons/check'
+import AlertCircle from '@lucide/astro/icons/circle-alert'
+import Info from '@lucide/astro/icons/info'
+import TriangleAlert from '@lucide/astro/icons/triangle-alert'
+import X from '@lucide/astro/icons/x'
+
 // Toast notification component
-// Usage: Add <ToastContainer /> to your layout, then use showToast() function
+// Usage: Add <Toast /> to your layout, then use window.toast.success/error/info/warning()
 //
 // Accessibilité:
-// - conteneur avec aria-live pour annoncer les messages
-// - chaque toast a un role adapté (status / alert) selon le type
+// - role="status" ou role="alert" selon le type (polite / assertive)
+// - icônes pré-rendues côté serveur, clonées en JS (pas d'innerHTML avec SVG)
 type ToastProps = {
   closeAria?: string
 }
 const { closeAria = 'Close' } = Astro.props as ToastProps
 ---
+
+<!-- Icônes pré-rendues, clonées par Toast.client.ts — jamais affichées directement -->
+<div id="toast-icon-tpl" aria-hidden="true" class="hidden">
+  <span data-type="success"><Check size={20} aria-hidden="true" /></span>
+  <span data-type="error"><AlertCircle size={20} aria-hidden="true" /></span>
+  <span data-type="info"><Info size={20} aria-hidden="true" /></span>
+  <span data-type="warning"><TriangleAlert size={20} aria-hidden="true" /></span>
+  <span data-type="close"><X size={16} aria-hidden="true" /></span>
+</div>
 
 <div
   id="toast-container"
@@ -17,7 +32,7 @@ const { closeAria = 'Close' } = Astro.props as ToastProps
   aria-live="polite"
   aria-atomic="false"
 >
-  <!-- Toasts will be dynamically added here -->
+  <!-- Toasts are dynamically added here by Toast.client.ts -->
 </div>
 
 <script type="application/json" id="toast-messages" set:html={JSON.stringify({ closeAriaLabel: closeAria })}></script>

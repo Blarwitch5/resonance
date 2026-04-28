@@ -1,83 +1,64 @@
 ---
+export const prerender = false
+import Layout from '../../components/layouts/Layout.astro'
+import Plus from '@lucide/astro/icons/plus'
+import Pin from '@lucide/astro/icons/pin'
 import { collectionRepository } from '../../repositories/collection-repository'
-import DashboardLayout from '../../components/layouts/DashboardLayout.astro'
-import CollectionCard from '../../components/collections/CollectionCard.astro'
-import EmptyState from '../../components/ui/EmptyState.astro'
 import { getCollectionsMessages } from '../../i18n/collections'
 import { normalizeLocale } from '../../i18n/config'
-import Plus from '@lucide/astro/icons/plus'
-import FolderOpen from '@lucide/astro/icons/folder-open'
 
-export const prerender = false
+const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const t = getCollectionsMessages(locale)
 
-// Utiliser la session depuis le middleware (Astro.locals)
-const session = Astro.locals.session
-if (!session) return Astro.redirect('/login')
+const user = Astro.locals.user
+if (!user) return Astro.redirect('/login', 302)
 
-const locale = normalizeLocale(Astro.locals.userPreferences?.locale ?? Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
-const collectionT = getCollectionsMessages(locale)
+const collections = await collectionRepository.findByUser(user.id)
+const username = user.username ?? user.id
 
-const MAX_COLLECTIONS = 2
-const collections = await collectionRepository.findByUserIdWithStats(Astro.locals.user!.id)
-const canCreateNewCollection = collections.length < MAX_COLLECTIONS
+Astro.response.headers.set('Cache-Control', 'no-store')
 ---
 
-<DashboardLayout title={collectionT.meta.title}>
-  <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold">{collectionT.index.title}</h1>
-        <p class="text-muted">
-          {collections.length === 1 ? collectionT.index.count.replace('{count}', String(collections.length)) : collectionT.index.countPlural.replace('{count}', String(collections.length))} / {MAX_COLLECTIONS} {collectionT.index.max}
-        </p>
-      </div>
-      {canCreateNewCollection ? (
-        <a
-          href="/collections/new"
-          class="btn-primary-gradient flex items-center gap-2 rounded-xl px-4 py-2"
-        >
-          <Plus size={20} />
-          <span class="hidden sm:inline">{collectionT.index.newCollection}</span>
-        </a>
-      ) : (
-        <a
-          href="/collections/new"
-          class="btn-secondary-surface flex items-center gap-2 rounded-xl px-4 py-2 opacity-50 cursor-not-allowed pointer-events-none"
-          aria-disabled="true"
-        >
-          <Plus size={20} />
-          <span class="hidden sm:inline">{collectionT.index.limitReached.replace('{max}', String(MAX_COLLECTIONS))}</span>
-        </a>
-      )}
-    </div>
+<Layout title={t.index.myCollections} showBottomBar={true}>
+  <div class="collections-page max-w-2xl mx-auto px-4 py-6">
+    <header class="flex items-center justify-between mb-6">
+      <h1 class="text-xl font-semibold">{t.index.myCollections}</h1>
+      <a href="/collections/new" class="btn-primary flex items-center gap-1.5 px-3 py-2 text-sm">
+        <Plus size={16} aria-hidden="true" />
+        {t.index.newShort}
+      </a>
+    </header>
 
-    {collections.length === 0 ? (
-      <EmptyState
-        title={collectionT.index.empty.title}
-        description={collectionT.index.empty.description}
-        icon={FolderOpen}
-        action={{
-          label: collectionT.index.empty.action,
-          href: '/collections/new',
-        }}
-      />
-    ) : (
-      <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {collections.map((collection) => (
-          <CollectionCard collection={collection} cardLabels={collectionT.card} />
-        ))}
+    {collections.length === 0 && (
+      <div class="text-center py-12">
+        <p class="text-muted mb-4">{t.index.empty.title}</p>
+        <p class="text-sm text-muted mb-6">{t.index.empty.description}</p>
+        <a href="/collections/new" class="btn-secondary">{t.index.empty.action}</a>
       </div>
     )}
+
+    <ul class="space-y-2" role="list">
+      {collections.map((col) => (
+        <li>
+          <a
+            href={`/u/${username}/collections/${col.slug}`}
+            class="card-link flex items-center justify-between p-4 rounded-xl border border-border hover:bg-surface-raised transition-colors"
+          >
+            <div class="flex items-center gap-2 min-w-0">
+              {col.isPinned && (
+                <Pin size={14} class="text-accent flex-shrink-0" aria-label={t.index.pinnedAria} />
+              )}
+              <span class="font-medium truncate">{col.name}</span>
+              {!col.isPublic && (
+                <span class="text-xs text-muted flex-shrink-0">({t.index.privateLabel})</span>
+              )}
+            </div>
+            <span class="text-sm text-muted flex-shrink-0 ml-2">
+              {t.index.records(col._count.items)}
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
   </div>
-</DashboardLayout>
-
-<style>
-  .glass-card {
-    transition: all 0.3s ease;
-  }
-
-  .glass-card:hover {
-    transform: translateY(-2px);
-  }
-</style>
-
+</Layout>

@@ -1,0 +1,269 @@
+---
+export const prerender = false
+import Layout from '../../components/layouts/Layout.astro'
+import { releaseRepository } from '../../repositories/release-repository'
+import { shelfItemRepository } from '../../repositories/shelf-item-repository'
+import { getExplorerMessages } from '../../i18n/explorer'
+import { normalizeLocale } from '../../i18n/config'
+
+const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const t = getExplorerMessages(locale)
+const tr = t.release
+
+const { discogsId } = Astro.params
+if (!discogsId) return Astro.redirect('/explore')
+
+const currentUser = Astro.locals.user
+const currentUserId = currentUser?.id ?? null
+
+// Get or create Release from Discogs
+const release = await releaseRepository.findOrCreateFromDiscogs(discogsId)
+if (!release) return Astro.redirect('/explore')
+
+// Check if already in user's shelf
+const alreadyOwned = currentUserId
+  ? await shelfItemRepository.findByUserAndRelease(currentUserId, release.id)
+  : null
+
+// Who in my follows has this?
+const friendsWithRelease = currentUserId
+  ? await shelfItemRepository.getFriendsWithRelease(currentUserId, release.id)
+  : []
+
+const showCommunityRating = (release.ratingCount ?? 0) >= 3
+const releaseTitle = release.artist + ' — ' + release.title
+const alreadyOwnedHref = alreadyOwned ? '/items/' + alreadyOwned.id : ''
+
+type TrackItem = { position: string; title: string; duration?: string }
+const tracklist = Array.isArray(release.tracklist) ? (release.tracklist as unknown as TrackItem[]) : null
+
+// Public page — cacheable
+Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
+
+// Serialize strings for client script
+const clientStrings = JSON.stringify({
+  dialogTitle: tr.dialog.title,
+  errorAdd: tr.dialog.errorAdd,
+  errorNetwork: tr.dialog.errorNetwork,
+  wantAdded: tr.wantAdded,
+})
+---
+
+<Layout title={releaseTitle} showBottomBar={true}>
+  <div class="release-detail max-w-2xl mx-auto px-4 py-6">
+
+    <!-- Cover + meta -->
+    <div class="flex items-start gap-4 mb-6">
+      <div class="flex-shrink-0">
+        {release.coverUrl
+          ? <img src={release.coverUrl} alt={releaseTitle} width="120" height="120" class="rounded-lg w-28 h-28 object-cover shadow" />
+          : <div class="w-28 h-28 rounded-lg bg-surface-raised flex items-center justify-center text-muted text-xs">{tr.nocover}</div>
+        }
+      </div>
+      <div class="flex-1 min-w-0">
+        <h1 class="text-lg font-semibold leading-tight">{release.title}</h1>
+        <p class="text-sm text-muted">{release.artist}</p>
+        {release.label && <p class="text-xs text-muted">{release.label}</p>}
+        <div class="flex items-center gap-2 mt-1 text-xs text-muted">
+          {release.year && <span>{release.year}</span>}
+          {release.country && <span>· {release.country}</span>}
+          <span>· {release.format}</span>
+        </div>
+        {showCommunityRating && (
+          <p class="text-xs text-muted mt-1">
+            {tr.communityAvg(release.avgRating?.toFixed(1) ?? '0', release.ratingCount ?? 0)}
+          </p>
+        )}
+      </div>
+    </div>
+
+    <!-- Friends who have it -->
+    {friendsWithRelease.length > 0 && (
+      <div class="friends-section mb-4 p-3 bg-surface-raised rounded-lg">
+        <p class="text-xs text-muted mb-2">{tr.friendsHaveIt(friendsWithRelease.length)}</p>
+        <div class="flex -space-x-2">
+          {friendsWithRelease.slice(0, 5).map((f) => (
+            <a href={'/u/' + f.user.username} aria-label={f.user.name ?? f.user.username ?? ''}>
+              {f.user.imageUrl
+                ? <img src={f.user.imageUrl} alt="" width="28" height="28" class="w-7 h-7 rounded-full border-2 border-background object-cover" />
+                : <div class="w-7 h-7 rounded-full border-2 border-background bg-accent flex items-center justify-center text-xs">{(f.user.name ?? 'U')[0]}</div>
+              }
+            </a>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <!-- Actions -->
+    {currentUserId && (
+      <div class="actions flex gap-2 mb-6">
+        {!alreadyOwned
+          ? (
+            <button
+              id="add-to-shelf-btn"
+              class="btn-primary"
+              data-discogs-id={discogsId}
+            >
+              {tr.addToShelf}
+            </button>
+          )
+          : (
+            <a href={alreadyOwnedHref} class="btn-secondary">{tr.viewInShelf}</a>
+          )
+        }
+        {!alreadyOwned && (
+          <button
+            id="want-btn"
+            class="btn-secondary"
+            data-release-id={release.id}
+            data-text-added={tr.wantAdded}
+          >
+            {tr.want}
+          </button>
+        )}
+      </div>
+    )}
+    {!currentUserId && (
+      <div class="mb-6">
+        <a href="/login" class="btn-primary">{tr.loginToAdd}</a>
+      </div>
+    )}
+
+    <!-- Tracklist -->
+    {tracklist && tracklist.length > 0 && (
+      <section aria-labelledby="tracklist-heading">
+        <h2 id="tracklist-heading" class="text-sm font-medium text-muted mb-2">{tr.tracklistTitle}</h2>
+        <ol class="space-y-1">
+          {tracklist.map((track) => (
+            <li class="flex items-center gap-3 text-sm py-1 border-b border-border/50 last:border-0">
+              <span class="text-muted w-8 flex-shrink-0">{track.position}</span>
+              <span class="flex-1">{track.title}</span>
+              {track.duration && <span class="text-muted text-xs">{track.duration}</span>}
+            </li>
+          ))}
+        </ol>
+      </section>
+    )}
+  </div>
+
+  <!-- Add to shelf modal -->
+  <dialog id="add-shelf-dialog" class="rounded-2xl p-6 max-w-sm w-full shadow-xl backdrop:bg-black/40">
+    <h2 class="font-semibold mb-4" id="dialog-title">{tr.dialog.title}</h2>
+    <form id="add-shelf-form" class="space-y-4">
+      <input type="hidden" id="dialog-discogs-id" name="discogsId" />
+
+      <div>
+        <label for="dialog-format" class="block text-sm font-medium mb-1">
+          {tr.dialog.formatLabel} <span aria-hidden="true">*</span>
+        </label>
+        <select id="dialog-format" name="format" required class="w-full border border-border rounded-lg px-3 py-2 text-sm">
+          <option value="">{tr.dialog.formatPlaceholder}</option>
+          <option value="Vinyl">Vinyl</option>
+          <option value="CD">CD</option>
+          <option value="Cassette">Cassette</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="dialog-condition" class="block text-sm font-medium mb-1">
+          {tr.dialog.conditionLabel} <span aria-hidden="true">*</span>
+        </label>
+        <select id="dialog-condition" name="condition" required class="w-full border border-border rounded-lg px-3 py-2 text-sm">
+          <option value="">{tr.dialog.conditionPlaceholder}</option>
+          <option value="Mint">Mint</option>
+          <option value="NM">Near Mint (NM)</option>
+          <option value="EX">Excellent (EX)</option>
+          <option value="VG+">Very Good+ (VG+)</option>
+          <option value="VG">Very Good (VG)</option>
+          <option value="G">Good (G)</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="dialog-rating" class="block text-sm font-medium mb-1">{tr.dialog.ratingLabel}</label>
+        <select id="dialog-rating" name="rating" class="w-full border border-border rounded-lg px-3 py-2 text-sm">
+          <option value="">—</option>
+          <option value="5">★★★★★ 5</option>
+          <option value="4">★★★★ 4</option>
+          <option value="3">★★★ 3</option>
+          <option value="2">★★ 2</option>
+          <option value="1">★ 1</option>
+        </select>
+      </div>
+
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary flex-1">{tr.dialog.submit}</button>
+        <button type="button" id="dialog-cancel" class="btn-ghost flex-1">{tr.dialog.cancel}</button>
+      </div>
+    </form>
+  </dialog>
+</Layout>
+
+<script type="application/json" id="release-page-strings" set:html={clientStrings}></script>
+
+<script>
+  const strings = JSON.parse(document.getElementById('release-page-strings')?.textContent ?? '{}')
+
+  const addBtn = document.getElementById('add-to-shelf-btn') as HTMLButtonElement | null
+  const dialog = document.getElementById('add-shelf-dialog') as HTMLDialogElement | null
+  const cancelBtn = document.getElementById('dialog-cancel')
+  const form = document.getElementById('add-shelf-form') as HTMLFormElement | null
+  const discogsIdInput = document.getElementById('dialog-discogs-id') as HTMLInputElement | null
+
+  addBtn?.addEventListener('click', () => {
+    if (discogsIdInput) discogsIdInput.value = addBtn.dataset.discogsId ?? ''
+    dialog?.showModal()
+  })
+
+  cancelBtn?.addEventListener('click', () => dialog?.close())
+  dialog?.addEventListener('click', (event) => { if (event.target === dialog) dialog.close() })
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    const formData = new FormData(form)
+    const payload = {
+      discogsId: formData.get('discogsId'),
+      format: formData.get('format'),
+      condition: formData.get('condition'),
+      rating: formData.get('rating') ? Number(formData.get('rating')) : undefined,
+    }
+
+    try {
+      const res = await fetch('/api/shelf-items/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        dialog?.close()
+        window.location.href = `/items/${data.shelfItem.id}`
+      } else {
+        alert(data.error ?? strings.errorAdd)
+      }
+    } catch {
+      alert(strings.errorNetwork)
+    }
+  })
+
+  const wantBtn = document.getElementById('want-btn') as HTMLButtonElement | null
+  wantBtn?.addEventListener('click', async () => {
+    const releaseId = wantBtn.dataset.releaseId
+    wantBtn.disabled = true
+    try {
+      const res = await fetch('/api/wants/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ releaseId }),
+      })
+      if (res.ok) {
+        wantBtn.textContent = wantBtn.dataset.textAdded ?? strings.wantAdded
+        wantBtn.disabled = true
+      } else {
+        wantBtn.disabled = false
+      }
+    } catch {
+      wantBtn.disabled = false
+    }
+  })
+</script>

@@ -1,176 +1,138 @@
 import { db } from '../lib/db'
-import type { Prisma } from '@prisma/client'
+
+function slugify(title: string): string {
+  return title
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 80)
+}
 
 export class CollectionRepository {
-  async findByUserId(userId: string) {
-    return db.collection.findMany({
-      where: { userId },
-      include: {
-        _count: {
-          select: { items: true },
-        },
+  private async slugExists(userId: string, slug: string): Promise<boolean> {
+    const found = await db.collection.findUnique({
+      where: { userId_slug: { userId, slug } },
+    })
+    return found !== null
+  }
+
+  private async generateSlug(title: string, userId: string): Promise<string> {
+    const base = slugify(title)
+    if (!base) throw new Error('Title produces empty slug')
+    if (!(await this.slugExists(userId, base))) return base
+    for (let i = 2; i <= 100; i++) {
+      const candidate = `${base}-${i}`
+      if (!(await this.slugExists(userId, candidate))) return candidate
+    }
+    return `${base}-${Date.now()}`
+  }
+
+  async createWithSlug(data: {
+    userId: string
+    name: string
+    description?: string
+    isPublic?: boolean
+  }) {
+    const slug = await this.generateSlug(data.name, data.userId)
+    return db.collection.create({
+      data: {
+        userId: data.userId,
+        name: data.name,
+        slug,
+        description: data.description,
+        isPublic: data.isPublic ?? true,
       },
-      orderBy: { updatedAt: 'desc' },
     })
   }
 
-  async findByUserIdWithStats(userId: string) {
-    const collections = await db.collection.findMany({
+  async findByUser(userId: string) {
+    return db.collection.findMany({
       where: { userId },
-      include: {
-        items: {
-          include: {
-            metadata: true,
-          },
-          orderBy: { addedAt: 'desc' },
-        },
-      },
-      orderBy: { updatedAt: 'desc' },
-    })
-
-    return collections.map((collection) => {
-      // Générer automatiquement la cover à partir du premier album avec cover
-      const firstItemWithCover = collection.items.find((item) => item.coverUrl && item.coverUrl.trim() !== '')
-      const existingCover = collection.coverImage && collection.coverImage.trim() !== '' ? collection.coverImage : null
-      const generatedCover = existingCover || firstItemWithCover?.coverUrl || null
-
-      return {
-        ...collection,
-        coverImage: generatedCover,
-        itemCount: collection.items.length,
-        vinylCount: collection.items.filter((item) => item.format === 'VINYL').length,
-        cdCount: collection.items.filter((item) => item.format === 'CD').length,
-        cassetteCount: collection.items.filter((item) => item.format === 'CASSETTE').length,
-        favoriteCount: collection.items.filter((item) => item.metadata?.isFavorite).length,
-      }
+      orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
+      include: { _count: { select: { items: true } } },
     })
   }
 
   async findById(id: string, userId?: string) {
     return db.collection.findFirst({
-      where: {
-        id,
-        ...(userId && { userId }),
-      },
+      where: { id, ...(userId ? { userId } : {}) },
+      include: { items: { include: { shelfItem: { include: { release: true } } } } },
+    })
+  }
+
+  async findBySlug(userId: string, slug: string) {
+    return db.collection.findUnique({
+      where: { userId_slug: { userId, slug } },
       include: {
         items: {
           include: {
-            metadata: true,
+            shelfItem: {
+              include: {
+                release: { select: { id: true, title: true, artist: true, coverUrl: true, format: true } },
+              },
+            },
           },
           orderBy: { addedAt: 'desc' },
-        },
-        _count: {
-          select: { items: true },
         },
       },
     })
   }
 
-  async findBySlug(slug: string, userId: string) {
-    const collection = await db.collection.findUnique({
-      where: {
-        userId_slug: {
-          userId,
-          slug,
-        },
-      },
-      include: {
-        items: {
-          include: {
-            metadata: true,
-          },
-          orderBy: { addedAt: 'desc' },
-        },
-      },
+  async getPinned(userId: string) {
+    return db.collection.findMany({
+      where: { userId, isPinned: true },
+      orderBy: { updatedAt: 'desc' },
+      include: { _count: { select: { items: true } } },
     })
+  }
 
-    if (!collection) return null
+  async togglePin(collectionId: string, userId: string): Promise<{ isPinned: boolean }> {
+    const collection = await db.collection.findFirst({ where: { id: collectionId, userId } })
+    if (!collection) throw new Error('Collection not found')
 
-    // Générer automatiquement la cover à partir du premier album avec cover
-    const firstItemWithCover = collection.items.find((item) => item.coverUrl && item.coverUrl.trim() !== '')
-    const existingCover = collection.coverImage && collection.coverImage.trim() !== '' ? collection.coverImage : null
-    const generatedCover = existingCover || firstItemWithCover?.coverUrl || null
-
-    return {
-      ...collection,
-      coverImage: generatedCover,
-      itemCount: collection.items.length,
-      vinylCount: collection.items.filter((item) => item.format === 'VINYL').length,
-      cdCount: collection.items.filter((item) => item.format === 'CD').length,
-      cassetteCount: collection.items.filter((item) => item.format === 'CASSETTE').length,
+    if (collection.isPinned) {
+      await db.collection.update({ where: { id: collectionId }, data: { isPinned: false } })
+      return { isPinned: false }
     }
+
+    const pinnedCount = await db.collection.count({ where: { userId, isPinned: true } })
+    if (pinnedCount >= 4) throw new Error('MAX_PINNED')
+
+    await db.collection.update({ where: { id: collectionId }, data: { isPinned: true } })
+    return { isPinned: true }
   }
 
-  async createCollection(data: Prisma.CollectionCreateInput) {
-    return db.collection.create({
-      data,
-      include: {
-        _count: {
-          select: { items: true },
-        },
-      },
-    })
+  async update(id: string, userId: string, data: { name?: string; description?: string; isPublic?: boolean }) {
+    const collection = await db.collection.findFirst({ where: { id, userId } })
+    if (!collection) throw new Error('Collection not found')
+    return db.collection.update({ where: { id }, data })
   }
 
-  async updateCollection(id: string, data: Prisma.CollectionUpdateInput) {
-    return db.collection.update({
-      where: { id },
-      data,
-      include: {
-        items: {
-          include: {
-            metadata: true,
-          },
-        },
-        _count: {
-          select: { items: true },
-        },
-      },
-    })
-  }
-
-  async deleteCollection(id: string) {
+  async delete(id: string, userId: string) {
+    const collection = await db.collection.findFirst({ where: { id, userId } })
+    if (!collection) throw new Error('Collection not found')
     return db.collection.delete({ where: { id } })
   }
 
-  async countByUserId(userId: string) {
-    return db.collection.count({
-      where: { userId },
+  async addItem(collectionId: string, shelfItemId: string, userId: string) {
+    const collection = await db.collection.findFirst({ where: { id: collectionId, userId } })
+    if (!collection) throw new Error('Collection not found')
+    return db.collectionItem.upsert({
+      where: { collectionId_shelfItemId: { collectionId, shelfItemId } },
+      update: {},
+      create: { collectionId, shelfItemId },
     })
   }
 
-  async getRecentCollections(userId: string, limit = 5) {
-    const collections = await db.collection.findMany({
-      where: { userId },
-      include: {
-        items: {
-          include: {
-            metadata: true,
-          },
-          take: 6,
-          orderBy: { addedAt: 'desc' },
-        },
-        _count: {
-          select: { items: true },
-        },
-      },
-      orderBy: { updatedAt: 'desc' },
-      take: limit,
-    })
-
-    return collections.map((collection) => {
-      // Générer automatiquement la cover à partir du premier album avec cover
-      const firstItemWithCover = collection.items.find((item) => item.coverUrl && item.coverUrl.trim() !== '')
-      const existingCover = collection.coverImage && collection.coverImage.trim() !== '' ? collection.coverImage : null
-      const generatedCover = existingCover || firstItemWithCover?.coverUrl || null
-
-      return {
-        ...collection,
-        coverImage: generatedCover,
-      }
-    })
+  async removeItem(collectionId: string, shelfItemId: string, userId: string) {
+    const collection = await db.collection.findFirst({ where: { id: collectionId, userId } })
+    if (!collection) throw new Error('Collection not found')
+    return db.collectionItem.deleteMany({ where: { collectionId, shelfItemId } })
   }
 }
 
 export const collectionRepository = new CollectionRepository()
-

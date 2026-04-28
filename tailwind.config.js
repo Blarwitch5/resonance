@@ -45,8 +45,9 @@ export default {
         'format-profile': 'var(--color-format-profile)',
       },
       fontFamily: {
-        sans: ['Poppins', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        sans: ['Instrument Sans', 'system-ui', '-apple-system', 'sans-serif'],
+        serif: ['Instrument Serif', 'Georgia', 'serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
     },
   },

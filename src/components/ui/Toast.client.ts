@@ -1,26 +1,19 @@
+import { onAstroPageLoad, onDomReady, runOnce } from '../../scripts/client/runtime'
+
 type ToastType = 'success' | 'error' | 'info' | 'warning'
 type ToastPayload = { id: string; type: ToastType; message: string; duration: number }
 type ToastOptions = { type?: ToastType; message: string; duration?: number }
-
-import { onAstroPageLoad, onDomReady, runOnce } from '../../scripts/client/runtime'
 
 type WindowWithToastInit = Window & {
   __resonanceToastInitialized?: boolean
 }
 
-const iconSvgByType: Record<ToastType, string> = {
-  success:
-    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>',
-  error:
-    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
-  info:
-    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
-  warning:
-    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+/** Clone une icône pré-rendue depuis le template serveur (#toast-icon-tpl). */
+function cloneIcon(type: ToastType | 'close'): Node | null {
+  const tpl = document.getElementById('toast-icon-tpl')
+  const source = tpl?.querySelector<HTMLElement>(`[data-type="${type}"]`)
+  return source ? source.cloneNode(true) : null
 }
-
-const closeButtonSvgMarkup =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
 
 let toastIdCounter = 0
 
@@ -58,7 +51,8 @@ function createToastElement(toast: ToastPayload, closeAriaLabel: string): HTMLDi
 
   const iconWrap = document.createElement('div')
   iconWrap.className = 'shrink-0'
-  iconWrap.innerHTML = iconSvgByType[toast.type] ?? iconSvgByType.info
+  const iconNode = cloneIcon(toast.type)
+  if (iconNode) iconWrap.appendChild(iconNode)
   toastElement.appendChild(iconWrap)
 
   const messageElement = document.createElement('p')
@@ -70,7 +64,8 @@ function createToastElement(toast: ToastPayload, closeAriaLabel: string): HTMLDi
   closeButton.type = 'button'
   closeButton.className = 'toast-close shrink-0 rounded p-1 transition-colors hover:bg-black/10'
   closeButton.setAttribute('aria-label', closeAriaLabel)
-  closeButton.innerHTML = closeButtonSvgMarkup
+  const closeIcon = cloneIcon('close')
+  if (closeIcon) closeButton.appendChild(closeIcon)
   closeButton.addEventListener('click', () => removeToast(toast.id))
   toastElement.appendChild(closeButton)
 

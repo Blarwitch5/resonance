@@ -1,6 +1,7 @@
 ---
 import { ClientRouter } from 'astro:transitions'
 import BottomBar from '../ui/BottomBar.astro'
+import BarcodeScanner from '../ui/BarcodeScanner.astro'
 import Footer from '../ui/Footer.astro'
 import Header from '../ui/Header.astro'
 import { getLayoutMessages } from '../../i18n/layout'
@@ -105,7 +106,7 @@ const layoutT = getLayoutMessages(locale)
   >
     <a
       href="#main-content"
-      class="skip-link fixed left-4 top-4 z-100 -translate-y-[9999px] rounded-lg bg-primary px-4 py-2 text-white shadow-lg transition-transform duration-200 focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+      class="skip-link fixed left-4 top-4 z-[100] -translate-y-[9999px] rounded-lg bg-primary px-4 py-2 text-white shadow-lg transition-transform duration-200 focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
     >
       {layoutT.common.skipToMainContent}
     </a>
@@ -141,15 +142,21 @@ const layoutT = getLayoutMessages(locale)
       </div>
 
       {showBottomBar && (
-        <BottomBar
-          mainNavAria={layoutT.bottomBar.mainNavAria}
-          libraryLabel={layoutT.bottomBar.library}
-          exploreLabel={layoutT.bottomBar.explore}
-          profileLabel={layoutT.bottomBar.profile}
-          userName={user?.name ?? null}
-          userEmail={user?.email ?? null}
-          userImageUrl={user?.imageUrl ?? user?.image ?? null}
-        />
+        <>
+          <BottomBar
+            mainNavAria={layoutT.bottomBar.mainNavAria}
+            shelfLabel={layoutT.bottomBar.shelf}
+            feedLabel={layoutT.bottomBar.feed}
+            addLabel={layoutT.bottomBar.add}
+            exploreLabel={layoutT.bottomBar.explore}
+            profileLabel={layoutT.bottomBar.profile}
+            userName={user?.name ?? null}
+            userUsername={user?.username ?? null}
+            userEmail={user?.email ?? null}
+            userImageUrl={user?.imageUrl ?? user?.image ?? null}
+          />
+          <BarcodeScanner barcodeMessages={layoutT.barcodeScanner} hideFab={true} />
+        </>
       )}
 
       {showFooter && <Footer navAria={layoutT.footer.navAria} />}
@@ -169,5 +176,22 @@ const layoutT = getLayoutMessages(locale)
   import '../../scripts/loading-utils';
 </script>
 <script>
+  // Wire the BottomBar FAB (#fab-add) to open the BarcodeScanner choice modal
+  // BarcodeScanner.client.ts listens for clicks on #barcode-scanner-btn via document delegation
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return
+    if (!event.target.closest('#fab-add')) return
+    event.preventDefault()
+    const scannerBtn = document.getElementById('barcode-scanner-btn')
+    scannerBtn?.click()
+  })
+</script>
+<script>
   import './Layout.client'
+</script>
+<script>
+  // Initialize push notifications in Capacitor context
+  import('../../capacitor/push').then(({ initPushNotifications }) => {
+    initPushNotifications()
+  }).catch(() => {})
 </script>

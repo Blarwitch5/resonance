@@ -1,7 +1,0 @@
----
-// Redirect from legacy /collection route to /library
-const url = new URL(Astro.url)
-const searchParams = url.searchParams.toString()
-const redirectUrl = `/library${searchParams ? `?${searchParams}` : ''}`
-return Astro.redirect(redirectUrl)
----

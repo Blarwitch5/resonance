@@ -1,0 +1,70 @@
+# ============================================================
+# .claudeignore — Resonance
+# Exclut les fichiers lourds / peu utiles du contexte Claude
+# pour réduire la consommation de tokens.
+# ============================================================
+
+# Dépendances
+node_modules/
+.pnpm-store/
+packages/shared/fonts/
+
+# Build output
+dist/
+.astro/
+
+# Lockfiles (longs, jamais utiles en lecture directe)
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Base de données locale
+prisma/dev.db
+prisma/dev.db-journal
+
+# Assets binaires / uploads
+public/uploads/
+public/fonts/
+*.woff
+*.woff2
+*.ttf
+*.otf
+*.eot
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.avif
+*.svg
+*.ico
+
+# Résultats de tests / coverage
+test-results/
+coverage/
+.nyc_output/
+
+# Docs opérationnelles (déploiement, fixes ponctuels — pas de code)
+DEPLOYMENT.md
+CURSOR_ASTRO_FIX.md
+FIX_ASTRO_FORMATTING.md
+DISABLE_ASTRO_PLUGIN.md
+guide-deploiement-vps.md
+resonance-app-structure.plan.md
+PRODUCT_REVIEW.md
+deploy.sh
+setup-vps.sh
+test-routes.sh
+
+# Scripts de migration one-shot
+scripts/add-user-preference-columns.sql
+
+# Env / secrets
+.env
+.env.*
+*.env
+
+# Cache / OS
+.DS_Store
+.cache/
+*.log

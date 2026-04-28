@@ -1,304 +1,247 @@
 import type { APIRoute } from 'astro'
-import { z } from 'zod'
-import { auth } from '../../../lib/auth'
 import { db } from '../../../lib/db'
+import { safeErrorMessage } from '../../../lib/api-error'
+import { checkRateLimit, retryAfterSeconds } from '../../../lib/rate-limit'
+import { stripHtml } from '../../../lib/sanitize'
 import { collectionRepository } from '../../../repositories/collection-repository'
-import { itemService } from '../../../services/item-service'
 
-// Schéma de validation pour l'import
-const ImportItemSchema = z.object({
-  discogsId: z.number(),
-  title: z.string(),
-  artist: z.string(),
-  year: z.number().optional().nullable(),
-  genre: z.string().optional().nullable(),
-  country: z.string().optional().nullable(),
-  label: z.string().optional().nullable(),
-  format: z.enum(['VINYL', 'CD', 'CASSETTE']),
-  barcode: z.string().optional().nullable(),
-  coverUrl: z.string().optional().nullable(),
-  addedAt: z.string().optional(),
-  metadata: z
-    .object({
-      customCoverPath: z.string().optional().nullable(),
-      acquisitionDate: z.string().optional().nullable(),
-      purchaseLocation: z.string().optional().nullable(),
-      purchasePrice: z.string().optional().nullable(),
-      condition: z.string().optional().nullable(),
-      personalRating: z.number().optional().nullable(),
-      isListened: z.boolean().optional(),
-      isFavorite: z.boolean().optional(),
-      personalNotes: z.string().optional().nullable(),
-      vinylSpeed: z.string().optional().nullable(),
-      cdType: z.string().optional().nullable(),
-      cassetteType: z.string().optional().nullable(),
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
+
+type ImportRelease = {
+  discogsId?: string | null
+  title?: string
+  artist?: string
+  label?: string | null
+  year?: number | null
+  country?: string | null
+  format?: string
+  coverUrl?: string | null
+  tracklist?: unknown
+}
+
+type ImportShelfItem = {
+  condition?: string
+  rating?: number | null
+  note?: string | null
+  acquiredAt?: string | null
+  release?: ImportRelease
+}
+
+type ImportCollectionItem = {
+  shelfItem?: { release?: ImportRelease }
+}
+
+type ImportCollection = {
+  name?: string
+  description?: string | null
+  isPublic?: boolean
+  items?: ImportCollectionItem[]
+}
+
+type ImportPayload = {
+  shelf?: ImportShelfItem[]
+  collections?: ImportCollection[]
+}
+
+const VALID_CONDITIONS = new Set(['Mint', 'NM', 'EX', 'VG+', 'VG', 'G'])
+const VALID_FORMATS = new Set(['Vinyl', 'CD', 'Cassette'])
+
+// POST /api/collections/import
+// Body: multipart/form-data with field "file" (JSON export file)
+export const POST: APIRoute = async ({ request, locals }) => {
+  const currentUser = locals.user
+  if (!currentUser) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
     })
-    .optional()
-    .nullable(),
-})
+  }
 
-const ImportCollectionSchema = z.object({
-  name: z.string(),
-  slug: z.string(),
-  description: z.string().optional().nullable(),
-  isPublic: z.boolean().optional(),
-  coverImage: z.string().optional().nullable(),
-  items: z.array(ImportItemSchema),
-})
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  if (!checkRateLimit(`collections-import:${ip}`, 3, 60 * 60_000)) {
+    return new Response(JSON.stringify({ error: 'Too many requests' }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(retryAfterSeconds(`collections-import:${ip}`)),
+      },
+    })
+  }
 
-const ImportDataSchema = z.object({
-  version: z.string().optional(),
-  collections: z.array(ImportCollectionSchema).optional(),
-  itemsWithoutCollection: z.array(ImportItemSchema).optional(),
-})
-
-export const POST: APIRoute = async ({ request }) => {
+  let payload: ImportPayload
   try {
-    const session = await auth.api.getSession({ headers: request.headers })
-    if (!session) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
+    const contentType = request.headers.get('content-type') ?? ''
 
-    const formData = await request.formData()
-    const file = formData.get('file') as File | null
-
-    if (!file) {
-      return new Response(JSON.stringify({ error: 'No file provided' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
-
-    // Lire le contenu du fichier
-    const fileContent = await file.text()
-    let importData: unknown
-
-    try {
-      importData = JSON.parse(fileContent)
-    } catch (error) {
-      return new Response(JSON.stringify({ error: 'Invalid JSON file' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
-
-    // Valider les données
-    const validationResult = ImportDataSchema.safeParse(importData)
-    if (!validationResult.success) {
-      return new Response(
-        JSON.stringify({
-          error: 'Invalid import file format',
-          details: validationResult.error.errors,
-        }),
-        {
+    if (contentType.includes('multipart/form-data')) {
+      const form = await request.formData()
+      const file = form.get('file')
+      if (!file || typeof file === 'string') {
+        return new Response(JSON.stringify({ error: 'Missing file field' }), {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
-        },
-      )
-    }
-
-    const data = validationResult.data
-    const stats = {
-      collectionsCreated: 0,
-      itemsCreated: 0,
-      itemsSkipped: 0,
-      errors: [] as string[],
-    }
-
-    // Importer les collections
-    if (data.collections && data.collections.length > 0) {
-      for (const collectionData of data.collections) {
-        try {
-          // Vérifier si la collection existe déjà
-          const existing = await collectionRepository.findBySlug(collectionData.slug, session.user.id)
-
-          let collectionId: string
-          if (existing) {
-            // Mettre à jour la collection existante
-            const updated = await collectionRepository.updateCollection(existing.id, {
-              name: collectionData.name,
-              description: collectionData.description,
-              isPublic: collectionData.isPublic ?? false,
-              coverImage: collectionData.coverImage,
-            })
-            collectionId = updated.id
-          } else {
-            // Créer une nouvelle collection
-            const created = await collectionRepository.createCollection({
-              name: collectionData.name,
-              slug: collectionData.slug,
-              description: collectionData.description,
-              isPublic: collectionData.isPublic ?? false,
-              coverImage: collectionData.coverImage,
-              user: {
-                connect: { id: session.user.id },
-              },
-            })
-            collectionId = created.id
-            stats.collectionsCreated++
-          }
-
-          // Importer les items de la collection
-          for (const itemData of collectionData.items) {
-            try {
-              // Vérifier si l'item existe déjà
-              const existingItem = await db.item.findFirst({
-                where: {
-                  discogsId: itemData.discogsId,
-                  userId: session.user.id,
-                  collectionId: collectionId,
-                },
-              })
-
-              if (existingItem) {
-                stats.itemsSkipped++
-                continue
-              }
-
-              // Créer l'item (slug généré par le service)
-              const item = await itemService.createItem(session.user.id, {
-                discogsId: itemData.discogsId,
-                title: itemData.title,
-                artist: itemData.artist,
-                year: itemData.year ?? null,
-                genre: itemData.genre ?? null,
-                country: itemData.country ?? null,
-                label: itemData.label ?? null,
-                format: itemData.format,
-                barcode: itemData.barcode ?? null,
-                coverUrl: itemData.coverUrl ?? null,
-                addedAt: itemData.addedAt ? new Date(itemData.addedAt) : new Date(),
-                collection: {
-                  connect: { id: collectionId },
-                },
-              })
-
-              // Créer les métadonnées si présentes
-              if (itemData.metadata) {
-                await db.itemMetadata.create({
-                  data: {
-                    itemId: item.id,
-                    customCoverPath: itemData.metadata.customCoverPath ?? null,
-                    acquisitionDate: itemData.metadata.acquisitionDate
-                      ? new Date(itemData.metadata.acquisitionDate)
-                      : null,
-                    purchaseLocation: itemData.metadata.purchaseLocation ?? null,
-                    purchasePrice: itemData.metadata.purchasePrice
-                      ? parseFloat(itemData.metadata.purchasePrice)
-                      : null,
-                    condition: itemData.metadata.condition ?? null,
-                    personalRating: itemData.metadata.personalRating ?? null,
-                    isListened: itemData.metadata.isListened ?? false,
-                    isFavorite: itemData.metadata.isFavorite ?? false,
-                    personalNotes: itemData.metadata.personalNotes ?? null,
-                    vinylSpeed: itemData.metadata.vinylSpeed ?? null,
-                    cdType: itemData.metadata.cdType ?? null,
-                    cassetteType: itemData.metadata.cassetteType ?? null,
-                  },
-                })
-              }
-
-              stats.itemsCreated++
-            } catch (error) {
-              stats.errors.push(`Error importing item "${itemData.title}": ${error instanceof Error ? error.message : 'Unknown error'}`)
-            }
-          }
-        } catch (error) {
-          stats.errors.push(`Error importing collection "${collectionData.name}": ${error instanceof Error ? error.message : 'Unknown error'}`)
-        }
+        })
       }
-    }
-
-    // Importer les items sans collection
-    if (data.itemsWithoutCollection && data.itemsWithoutCollection.length > 0) {
-      for (const itemData of data.itemsWithoutCollection) {
-        try {
-          // Vérifier si l'item existe déjà
-          const existingItem = await db.item.findFirst({
-            where: {
-              discogsId: itemData.discogsId,
-              userId: session.user.id,
-              collectionId: null,
-            },
-          })
-
-          if (existingItem) {
-            stats.itemsSkipped++
-            continue
-          }
-
-          // Créer l'item (slug généré par le service)
-          const item = await itemService.createItem(session.user.id, {
-            discogsId: itemData.discogsId,
-            title: itemData.title,
-            artist: itemData.artist,
-            year: itemData.year ?? null,
-            genre: itemData.genre ?? null,
-            country: itemData.country ?? null,
-            label: itemData.label ?? null,
-            format: itemData.format,
-            barcode: itemData.barcode ?? null,
-            coverUrl: itemData.coverUrl ?? null,
-            addedAt: itemData.addedAt ? new Date(itemData.addedAt) : new Date(),
-          })
-
-          // Créer les métadonnées si présentes
-          if (itemData.metadata) {
-            await db.itemMetadata.create({
-              data: {
-                itemId: item.id,
-                customCoverPath: itemData.metadata.customCoverPath ?? null,
-                acquisitionDate: itemData.metadata.acquisitionDate
-                  ? new Date(itemData.metadata.acquisitionDate)
-                  : null,
-                purchaseLocation: itemData.metadata.purchaseLocation ?? null,
-                purchasePrice: itemData.metadata.purchasePrice
-                  ? parseFloat(itemData.metadata.purchasePrice)
-                  : null,
-                condition: itemData.metadata.condition ?? null,
-                personalRating: itemData.metadata.personalRating ?? null,
-                isListened: itemData.metadata.isListened ?? false,
-                isFavorite: itemData.metadata.isFavorite ?? false,
-                personalNotes: itemData.metadata.personalNotes ?? null,
-                vinylSpeed: itemData.metadata.vinylSpeed ?? null,
-                cdType: itemData.metadata.cdType ?? null,
-                cassetteType: itemData.metadata.cassetteType ?? null,
-              },
-            })
-          }
-
-          stats.itemsCreated++
-        } catch (error) {
-          stats.errors.push(`Error importing item "${itemData.title}": ${error instanceof Error ? error.message : 'Unknown error'}`)
-        }
+      if (file.size > MAX_FILE_SIZE) {
+        return new Response(JSON.stringify({ error: 'File too large (max 10 MB)' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        })
       }
+      const text = await file.text()
+      payload = JSON.parse(text) as ImportPayload
+    } else {
+      payload = await request.json() as ImportPayload
     }
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'Import completed',
-        stats,
-      }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      },
-    )
-  } catch (error) {
-    console.error('Error importing collections:', error)
-    return new Response(
-      JSON.stringify({
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      },
-    )
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON file' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
+
+  if (!payload || typeof payload !== 'object') {
+    return new Response(JSON.stringify({ error: 'Invalid export format' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  const shelfItems = Array.isArray(payload.shelf) ? payload.shelf : []
+  const collections = Array.isArray(payload.collections) ? payload.collections : []
+
+  if (shelfItems.length === 0 && collections.length === 0) {
+    return new Response(JSON.stringify({ error: 'Nothing to import' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  // Map discogsId → new internal release ID (built during shelf import)
+  const discogsIdToReleaseId = new Map<string, string>()
+
+  let shelfCreated = 0
+  let shelfSkipped = 0
+
+  // ── 1. Import shelf items ──────────────────────────────────────────────────
+  for (const item of shelfItems) {
+    const releaseData = item.release
+    if (!releaseData) { shelfSkipped++; continue }
+
+    const condition = VALID_CONDITIONS.has(item.condition ?? '') ? item.condition! : 'VG'
+    const format = VALID_FORMATS.has(releaseData.format ?? '') ? releaseData.format! : 'Vinyl'
+    const title = releaseData.title?.trim() || 'Unknown'
+    const artist = releaseData.artist?.trim() || 'Unknown'
+
+    // Upsert release using export data — no Discogs API call needed
+    let release: { id: string } | null = null
+
+    if (releaseData.discogsId) {
+      release = await db.release.upsert({
+        where: { discogsId: releaseData.discogsId },
+        create: {
+          discogsId: releaseData.discogsId,
+          title,
+          artist,
+          label: releaseData.label ?? null,
+          year: releaseData.year ?? null,
+          country: releaseData.country ?? null,
+          format,
+          coverUrl: releaseData.coverUrl ?? null,
+          tracklist: releaseData.tracklist ? (releaseData.tracklist as object) : undefined,
+        },
+        update: {
+          // Only backfill missing fields, don't overwrite richer data
+          label: releaseData.label ?? undefined,
+          year: releaseData.year ?? undefined,
+          country: releaseData.country ?? undefined,
+          coverUrl: releaseData.coverUrl ?? undefined,
+          tracklist: releaseData.tracklist ? (releaseData.tracklist as object) : undefined,
+        },
+        select: { id: true },
+      })
+      discogsIdToReleaseId.set(releaseData.discogsId, release.id)
+    } else {
+      // No Discogs ID — match by title+artist or create
+      const existing = await db.release.findFirst({
+        where: { title, artist, format },
+        select: { id: true },
+      })
+      release = existing ?? await db.release.create({
+        data: { title, artist, format, label: null, year: null, country: null },
+        select: { id: true },
+      })
+    }
+
+    // Skip if user already has this on shelf
+    const onShelf = await db.shelfItem.findFirst({
+      where: { userId: currentUser.id, releaseId: release.id },
+      select: { id: true },
+    })
+    if (onShelf) { shelfSkipped++; continue }
+
+    await db.shelfItem.create({
+      data: {
+        userId: currentUser.id,
+        releaseId: release.id,
+        condition,
+        rating: typeof item.rating === 'number' && item.rating >= 1 && item.rating <= 5 ? item.rating : null,
+        note: item.note ? stripHtml(item.note).slice(0, 2000) : null,
+        acquiredAt: item.acquiredAt ? new Date(item.acquiredAt) : null,
+      },
+    })
+    shelfCreated++
+  }
+
+  // ── 2. Import collections ──────────────────────────────────────────────────
+  let collectionsCreated = 0
+  let collectionsSkipped = 0
+
+  for (const col of collections) {
+    const name = col.name?.trim()
+    if (!name || name.length > 100) { collectionsSkipped++; continue }
+
+    const collection = await collectionRepository.createWithSlug({
+      userId: currentUser.id,
+      name: stripHtml(name),
+      description: col.description ? stripHtml(col.description).slice(0, 500) : undefined,
+      isPublic: col.isPublic !== false,
+    })
+    collectionsCreated++
+
+    // Add items to collection
+    const colItems = Array.isArray(col.items) ? col.items : []
+    for (const colItem of colItems) {
+      const discogsId = colItem.shelfItem?.release?.discogsId
+      if (!discogsId) continue
+
+      const releaseId = discogsIdToReleaseId.get(discogsId)
+      if (!releaseId) continue
+
+      const shelfItem = await db.shelfItem.findFirst({
+        where: { userId: currentUser.id, releaseId },
+        select: { id: true },
+      })
+      if (!shelfItem) continue
+
+      await db.collectionItem.upsert({
+        where: { collectionId_shelfItemId: { collectionId: collection.id, shelfItemId: shelfItem.id } },
+        create: { collectionId: collection.id, shelfItemId: shelfItem.id },
+        update: {},
+      })
+    }
+  }
+
+  return new Response(
+    JSON.stringify({
+      imported: {
+        shelf: shelfCreated,
+        collections: collectionsCreated,
+      },
+      skipped: {
+        shelf: shelfSkipped,
+        collections: collectionsSkipped,
+      },
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  )
 }

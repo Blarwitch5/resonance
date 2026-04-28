@@ -27,6 +27,10 @@ function isEditableTarget(target: unknown): boolean {
   return contentEditable === '' || contentEditable === 'true'
 }
 
+function prefersReducedMotion(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
 function initKeyboardShortcuts(): void {
   const hint = getShortcutsHint()
 
@@ -70,7 +74,7 @@ function initKeyboardShortcuts(): void {
     if (currentIndex < allItems.length - 1) {
       const next = allItems[currentIndex + 1]
       next.focus()
-      next.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      next.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'nearest' })
     }
   })
 

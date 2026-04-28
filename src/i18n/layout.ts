@@ -29,7 +29,9 @@ const messages = {
       userFallback: 'User',
     },
     bottomBar: {
-      library: 'Library',
+      shelf: 'Shelf',
+      feed: 'Feed',
+      add: 'Add',
       explore: 'Explore',
       profile: 'Profile',
       mainNavAria: 'Main navigation',
@@ -148,7 +150,9 @@ const messages = {
       userFallback: 'Utilisateur',
     },
     bottomBar: {
-      library: 'Bibliothèque',
+      shelf: 'Collection',
+      feed: 'Fil',
+      add: 'Ajouter',
       explore: 'Explorer',
       profile: 'Profil',
       mainNavAria: 'Navigation principale',

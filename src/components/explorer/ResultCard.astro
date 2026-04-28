@@ -4,6 +4,9 @@ import Heart from '@lucide/astro/icons/heart'
 import Bookmark from '@lucide/astro/icons/bookmark'
 import Plus from '@lucide/astro/icons/plus'
 import EllipsisVertical from '@lucide/astro/icons/ellipsis-vertical'
+import Turntable from '@lucide/astro/icons/turntable'
+import CassetteTape from '@lucide/astro/icons/cassette-tape'
+import Disc from '@lucide/astro/icons/disc-2'
 import OptimizedImage from '../ui/OptimizedImage.astro'
 import { buildExplorerSlug } from '../../lib/slug'
 
@@ -75,7 +78,6 @@ const coverUrl = result.cover_image || result.thumb
 const [artist, ...titleParts] = result.title.split(' - ')
 const albumTitle = titleParts.join(' - ') || result.title
 const displayFormats = extractDisplayFormats(result.format)
-const formatsText = displayFormats.length > 0 ? displayFormats.join(', ') : ''
 const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result.year ?? null, result.id)
 ---
 
@@ -87,7 +89,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
   <div class="relative overflow-hidden rounded-t-xl bg-surface">
     <OptimizedImage
       src={coverUrl}
-      alt={albumTitle}
+      alt={`Pochette de ${albumTitle}, ${artist || 'artiste inconnu'}${result.year ? `, ${result.year}` : ''}`}
       width={400}
       height={400}
       loading="lazy"
@@ -95,7 +97,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
       class="h-full w-full object-cover"
     />
     <div
-      class="pointer-events-none absolute inset-0 bg-black/25 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+      class="pointer-events-none absolute inset-0 bg-black/25 opacity-30 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
     ></div>
     <!-- Actions -->
     <div
@@ -103,7 +105,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
     >
       <button
         type="button"
-        class="btn-primary cursor-pointer flex h-10 w-10 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+        class="btn-primary cursor-pointer flex h-11 w-11 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
         aria-label={addToCollectionAria}
         data-discogs-id={result.id}
         data-action="collection"
@@ -112,7 +114,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
       </button>
       <button
         type="button"
-        class="btn-icon favorite-action-button border-0! bg-amber-500/90! flex h-10 w-10 items-center justify-center rounded-full p-0 shadow-lg hover:bg-amber-500! focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+        class="btn-icon favorite-action-button border-0! bg-amber-500/90! flex h-11 w-11 items-center justify-center rounded-full p-0 shadow-lg hover:bg-amber-500! focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
         aria-label="Ajouter aux favoris"
         aria-pressed="false"
         data-discogs-id={result.id}
@@ -124,7 +126,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
       <button
         type="button"
         class:list={[
-          'btn-icon-colored flex h-10 w-10 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70',
+          'btn-icon-colored flex h-11 w-11 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70',
           inWishlist && 'wishlist-action-button--saved',
         ]}
         aria-label={inWishlist ? inWishlistAria : addToWishlistAria}
@@ -155,7 +157,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
     <div class="absolute right-2 top-2 z-10 flex items-center gap-2 md:hidden">
       <button
         type="button"
-        class="btn-primary cursor-pointer flex h-10 w-10 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+        class="btn-primary cursor-pointer flex h-11 w-11 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
         aria-label={addToCollectionAria}
         data-discogs-id={result.id}
         data-action="collection"
@@ -176,7 +178,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
         <div class="mobile-card-menu-panel absolute right-0 top-12 z-80 w-auto flex-col items-end gap-2 border-0 bg-transparent p-0 shadow-none backdrop-blur-none">
           <button
             type="button"
-            class="btn-icon favorite-action-button border-0! bg-amber-500/90! flex h-10 w-10 items-center justify-center rounded-full p-0 shadow-lg hover:bg-amber-500! focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+            class="btn-icon favorite-action-button border-0! bg-amber-500/90! flex h-11 w-11 items-center justify-center rounded-full p-0 shadow-lg hover:bg-amber-500! focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
             aria-label="Ajouter aux favoris"
             aria-pressed="false"
             data-discogs-id={result.id}
@@ -188,7 +190,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
           <button
             type="button"
             class:list={[
-              'btn-icon-colored flex h-10 w-10 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70',
+              'btn-icon-colored flex h-11 w-11 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70',
               inWishlist && 'wishlist-action-button--saved',
             ]}
             aria-label={inWishlist ? inWishlistAria : addToWishlistAria}
@@ -224,8 +226,20 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, result
   <div class="p-3">
     <h3 class="truncate text-sm leading-5 font-semibold text-neutral">{albumTitle}</h3>
     <p class="truncate text-sm leading-5 text-muted">{artist || unknownArtistLabel}</p>
-    {formatsText && (
-      <p class="mt-1 truncate text-xs font-medium text-primary">{formatsText}</p>
+    {displayFormats.length > 0 && (
+      <div class="mt-1 flex flex-wrap gap-1.5">
+        {displayFormats.map((format) => (
+          <span class:list={[
+            'inline-flex items-center gap-1 text-xs font-medium',
+            format === 'Vinyl' ? 'text-format-vinyl' : format === 'CD' ? 'text-format-cd' : 'text-format-cassette',
+          ]}>
+            {format === 'Vinyl' && <Turntable size={11} aria-hidden="true" class="fill-none stroke-2 shrink-0" />}
+            {format === 'CD' && <Disc size={11} aria-hidden="true" class="fill-none stroke-2 shrink-0" />}
+            {format === 'Cassette' && <CassetteTape size={11} aria-hidden="true" class="fill-none stroke-2 shrink-0" />}
+            {format}
+          </span>
+        ))}
+      </div>
     )}
     {result.year && <p class="text-xs leading-5 text-muted">{result.year}</p>}
   </div>
