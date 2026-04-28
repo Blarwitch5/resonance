@@ -10,6 +10,7 @@ import { normalizeLocale } from '../../i18n/config'
 import Play from '@lucide/astro/icons/play'
 import Pause from '@lucide/astro/icons/pause'
 import LoaderCircle from '@lucide/astro/icons/loader-circle'
+import Star from '@lucide/astro/icons/star'
 
 const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
 const t = itemsI18n[locale]
@@ -97,9 +98,13 @@ const userCollections = isOwner && currentUserId
 
         <!-- Owner rating -->
         {shelfItem.rating && (
-          <div class="flex items-center gap-1 mt-2" aria-label={`Note : ${shelfItem.rating} sur 5`}>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <span class={i < shelfItem.rating! ? 'text-accent' : 'text-muted'} aria-hidden="true">★</span>
+          <div class="flex items-center gap-0.5 mt-2" aria-label={`${t.rating}: ${shelfItem.rating}/5`}>
+            {Array.from({ length: 5 }).map((_, starIndex) => (
+              <Star
+                size={14}
+                class={starIndex < shelfItem.rating! ? 'text-accent fill-accent' : 'text-muted'}
+                aria-hidden="true"
+              />
             ))}
           </div>
         )}

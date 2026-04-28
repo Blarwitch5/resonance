@@ -1,6 +1,7 @@
 ---
 export const prerender = false
 import Layout from '../../../../components/layouts/Layout.astro'
+import Pin from '@lucide/astro/icons/pin'
 import { userRepository } from '../../../../repositories/user-repository'
 import { collectionRepository } from '../../../../repositories/collection-repository'
 import { followRepository } from '../../../../repositories/follow-repository'
@@ -56,7 +57,10 @@ if (!collection.isPublic && !isOwner) {
               aria-pressed={collection.isPinned}
               aria-label={collection.isPinned ? 'Désépingler du profil' : 'Épingler sur le profil'}
             >
-              {collection.isPinned ? '📌 Épinglée' : 'Épingler'}
+              <span class={collection.isPinned ? 'pin-state-pinned flex items-center gap-1' : 'pin-state-pinned flex items-center gap-1 hidden'}>
+                <Pin size={14} aria-hidden="true" /><span>Épinglée</span>
+              </span>
+              <span class={collection.isPinned ? 'pin-state-unpinned hidden' : 'pin-state-unpinned'}>Épingler</span>
             </button>
           </div>
         )}
@@ -113,7 +117,12 @@ if (!collection.isPublic && !isOwner) {
       if (res.ok) {
         pinBtn.dataset.pinned = data.isPinned ? 'true' : 'false'
         pinBtn.setAttribute('aria-pressed', String(data.isPinned))
-        pinBtn.textContent = data.isPinned ? '📌 Épinglée' : 'Épingler'
+        const pinStatePinned = pinBtn.querySelector('.pin-state-pinned')
+        const pinStateUnpinned = pinBtn.querySelector('.pin-state-unpinned')
+        if (pinStatePinned && pinStateUnpinned) {
+          pinStatePinned.classList.toggle('hidden', !data.isPinned)
+          pinStateUnpinned.classList.toggle('hidden', data.isPinned)
+        }
       } else {
         alert(data.error)
       }
