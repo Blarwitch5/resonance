@@ -1,4 +1,5 @@
 ---
+import ArrowLeft from '@lucide/astro/icons/arrow-left'
 import Layout from '../components/layouts/Layout.astro'
 import { normalizeLocale } from '../i18n/config'
 
@@ -10,9 +11,9 @@ const locale = normalizeLocale(
 const title = locale === 'fr' ? 'Page introuvable' : 'Page not found'
 const heading = locale === 'fr' ? 'Page introuvable' : 'Page not found'
 const body = locale === 'fr'
-  ? 'Cette page n\'existe pas ou a été supprimée.'
-  : 'This page doesn\'t exist or has been removed.'
-const backLabel = locale === 'fr' ? '← Retour à l\'accueil' : '← Back to home'
+  ? "Cette page n'existe pas ou a été supprimée."
+  : "This page doesn't exist or has been removed."
+const backLabel = locale === 'fr' ? "Retour à l'accueil" : 'Back to home'
 
 Astro.response.status = 404
 ---
@@ -22,6 +23,8 @@ Astro.response.status = 404
     <p class="text-6xl font-bold text-accent mb-4" aria-hidden="true">404</p>
     <h1 class="text-2xl font-semibold mb-2">{heading}</h1>
     <p class="text-muted mb-8 max-w-sm">{body}</p>
-    <a href="/" class="btn-primary">{backLabel}</a>
+    <a href="/" class="btn-primary flex items-center gap-2">
+      <ArrowLeft size={16} aria-hidden="true" />{backLabel}
+    </a>
   </main>
 </Layout>

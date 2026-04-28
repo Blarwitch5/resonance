@@ -1,5 +1,6 @@
 ---
 export const prerender = false
+import ArrowLeft from '@lucide/astro/icons/arrow-left'
 import Layout from '../../components/layouts/Layout.astro'
 
 const user = Astro.locals.user
@@ -9,7 +10,9 @@ if (!user) return Astro.redirect('/login', 302)
 <Layout title="Nouvelle collection" showBottomBar={true}>
   <div class="new-collection-page max-w-xl mx-auto px-4 py-6">
     <header class="mb-6">
-      <a href="/collections" class="text-sm text-muted hover:underline mb-3 inline-block">← Mes collections</a>
+      <a href="/collections" class="text-sm text-muted hover:underline mb-3 inline-flex items-center gap-1">
+        <ArrowLeft size={14} aria-hidden="true" />Mes collections
+      </a>
       <h1 class="text-xl font-semibold">Nouvelle collection</h1>
     </header>
 

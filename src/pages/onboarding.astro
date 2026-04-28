@@ -1,6 +1,12 @@
 ---
 export const prerender = false
+import AlertTriangle from '@lucide/astro/icons/triangle-alert'
+import ArrowLeft from '@lucide/astro/icons/arrow-left'
+import ArrowRight from '@lucide/astro/icons/arrow-right'
+import Check from '@lucide/astro/icons/check'
+import LoaderCircle from '@lucide/astro/icons/loader-circle'
 import Search from '@lucide/astro/icons/search'
+import X from '@lucide/astro/icons/x'
 import Layout from '../components/layouts/Layout.astro'
 import { db } from '../lib/db'
 import { onboardingI18n } from '../i18n/onboarding'
@@ -17,6 +23,16 @@ const user = await db.user.findUnique({
   select: { onboardingCompleted: true },
 })
 if (user?.onboardingCompleted) return Astro.redirect('/feed', 302)
+
+const clientStrings = JSON.stringify({
+  stepPrefix: t.stepPrefix,
+  usernameChecking: t.usernameChecking,
+  usernameAvailable: t.usernameAvailable,
+  usernameTaken: t.usernameTaken,
+  usernameInvalid: t.usernameInvalid,
+  usernameReserved: t.usernameReserved,
+  usernameNetworkError: t.usernameNetworkError,
+})
 ---
 
 <Layout title="Bienvenue sur Resonance">
@@ -72,8 +88,13 @@ if (user?.onboardingCompleted) return Astro.redirect('/feed', 302)
             aria-describedby="username-feedback"
             aria-required="true"
           />
-          <!-- Spinner / status icon -->
-          <span id="username-icon" class="absolute right-3 top-1/2 -translate-y-1/2 text-sm" aria-hidden="true"></span>
+          <!-- Status icons (pre-rendered, JS toggles visibility) -->
+          <span class="absolute right-3 top-1/2 -translate-y-1/2" aria-hidden="true">
+            <Check id="icon-check" size={14} class="text-success hidden" />
+            <X id="icon-x" size={14} class="text-error hidden" />
+            <LoaderCircle id="icon-loading" size={14} class="text-muted hidden animate-spin" />
+            <AlertTriangle id="icon-warning" size={14} class="text-warning hidden" />
+          </span>
         </div>
         <p
           id="username-feedback"
@@ -88,13 +109,11 @@ if (user?.onboardingCompleted) return Astro.redirect('/feed', 302)
         </div>
       </div>
 
-      <button
-        class="btn-primary w-full"
-        id="next-1"
-        disabled
-        aria-disabled="true"
-      >
-        {t.next}
+      <button class="btn-primary w-full" id="next-1" disabled aria-disabled="true">
+        <span id="next1-label" class="flex items-center justify-center gap-2">
+          {t.next}<ArrowRight size={16} aria-hidden="true" />
+        </span>
+        <span id="next1-loading" class="hidden">…</span>
       </button>
     </section>
 
@@ -124,8 +143,12 @@ if (user?.onboardingCompleted) return Astro.redirect('/feed', 302)
           </label>
         ))}
       </div>
-      <button class="btn-primary w-full" id="next-2">{t.next}</button>
-      <button class="btn-ghost w-full mt-2 text-sm" id="back-2" aria-label={t.back}>{t.back}</button>
+      <button class="btn-primary w-full flex items-center justify-center gap-2" id="next-2">
+        {t.next}<ArrowRight size={16} aria-hidden="true" />
+      </button>
+      <button class="btn-ghost w-full mt-2 text-sm flex items-center justify-center gap-2" id="back-2" aria-label={t.back}>
+        <ArrowLeft size={16} aria-hidden="true" />{t.back}
+      </button>
     </section>
 
     <!-- Step 3: Find friends -->
@@ -154,8 +177,12 @@ if (user?.onboardingCompleted) return Astro.redirect('/feed', 302)
         data-text-no-results={t.noResults}
         data-text-error={t.searchError}
       ></div>
-      <button class="btn-primary w-full" id="next-3">{t.next}</button>
-      <button class="btn-ghost w-full mt-2 text-sm" id="back-3" aria-label={t.back}>{t.back}</button>
+      <button class="btn-primary w-full flex items-center justify-center gap-2" id="next-3">
+        {t.next}<ArrowRight size={16} aria-hidden="true" />
+      </button>
+      <button class="btn-ghost w-full mt-2 text-sm flex items-center justify-center gap-2" id="back-3" aria-label={t.back}>
+        <ArrowLeft size={16} aria-hidden="true" />{t.back}
+      </button>
       <button class="btn-ghost w-full mt-1 text-sm skip-btn" data-target="4">{t.skip}</button>
     </section>
 
@@ -166,25 +193,20 @@ if (user?.onboardingCompleted) return Astro.redirect('/feed', 302)
       <div class="flex gap-3 mb-8">
         <a href="/shelf" class="btn-primary flex-1 text-center">{t.scanSearch}</a>
       </div>
-      <button class="btn-ghost w-full mt-2 text-sm" id="back-4" aria-label={t.back}>{t.back}</button>
+      <button class="btn-ghost w-full mt-2 text-sm flex items-center justify-center gap-2" id="back-4" aria-label={t.back}>
+        <ArrowLeft size={16} aria-hidden="true" />{t.back}
+      </button>
       <button class="btn-ghost w-full mt-1 text-sm" id="finish-onboarding">{t.finish}</button>
     </section>
 
   </main>
 </Layout>
 
-<script
-  define:vars={{
-    textStepOf: 'Étape',
-    textChecking: 'Vérification…',
-    textAvailable: 'Disponible ✓',
-    textTaken: 'Déjà pris.',
-    textInvalid: 'Format invalide (3-20 caractères, lettres minuscules, chiffres, - et _).',
-    textReserved: 'Ce nom est réservé.',
-    textSuggestions: 'Suggestions :',
-    textNetworkError: 'Erreur réseau, réessaie.',
-  }}
->
+<script type="application/json" id="onboarding-strings" set:html={clientStrings}></script>
+
+<script>
+  const strings = JSON.parse(document.getElementById('onboarding-strings')?.textContent ?? '{}')
+
   const TOTAL_STEPS = 4
   let currentStep = 1
   let usernameValid = false
@@ -200,7 +222,7 @@ if (user?.onboardingCompleted) return Astro.redirect('/feed', 302)
       dot.classList.toggle('bg-border', i + 1 !== n)
     })
     const label = document.getElementById('step-label')
-    if (label) label.textContent = `${textStepOf} ${n}/${TOTAL_STEPS}`
+    if (label) label.textContent = `${strings.stepPrefix} ${n}/${TOTAL_STEPS}`
 
     // Focus heading for screen readers
     const heading = document.querySelector<HTMLElement>(`#step-${n} h1[tabindex="-1"]`)
@@ -210,19 +232,21 @@ if (user?.onboardingCompleted) return Astro.redirect('/feed', 302)
   // ── Step 1: Username ──────────────────────────────────────────────
   const usernameInput = document.getElementById('username-input') as HTMLInputElement | null
   const feedback = document.getElementById('username-feedback')
-  const icon = document.getElementById('username-icon')
   const suggestionsBox = document.getElementById('username-suggestions')
   const suggestionsList = document.getElementById('suggestions-list')
   const nextBtn1 = document.getElementById('next-1') as HTMLButtonElement | null
 
   const USERNAME_RE = /^[a-z0-9_-]{3,20}$/
 
-  function setFeedback(msg: string, color: 'green' | 'red' | 'muted', iconChar: string) {
+  const iconIds = ['check', 'x', 'loading', 'warning'] as const
+
+  function setFeedback(msg: string, color: 'green' | 'red' | 'muted', iconState: '' | 'check' | 'x' | 'loading' | 'warning') {
     if (feedback) {
       feedback.textContent = msg
       feedback.className = `mt-1.5 text-xs min-h-[1.25rem] ${color === 'green' ? 'text-green-600 dark:text-green-400' : color === 'red' ? 'text-red-500' : 'text-muted'}`
     }
-    if (icon) icon.textContent = iconChar
+    iconIds.forEach((state) => document.getElementById(`icon-${state}`)?.classList.add('hidden'))
+    if (iconState) document.getElementById(`icon-${iconState}`)?.classList.remove('hidden')
   }
 
   function setNextEnabled(enabled: boolean) {
@@ -244,25 +268,25 @@ if (user?.onboardingCompleted) return Astro.redirect('/feed', 302)
       return
     }
     if (!USERNAME_RE.test(val)) {
-      setFeedback(textInvalid, 'red', '✗')
+      setFeedback(strings.usernameInvalid, 'red', 'x')
       return
     }
 
-    setFeedback(textChecking, 'muted', '…')
+    setFeedback(strings.usernameChecking, 'muted', 'loading')
     usernameTimer = setTimeout(async () => {
       try {
         const res = await fetch(`/api/profile/check-username?username=${encodeURIComponent(val)}`)
         if (!res.ok) throw new Error('server error')
         const data = await res.json()
         if (data.available) {
-          setFeedback(textAvailable, 'green', '✓')
+          setFeedback(strings.usernameAvailable, 'green', 'check')
           setNextEnabled(true)
         } else if (data.reason === 'invalid') {
-          setFeedback(textInvalid, 'red', '✗')
+          setFeedback(strings.usernameInvalid, 'red', 'x')
         } else if (data.reason === 'reserved') {
-          setFeedback(textReserved, 'red', '✗')
+          setFeedback(strings.usernameReserved, 'red', 'x')
         } else {
-          setFeedback(textTaken, 'red', '✗')
+          setFeedback(strings.usernameTaken, 'red', 'x')
           // Show suggestions
           if (data.suggestions?.length && suggestionsBox && suggestionsList) {
             suggestionsList.innerHTML = data.suggestions
@@ -280,16 +304,21 @@ if (user?.onboardingCompleted) return Astro.redirect('/feed', 302)
           }
         }
       } catch {
-        setFeedback(textNetworkError, 'red', '⚠')
+        setFeedback(strings.usernameNetworkError, 'red', 'warning')
       }
     }, 400)
   })
+
+  function setNext1Loading(loading: boolean) {
+    document.getElementById('next1-label')?.classList.toggle('hidden', loading)
+    document.getElementById('next1-loading')?.classList.toggle('hidden', !loading)
+  }
 
   nextBtn1?.addEventListener('click', async () => {
     const val = usernameInput?.value.trim().toLowerCase() ?? ''
     if (!usernameValid || !val) return
     nextBtn1.disabled = true
-    nextBtn1.textContent = '…'
+    setNext1Loading(true)
     try {
       const res = await fetch('/api/profile/update', {
         method: 'POST',
@@ -297,18 +326,17 @@ if (user?.onboardingCompleted) return Astro.redirect('/feed', 302)
         body: JSON.stringify({ username: val }),
       })
       if (res.status === 409) {
-        setFeedback(textTaken, 'red', '✗')
+        setFeedback(strings.usernameTaken, 'red', 'x')
         setNextEnabled(false)
-        nextBtn1.textContent = 'Continuer →'
         return
       }
       if (!res.ok) throw new Error('server error')
       goToStep(2)
     } catch {
-      setFeedback(textNetworkError, 'red', '⚠')
+      setFeedback(strings.usernameNetworkError, 'red', 'warning')
     } finally {
       nextBtn1.disabled = false
-      nextBtn1.textContent = 'Continuer →'
+      setNext1Loading(false)
     }
   })
 
