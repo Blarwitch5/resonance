@@ -1,5 +1,6 @@
 ---
 import Layout from '../components/layouts/Layout.astro'
+import BackNav from '../components/ui/BackNav.astro'
 import Github from '@lucide/astro/icons/github'
 import Mail from '@lucide/astro/icons/mail'
 import { staticPagesI18n } from '../i18n/static-pages'
@@ -10,13 +11,15 @@ const locale = normalizeLocale(
   Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2)
 )
 const t = staticPagesI18n[locale].contact
+const tNav = staticPagesI18n[locale].nav
 
 // TODO: remplacer par les vraies URLs
 const GITHUB_ISSUES_URL = 'https://github.com/resonance-app/resonance/issues/new'
 const CONTACT_EMAIL = 'hello@resonance.app'
 ---
 
-<Layout title={t.title}>
+<Layout title={t.title} showBottomBar={true} showFooter={false}>
+  <BackNav backLabel={tNav.backToApp} backAria={tNav.backToAppAria} logoAria={tNav.logoAria} />
   <div class="max-w-2xl mx-auto px-4 py-12">
 
     <header class="mb-10">

@@ -1,5 +1,6 @@
 ---
 import Layout from '../components/layouts/Layout.astro'
+import BackNav from '../components/ui/BackNav.astro'
 import Disc3 from '@lucide/astro/icons/disc-3'
 import ScanBarcode from '@lucide/astro/icons/scan-barcode'
 import Heart from '@lucide/astro/icons/heart'
@@ -12,11 +13,11 @@ const locale = normalizeLocale(
   Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2)
 )
 const t = staticPagesI18n[locale].about
-
-const featureIcons = [Disc3, ScanBarcode, Heart, Users]
+const tNav = staticPagesI18n[locale].nav
 ---
 
-<Layout title={t.title} description={t.tagline}>
+<Layout title={t.title} description={t.tagline} showBottomBar={true} showFooter={false}>
+  <BackNav backLabel={tNav.backToApp} backAria={tNav.backToAppAria} logoAria={tNav.logoAria} />
   <div class="max-w-2xl mx-auto px-4 py-12">
 
     <header class="mb-12">

@@ -1,5 +1,6 @@
 ---
 import Layout from '../components/layouts/Layout.astro'
+import BackNav from '../components/ui/BackNav.astro'
 import ChevronDown from '@lucide/astro/icons/chevron-down'
 import { staticPagesI18n } from '../i18n/static-pages'
 import { normalizeLocale } from '../i18n/config'
@@ -10,9 +11,11 @@ const locale = normalizeLocale(
 )
 const t = staticPagesI18n[locale].help
 const tContact = staticPagesI18n[locale].contact
+const tNav = staticPagesI18n[locale].nav
 ---
 
-<Layout title={t.title}>
+<Layout title={t.title} showBottomBar={true} showFooter={false}>
+  <BackNav backLabel={tNav.backToApp} backAria={tNav.backToAppAria} logoAria={tNav.logoAria} />
   <div class="max-w-2xl mx-auto px-4 py-12">
 
     <header class="mb-10">

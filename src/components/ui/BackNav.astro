@@ -1,0 +1,29 @@
+---
+import ArrowLeft from '@lucide/astro/icons/arrow-left'
+import Logo from './Logo.astro'
+
+interface Props {
+  backLabel: string
+  backAria: string
+  logoAria: string
+  backHref?: string
+}
+
+const { backLabel, backAria, logoAria, backHref = '/' } = Astro.props
+---
+
+<nav
+  class="sticky top-0 z-40 flex items-center justify-between px-4 h-14 border-b border-border bg-background/80 backdrop-blur-xl"
+  aria-label={backAria}
+>
+  <a
+    href={backHref}
+    class="inline-flex items-center gap-2 text-sm text-muted hover:text-neutral transition-colors"
+    aria-label={backAria}
+  >
+    <ArrowLeft size={16} aria-hidden="true" />
+    <span>{backLabel}</span>
+  </a>
+
+  <Logo size="sm" showText={false} href="/" backToHomeAria={logoAria} noHover={false} />
+</nav>

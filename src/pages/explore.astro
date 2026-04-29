@@ -51,15 +51,15 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
           <Search size={16} class="absolute left-3 top-3.5 text-muted" aria-hidden="true" />
         </div>
       </form>
-      <div id="search-results" class="mt-2 space-y-2" role="region" aria-live="polite" aria-label={t.searchPlaceholder} data-text-no-results={t.noResults} data-text-error={t.searchError}></div>
+      <div id="search-results" class="hidden mt-1 rounded-xl border border-border bg-surface shadow-lg overflow-hidden" role="region" aria-live="polite" aria-label={t.searchPlaceholder} data-text-no-results={t.noResults} data-text-error={t.searchError} data-text-load-more={t.loadMore}></div>
     </div>
 
     <!-- Template for search result items (populated by JS) -->
     <template id="search-result-tpl">
-      <a data-role="result-link" href="#" class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-raised transition-colors">
+      <a data-role="result-link" href="#" class="flex items-center gap-3 px-4 py-3 hover:bg-surface-raised transition-colors">
         <img data-role="result-thumb" src="" alt="" width="40" height="40" class="w-10 h-10 rounded object-cover flex-shrink-0" loading="lazy" />
         <div data-role="result-thumb-placeholder" class="w-10 h-10 rounded bg-surface-raised flex-shrink-0 hidden"></div>
-        <span data-role="result-title" class="text-sm"></span>
+        <span data-role="result-title" class="text-sm text-white font-medium truncate"></span>
       </a>
     </template>
 
@@ -67,7 +67,7 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
     {trending.length > 0 && (
       <section id="trending-section" class="mb-8" aria-labelledby="trending-heading">
         <h2 id="trending-heading" class="text-sm font-medium text-muted mb-3">{t.trending}</h2>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 min-[480px]:grid-cols-2 gap-3">
           {trending.map((release) => release && (
             <a
               href={`/explore/${release.discogsId}`}
@@ -141,48 +141,117 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
   }
 
   function clearResults() {
-    if (resultsContainer) resultsContainer.textContent = ''
+    if (!resultsContainer) return
+    resultsContainer.textContent = ''
+    resultsContainer.classList.add('hidden')
+  }
+
+  type SearchResult = { id: number; slug?: string; title: string; thumb?: string; master_id?: number }
+
+  const PAGE_SIZE = 6
+  let currentResults: SearchResult[] = []
+  let visibleCount = 0
+
+  function deduplicateByMasterId(results: SearchResult[]): SearchResult[] {
+    const seenMasterIds = new Set<number>()
+    return results.filter((result) => {
+      if (!result.master_id) return true
+      if (seenMasterIds.has(result.master_id)) return false
+      seenMasterIds.add(result.master_id)
+      return true
+    })
+  }
+
+  function renderResultItem(result: SearchResult) {
+    if (!resultTemplate) return
+    const clone = resultTemplate.content.cloneNode(true) as DocumentFragment
+    const link = clone.querySelector('[data-role="result-link"]') as HTMLAnchorElement
+    const thumb = clone.querySelector('[data-role="result-thumb"]') as HTMLImageElement
+    const placeholder = clone.querySelector('[data-role="result-thumb-placeholder"]') as HTMLElement
+    const title = clone.querySelector('[data-role="result-title"]') as HTMLElement
+    link.href = `/explore/${result.id}`
+    if (result.thumb) {
+      thumb.src = result.thumb
+      placeholder.classList.add('hidden')
+    } else {
+      thumb.classList.add('hidden')
+      placeholder.classList.remove('hidden')
+    }
+    title.textContent = result.title
+    resultsContainer?.appendChild(clone)
+  }
+
+  function renderMore() {
+    const nextBatch = currentResults.slice(visibleCount, visibleCount + PAGE_SIZE)
+    for (const result of nextBatch) {
+      renderResultItem(result)
+    }
+    visibleCount += nextBatch.length
+
+    resultsContainer?.querySelector('[data-role="load-more"]')?.remove()
+
+    if (visibleCount < currentResults.length) {
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.dataset.role = 'load-more'
+      btn.className = 'w-full text-sm text-accent px-4 py-3 hover:bg-surface-raised transition-colors border-t border-border text-left'
+      btn.textContent = resultsContainer?.dataset.textLoadMore ?? 'Voir plus de résultats'
+      btn.addEventListener('click', renderMore)
+      resultsContainer?.appendChild(btn)
+    }
+  }
+
+  function renderResults(results: SearchResult[]) {
+    if (!resultsContainer) return
+    resultsContainer.textContent = ''
+    resultsContainer.classList.remove('hidden')
+    currentResults = deduplicateByMasterId(results)
+    visibleCount = 0
+    renderMore()
   }
 
   function renderNoResults() {
     if (!resultsContainer) return
-    const message = document.createElement('p')
-    message.className = 'text-sm text-muted py-2'
-    message.textContent = resultsContainer.dataset.textNoResults ?? 'Aucun résultat.'
+    currentResults = []
+    visibleCount = 0
     resultsContainer.textContent = ''
+    resultsContainer.classList.remove('hidden')
+    const message = document.createElement('p')
+    message.className = 'text-sm text-muted px-4 py-3'
+    message.textContent = resultsContainer.dataset.textNoResults ?? 'Aucun résultat.'
     resultsContainer.appendChild(message)
   }
 
   function renderError() {
     if (!resultsContainer) return
-    const message = document.createElement('p')
-    message.className = 'text-sm text-muted py-2'
-    message.textContent = resultsContainer.dataset.textError ?? 'Erreur de recherche.'
+    currentResults = []
+    visibleCount = 0
     resultsContainer.textContent = ''
+    resultsContainer.classList.remove('hidden')
+    const message = document.createElement('p')
+    message.className = 'text-sm text-muted px-4 py-3'
+    message.textContent = resultsContainer.dataset.textError ?? 'Erreur de recherche.'
     resultsContainer.appendChild(message)
   }
 
-  function renderResults(results: { id: string; title: string; thumb?: string }[]) {
-    if (!resultsContainer || !resultTemplate) return
-    resultsContainer.textContent = ''
-    for (const result of results.slice(0, 8)) {
-      const clone = resultTemplate.content.cloneNode(true) as DocumentFragment
-      const link = clone.querySelector('[data-role="result-link"]') as HTMLAnchorElement
-      const thumb = clone.querySelector('[data-role="result-thumb"]') as HTMLImageElement
-      const placeholder = clone.querySelector('[data-role="result-thumb-placeholder"]') as HTMLElement
-      const title = clone.querySelector('[data-role="result-title"]') as HTMLElement
-      link.href = `/explore/${result.id}`
-      if (result.thumb) {
-        thumb.src = result.thumb
-        placeholder.classList.add('hidden')
-      } else {
-        thumb.classList.add('hidden')
-        placeholder.classList.remove('hidden')
+  async function runSearch(query: string) {
+    try {
+      const response = await fetch(`/api/discogs/search?q=${encodeURIComponent(query)}&per_page=24`)
+      const data = await response.json() as { results?: SearchResult[] }
+      if (!data.results?.length) {
+        renderNoResults()
+        return
       }
-      title.textContent = result.title
-      resultsContainer.appendChild(clone)
+      renderResults(data.results)
+    } catch {
+      renderError()
     }
   }
+
+  // Prevent form navigation on Enter — search is handled by the input listener
+  document.getElementById('explore-search-form')?.addEventListener('submit', (event) => {
+    event.preventDefault()
+  })
 
   searchInput?.addEventListener('input', () => {
     clearTimeout(debounceTimer)
@@ -193,20 +262,16 @@ Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate
       return
     }
     hideDiscoverySections()
-    debounceTimer = setTimeout(async () => {
-      try {
-        const response = await fetch(`/api/discogs/search?q=${encodeURIComponent(query)}`)
-        const data = await response.json() as { results?: { id: string; title: string; thumb?: string }[] }
-        if (!data.results?.length) {
-          renderNoResults()
-          return
-        }
-        renderResults(data.results)
-      } catch {
-        renderError()
-      }
-    }, 350)
+    debounceTimer = setTimeout(() => { void runSearch(query) }, 350)
   })
+
+  // Run search from URL ?q= param on initial page load (e.g. after keyboard Enter)
+  const initialQuery = new URLSearchParams(window.location.search).get('q')?.trim() ?? ''
+  if (initialQuery.length >= 2 && searchInput) {
+    searchInput.value = initialQuery
+    hideDiscoverySections()
+    void runSearch(initialQuery)
+  }
 
   // Inline follow buttons
   document.querySelectorAll<HTMLButtonElement>('.follow-btn-small').forEach((btn) => {

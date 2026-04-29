@@ -1,5 +1,10 @@
 export const staticPagesI18n = {
   fr: {
+    nav: {
+      backToApp: 'Retour',
+      backToAppAria: "Retour à l'application",
+      logoAria: 'Resonance — accueil',
+    },
     about: {
       title: 'À propos de Resonance',
       tagline: 'Là où ta musique résonne.',
@@ -92,6 +97,11 @@ export const staticPagesI18n = {
     },
   },
   en: {
+    nav: {
+      backToApp: 'Back',
+      backToAppAria: 'Back to the app',
+      logoAria: 'Resonance — home',
+    },
     about: {
       title: 'About Resonance',
       tagline: 'Where your music resonates.',
