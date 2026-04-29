@@ -18,6 +18,11 @@ const messages = {
         description: 'Organize your albums by theme, genre or era. Create custom collections to better manage and explore your music.',
         action: 'Create a collection',
       },
+      records: (count: number) => `${count} record${count !== 1 ? 's' : ''}`,
+      pinnedAria: 'Pinned on profile',
+      privateLabel: 'Private',
+      myCollections: 'My collections',
+      newShort: 'New',
     },
     new: {
       title: 'Create a collection',
@@ -108,6 +113,11 @@ const messages = {
         description: 'Organise tes albums par thème, genre ou époque. Crée des collections personnalisées pour mieux gérer et explorer ta musique.',
         action: 'Créer une collection',
       },
+      records: (count: number) => `${count} disque${count !== 1 ? 's' : ''}`,
+      pinnedAria: 'Épinglée sur le profil',
+      privateLabel: 'Privée',
+      myCollections: 'Mes collections',
+      newShort: 'Nouvelle',
     },
     new: {
       title: 'Créer une collection',

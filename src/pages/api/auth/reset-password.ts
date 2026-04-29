@@ -1,3 +1,4 @@
+import { safeErrorMessage } from '../../../../lib/api-error'
 import type { APIRoute } from 'astro'
 import { hashPassword } from 'better-auth/crypto'
 import { db } from '../../../lib/db'

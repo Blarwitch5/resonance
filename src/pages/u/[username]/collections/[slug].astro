@@ -1,0 +1,135 @@
+---
+export const prerender = false
+import Layout from '../../../../components/layouts/Layout.astro'
+import Pin from '@lucide/astro/icons/pin'
+import { userRepository } from '../../../../repositories/user-repository'
+import { collectionRepository } from '../../../../repositories/collection-repository'
+import { followRepository } from '../../../../repositories/follow-repository'
+
+const { username, slug } = Astro.params
+if (!username || !slug) return Astro.redirect('/explore')
+
+const currentUser = Astro.locals.user
+const currentUserId = currentUser?.id ?? null
+
+const profileUser = await userRepository.findByUsername(username)
+if (!profileUser) return Astro.redirect('/explore')
+
+const collection = await collectionRepository.findBySlug(profileUser.id, slug)
+if (!collection) return Astro.redirect(`/u/${username}`)
+
+// Privacy: private collection visible only to owner or followers
+const isOwner = currentUserId === profileUser.id
+if (!collection.isPublic && !isOwner) {
+  const canView = currentUserId
+    ? await followRepository.isFollowing(currentUserId, profileUser.id)
+    : false
+  if (!canView) return Astro.redirect(`/u/${username}`)
+}
+---
+
+<Layout title={`${collection.name} — ${profileUser.name ?? username}`}>
+  <div class="collection-detail max-w-2xl mx-auto px-4 py-6">
+
+    <header class="mb-6">
+      <div class="flex items-center gap-2 mb-1">
+        <a href={`/u/${username}`} class="text-sm text-muted hover:underline">@{username}</a>
+        <span class="text-muted" aria-hidden="true">/</span>
+        <span class="text-sm text-muted">Collections</span>
+      </div>
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h1 class="text-xl font-semibold">{collection.name}</h1>
+          {collection.description && (
+            <p class="text-sm text-muted mt-1">{collection.description}</p>
+          )}
+          <p class="text-xs text-muted mt-1">
+            {collection.items.length} disque{collection.items.length !== 1 ? 's' : ''}
+            {!collection.isPublic && <span class="ml-2 text-accent">Privée</span>}
+          </p>
+        </div>
+        {isOwner && (
+          <div class="flex gap-2">
+            <button
+              class="pin-btn btn-ghost text-xs"
+              data-collection-id={collection.id}
+              data-pinned={collection.isPinned ? 'true' : 'false'}
+              aria-pressed={collection.isPinned}
+              aria-label={collection.isPinned ? 'Désépingler du profil' : 'Épingler sur le profil'}
+            >
+              <span class={collection.isPinned ? 'pin-state-pinned flex items-center gap-1' : 'pin-state-pinned flex items-center gap-1 hidden'}>
+                <Pin size={14} aria-hidden="true" /><span>Épinglée</span>
+              </span>
+              <span class={collection.isPinned ? 'pin-state-unpinned hidden' : 'pin-state-unpinned'}>Épingler</span>
+            </button>
+          </div>
+        )}
+      </div>
+    </header>
+
+    {collection.items.length === 0 && (
+      <p class="text-center text-muted py-12">Aucun disque dans cette collection.</p>
+    )}
+
+    <div class="grid grid-cols-3 gap-3" role="list" aria-label="Disques dans la collection">
+      {collection.items.map((item) => (
+        <div role="listitem">
+          <a
+            href={`/items/${item.shelfItem.id}`}
+            class="block rounded-xl overflow-hidden border border-border hover:opacity-90 transition-opacity"
+            aria-label={`${item.shelfItem.release.artist} — ${item.shelfItem.release.title}`}
+          >
+            {item.shelfItem.release.coverUrl
+              ? <img
+                  src={item.shelfItem.release.coverUrl}
+                  alt={`${item.shelfItem.release.artist} — ${item.shelfItem.release.title}`}
+                  width="160"
+                  height="160"
+                  class="w-full aspect-square object-cover"
+                  loading="lazy"
+                />
+              : <div class="w-full aspect-square bg-surface-raised flex items-center justify-center text-xs text-muted p-2 text-center">
+                  {item.shelfItem.release.title}
+                </div>
+            }
+            <div class="p-2">
+              <p class="text-xs font-medium truncate">{item.shelfItem.release.title}</p>
+              <p class="text-xs text-muted truncate">{item.shelfItem.release.artist}</p>
+            </div>
+          </a>
+          {isOwner && item.note && (
+            <p class="text-xs text-muted mt-1 px-1 truncate">{item.note}</p>
+          )}
+        </div>
+      ))}
+    </div>
+  </div>
+</Layout>
+
+<script>
+  const pinBtn = document.querySelector('.pin-btn') as HTMLButtonElement | null
+  pinBtn?.addEventListener('click', async () => {
+    const id = pinBtn.dataset.collectionId
+    pinBtn.disabled = true
+    try {
+      const res = await fetch(`/api/collections/${id}/pin`, { method: 'POST' })
+      const data = await res.json()
+      if (res.ok) {
+        pinBtn.dataset.pinned = data.isPinned ? 'true' : 'false'
+        pinBtn.setAttribute('aria-pressed', String(data.isPinned))
+        const pinStatePinned = pinBtn.querySelector('.pin-state-pinned')
+        const pinStateUnpinned = pinBtn.querySelector('.pin-state-unpinned')
+        if (pinStatePinned && pinStateUnpinned) {
+          pinStatePinned.classList.toggle('hidden', !data.isPinned)
+          pinStateUnpinned.classList.toggle('hidden', data.isPinned)
+        }
+      } else {
+        alert(data.error)
+      }
+    } catch {
+      // no-op
+    } finally {
+      pinBtn.disabled = false
+    }
+  })
+</script>

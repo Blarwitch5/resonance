@@ -1,8 +1,29 @@
 import type { APIRoute } from 'astro'
 import { experimental_AstroContainer as AstroContainer } from 'astro/container'
 import SearchResultsGrid from '../../../components/explorer/SearchResultsGrid.astro'
+import { checkRateLimit, retryAfterSeconds } from '../../../lib/rate-limit'
+
+function getClientIp(request: Request): string {
+  return (
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    request.headers.get('cf-connecting-ip') ??
+    'unknown'
+  )
+}
 
 export const POST: APIRoute = async ({ request }) => {
+  // Rate limit: 30 requests per minute per IP (public endpoint)
+  const ip = getClientIp(request)
+  if (!checkRateLimit(`discogs-render:${ip}`, 30, 60_000)) {
+    return new Response(JSON.stringify({ error: 'Too many requests' }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(retryAfterSeconds(`discogs-render:${ip}`)),
+      },
+    })
+  }
+
   try {
     const body = await request.json()
     const { results, resultsCountLabel, noImageLabel, unknownArtistLabel, addToCollectionAria, addToWishlistAria, scriptLabels } = body ?? {}
@@ -14,7 +35,6 @@ export const POST: APIRoute = async ({ request }) => {
       })
     }
 
-    // Créer un container Astro et rendre le composant en HTML (labels optionnels pour i18n)
     const container = await AstroContainer.create()
     const html = await container.renderToString(SearchResultsGrid, {
       props: {

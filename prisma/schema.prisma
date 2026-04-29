@@ -1,6 +1,5 @@
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "darwin-arm64"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -8,146 +7,275 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Formats supportés par Resonance
-enum Format {
-  VINYL
-  CD
-  CASSETTE
-}
-
+// ─── USER ────────────────────────────────────────────
 model User {
-  id              String       @id @default(cuid())
-  email           String       @unique
-  name            String?
-  firstName       String?
-  lastName        String?
-  imageUrl        String?
-  username        String?      @unique
-  emailVerified   Boolean      @default(false)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  lastLoginAt     DateTime?
-  banned          Boolean      @default(false)
-  lastActiveAt    DateTime?
-  locked          Boolean      @default(false)
-  phoneNumber     String?
-  preferredLocale String?      @default("en") // 'en' | 'fr' — UI language when logged in
-  preferredTheme  String?      // 'light' | 'dark'
-  privateMetadata String?
-  publicMetadata  String?
-  collections     Collection[]
-  items           Item[]
-  wishlist        Wishlist[]
-  accounts        Account[]
-  sessions        Session[]
+  id                  String     @id @default(cuid())
+  username            String?    @unique
+  name                String?    // nom d'affichage (ex. "Romain B.")
+  email               String     @unique
+  emailVerified       Boolean    @default(false) // required by better-auth
+  image               String?    // required by better-auth (avatar URL)
+  imageUrl            String?    // app-level avatar (synced from image)
+  bio                 String?    @db.VarChar(280)
+  isPrivate           Boolean    @default(false)
+  onboardingCompleted Boolean    @default(false)
+  lastExportAt        DateTime?
+  notificationPrefs   Json?
+  preferredLocale     String?    @default("fr")
+  preferredTheme      String?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  shelfItems          ShelfItem[]
+  wants               Want[]
+  collections         Collection[]
+  followers           Follow[]          @relation("following")
+  following           Follow[]          @relation("follower")
+  activities          Activity[]
+  activityLikes       ActivityLike[]
+  comments            ActivityComment[]
+  notifications       Notification[]
+  sentNotifications   Notification[]    @relation("NotificationFromUser")
+  blocking            UserBlock[]       @relation("Blocking")
+  blockedBy           UserBlock[]       @relation("BlockedBy")
+  pushTokens          PushToken[]
+  sessions            Session[]
+  accounts            Account[]
 
   @@index([email])
-  @@index([emailVerified])
+  @@index([username])
   @@map("users")
 }
 
+// ─── RELEASE ─────────────────────────────────────────
+model Release {
+  id          String      @id @default(cuid())
+  discogsId   String      @unique
+  title       String
+  artist      String
+  label       String?
+  year        Int?
+  country     String?
+  format      String
+  coverUrl    String?
+  tracklist   Json?
+  avgRating   Float?
+  ratingCount Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  shelfItems  ShelfItem[]
+  wants       Want[]
+
+  @@map("releases")
+}
+
+// ─── SHELF (items possédés) ───────────────────────────
+model ShelfItem {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  releaseId   String
+  release     Release   @relation(fields: [releaseId], references: [id])
+  condition   String
+  rating      Int?
+  note        String?
+  acquiredAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  collectionItems CollectionItem[]
+  activities      Activity[]
+
+  @@unique([userId, releaseId])
+  @@index([userId])
+  @@index([releaseId])
+  @@index([createdAt])
+  @@map("shelf_items")
+}
+
+// ─── WANTS (wishlist) ─────────────────────────────────
+model Want {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  releaseId String
+  release   Release  @relation(fields: [releaseId], references: [id])
+  priority  String   @default("normal")
+  createdAt DateTime @default(now())
+
+  @@unique([userId, releaseId])
+  @@index([userId])
+  @@index([releaseId])
+  @@map("wants")
+}
+
+// ─── COLLECTIONS (curatoriales) ───────────────────────
 model Collection {
   id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String
   slug        String
   description String?
-  isPublic    Boolean  @default(false)
-  coverImage  String?
+  isPublic    Boolean  @default(true)
+  isPinned    Boolean  @default(false)
+  coverUrl    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items       Item[]
+
+  items       CollectionItem[]
 
   @@unique([userId, slug])
   @@index([userId])
-  @@index([slug])
   @@map("collections")
 }
 
-// Modèle unifié pour tous les formats (Vinyl, CD, Cassette)
-model Item {
-  id           String       @id @default(cuid())
-  slug         String       // URL lisible : artiste-album-annee (unicité par user)
-  discogsId    Int
-  title        String
-  artist       String
-  year         Int?
-  genre        String?
-  country      String?
-  label        String?
-  format       Format       // VINYL, CD, ou CASSETTE
-  barcode      String?
-  coverUrl     String?
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  addedAt      DateTime     @default(now())
-  userId       String
-  collectionId String?
-  metadata     ItemMetadata?
-  collection   Collection?  @relation(fields: [collectionId], references: [id])
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+model CollectionItem {
+  id           String     @id @default(cuid())
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  shelfItemId  String
+  shelfItem    ShelfItem  @relation(fields: [shelfItemId], references: [id], onDelete: Cascade)
+  position     Int?
+  note         String?
+  addedAt      DateTime   @default(now())
 
-  // Index et contraintes
-  @@unique([userId, slug])
-  @@unique([discogsId, userId, collectionId]) // Un utilisateur ne peut avoir qu'un seul exemplaire d'un item Discogs par collection
-  @@index([userId])
-  @@index([collectionId])
-  @@index([discogsId])
-  @@index([format])
-  @@map("items")
+  @@unique([collectionId, shelfItemId])
+  @@index([shelfItemId])
+  @@map("collection_items")
 }
 
-// Métadonnées unifiées pour tous les formats
-model ItemMetadata {
-  id               String    @id @default(cuid())
-  itemId           String    @unique
-  customCoverPath  String?
-  acquisitionDate  DateTime?
-  purchaseLocation String?
-  purchasePrice    Decimal?
-  condition        String?
-  personalRating   Float?
-  isListened       Boolean   @default(false)
-  isFavorite       Boolean   @default(false)
-  personalNotes    String?
-  customTags       String?   // JSON array: ["tag1", "tag2"]
-  // Champs spécifiques par format
-  vinylSpeed       String?   // 33, 45, 78 RPM
-  cdType           String?   // CD, CD-R, CD-RW
-  cassetteType     String?   // Type I, Type II, Type IV
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  item             Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+// ─── SOCIAL ───────────────────────────────────────────
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
 
-  @@index([itemId])
-  @@map("item_metadata")
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
 }
 
-model Wishlist {
+model UserBlock {
   id        String   @id @default(cuid())
-  discogsId Int
-  title     String
-  artist    String
-  year      Int?
-  genre     String?
-  coverUrl  String?
-  format    Format   // Format souhaité
-  priority  Int      @default(1)
-  notes     String?
+  blockerId String
+  blocker   User     @relation("Blocking", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("BlockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+  @@map("user_blocks")
+}
+
+model PushToken {
+  id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  platform  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@unique([discogsId, userId])
   @@index([userId])
-  @@index([discogsId])
-  @@index([format])
-  @@map("wishlist")
+  @@map("push_tokens")
 }
 
-// Better-auth tables
+enum ActivityType {
+  ADD_ITEM
+  ADD_WANT
+  RATE_ITEM
+  CREATE_COLLECTION
+  ADD_TO_COLLECTION
+  FOLLOW_USER
+}
+
+model Activity {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type           ActivityType
+
+  shelfItemId    String?
+  shelfItem      ShelfItem?   @relation(fields: [shelfItemId], references: [id], onDelete: SetNull)
+  collectionId   String?
+  targetUserId   String?
+
+  likes          ActivityLike[]
+  comments       ActivityComment[]
+  notifications  Notification[]
+  createdAt      DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([collectionId])
+  @@index([targetUserId])
+  @@map("activities")
+}
+
+model ActivityLike {
+  id         String   @id @default(cuid())
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([activityId, userId])
+  @@index([activityId])
+  @@index([userId])
+  @@map("activity_likes")
+}
+
+model ActivityComment {
+  id         String   @id @default(cuid())
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content    String   @db.VarChar(280)
+  createdAt  DateTime @default(now())
+
+  @@index([activityId])
+  @@map("activity_comments")
+}
+
+// ─── NOTIFICATIONS ────────────────────────────────────
+enum NotificationType {
+  NEW_FOLLOWER
+  NEW_SHELF_ADD
+  ACTIVITY_LIKE
+  ACTIVITY_COMMENT
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  fromUserId  String?
+  fromUser    User?            @relation("NotificationFromUser", fields: [fromUserId], references: [id], onDelete: SetNull)
+  activityId  String?
+  activity    Activity?        @relation(fields: [activityId], references: [id], onDelete: SetNull)
+  count       Int              @default(1)
+  windowStart DateTime?
+  read        Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  @@unique([userId, fromUserId, type, windowStart], name: "userId_fromUserId_type_windowStart")
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+// ─── BETTER-AUTH ──────────────────────────────────────
 model Session {
   id        String   @id @default(cuid())
   userId    String
@@ -160,25 +288,24 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([token])
   @@map("sessions")
 }
 
 model Account {
-  id                String   @id @default(cuid())
-  userId            String
-  accountId         String
-  providerId        String
-  accessToken       String?
-  refreshToken      String?
-  idToken           String?
-  accessTokenExpiresAt DateTime?
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
-  scope             String?
-  password          String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([providerId, accountId])
   @@index([userId])

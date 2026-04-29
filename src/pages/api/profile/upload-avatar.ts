@@ -1,3 +1,4 @@
+import { safeErrorMessage } from '../../../lib/api-error'
 import type { APIRoute } from 'astro'
 import { put } from '@vercel/blob'
 import { auth } from '../../../lib/auth'
@@ -47,7 +48,14 @@ export const POST: APIRoute = async ({ request }) => {
       )
     }
 
-    const fileExtension = file.name.split('.').pop() || 'jpg'
+    const MIME_TO_EXT: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/jpg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+      'image/gif': 'gif',
+    }
+    const fileExtension = MIME_TO_EXT[file.type] ?? 'jpg'
     const fileName = `avatars/${session.user.id}-${Date.now()}.${fileExtension}`
 
     let imageUrl: string

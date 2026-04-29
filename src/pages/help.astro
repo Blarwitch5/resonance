@@ -1,0 +1,77 @@
+---
+import Layout from '../components/layouts/Layout.astro'
+import BackNav from '../components/ui/BackNav.astro'
+import ChevronDown from '@lucide/astro/icons/chevron-down'
+import { staticPagesI18n } from '../i18n/static-pages'
+import { normalizeLocale } from '../i18n/config'
+
+const locale = normalizeLocale(
+  Astro.cookies.get('locale')?.value ??
+  Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2)
+)
+const t = staticPagesI18n[locale].help
+const tContact = staticPagesI18n[locale].contact
+const tNav = staticPagesI18n[locale].nav
+---
+
+<Layout title={t.title} showBottomBar={true} showFooter={false}>
+  <BackNav backLabel={tNav.backToApp} backAria={tNav.backToAppAria} logoAria={tNav.logoAria} />
+  <div class="max-w-2xl mx-auto px-4 py-12">
+
+    <header class="mb-10">
+      <h1 class="text-3xl font-bold mb-2">{t.title}</h1>
+      <p class="text-muted">{t.intro}</p>
+    </header>
+
+    <div class="space-y-10">
+      {t.sections.map((section) => (
+        <section aria-labelledby={`section-${section.heading.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`}>
+          <h2
+            id={`section-${section.heading.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`}
+            class="text-base font-semibold text-muted uppercase tracking-wide mb-4"
+          >
+            {section.heading}
+          </h2>
+          <dl class="space-y-1">
+            {section.items.map((item) => (
+              <div class="border border-border rounded-xl overflow-hidden">
+                <dt>
+                  <button
+                    class="faq-toggle w-full flex items-center justify-between gap-4 px-4 py-4 text-left text-sm font-medium hover:bg-surface-raised transition-colors"
+                    aria-expanded="false"
+                  >
+                    <span>{item.question}</span>
+                    <ChevronDown size={16} class="faq-chevron flex-shrink-0 text-muted transition-transform duration-200" aria-hidden="true" />
+                  </button>
+                </dt>
+                <dd class="faq-answer hidden px-4 pb-4 text-sm text-muted leading-relaxed border-t border-border">
+                  {item.answer}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ))}
+    </div>
+
+    <div class="mt-12 pt-8 border-t border-border text-center">
+      <p class="text-sm text-muted mb-3">{t.stillNeedHelp}</p>
+      <a href="/contact" class="btn-secondary text-sm">{t.contactLink}</a>
+    </div>
+
+  </div>
+</Layout>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('.faq-toggle').forEach((toggleBtn) => {
+    toggleBtn.addEventListener('click', () => {
+      const answer = toggleBtn.closest('div')?.querySelector('.faq-answer')
+      const chevron = toggleBtn.querySelector('.faq-chevron')
+      const isExpanded = toggleBtn.getAttribute('aria-expanded') === 'true'
+
+      toggleBtn.setAttribute('aria-expanded', String(!isExpanded))
+      answer?.classList.toggle('hidden', isExpanded)
+      chevron?.classList.toggle('rotate-180', !isExpanded)
+    })
+  })
+</script>

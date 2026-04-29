@@ -1,8 +1,21 @@
+import { safeErrorMessage } from '../../../lib/api-error'
+import { checkRateLimit, retryAfterSeconds } from '../../../lib/rate-limit'
 import type { APIRoute } from 'astro'
 import { auth } from '../../../lib/auth'
 import { db } from '../../../lib/db'
 
 export const DELETE: APIRoute = async ({ request }) => {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  if (!checkRateLimit(`delete-account:${ip}`, 3, 60 * 60_000)) {
+    return new Response(JSON.stringify({ error: 'Too many requests' }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(retryAfterSeconds(`delete-account:${ip}`)),
+      },
+    })
+  }
+
   try {
     const session = await auth.api.getSession({ headers: request.headers })
     if (!session) {
@@ -18,41 +31,10 @@ export const DELETE: APIRoute = async ({ request }) => {
 
     const userId = session.user.id
 
-    // Supprimer dans l'ordre pour éviter les erreurs de contrainte
-    await db.wishlist.deleteMany({
-      where: { userId },
-    })
-
-    await db.itemMetadata.deleteMany({
-      where: {
-        item: {
-          userId,
-        },
-      },
-    })
-
-    await db.item.deleteMany({
-      where: { userId },
-    })
-
-    await db.collection.deleteMany({
-      where: { userId },
-    })
-
-    // Supprimer les sessions
-    await db.session.deleteMany({
-      where: { userId },
-    })
-
-    // Supprimer les comptes (accounts)
-    await db.account.deleteMany({
-      where: { userId },
-    })
-
-    // Enfin, supprimer l'utilisateur lui-même
-    await db.user.delete({
-      where: { id: userId },
-    })
+    // All user relations have onDelete: Cascade, so deleting the user
+    // removes everything (shelf, collections, wants, follows, activities,
+    // notifications, sessions, accounts) in one shot.
+    await db.user.delete({ where: { id: userId } })
 
     return new Response(
       JSON.stringify({

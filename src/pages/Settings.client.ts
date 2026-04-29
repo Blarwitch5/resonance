@@ -142,6 +142,44 @@ runOnce('settings-page', () => onDomReady(() => {
     })
   }
 
+  const importBtn = document.getElementById('import-data-btn')
+  const importFileInput = document.getElementById('import-file-input') as HTMLInputElement | null
+  if (importBtn && importFileInput) {
+    importBtn.addEventListener('click', function () {
+      importFileInput.click()
+    })
+    importFileInput.addEventListener('change', async function () {
+      const file = importFileInput.files?.[0]
+      if (!file) return
+      const originalText = importBtn.textContent || ''
+      importBtn.disabled = true
+      importBtn.textContent = msg.importing
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        const response = await fetch('/api/collections/import', { method: 'POST', body: formData })
+        const data = await response.json()
+        if (response.ok) {
+          const shelfCount = data.imported?.shelf ?? 0
+          const collectionsCount = data.imported?.collections ?? 0
+          const successMsg = (msg.importSuccess || '')
+            .replace('{shelf}', String(shelfCount))
+            .replace('{collections}', String(collectionsCount))
+          if (window.toast) window.toast.success(successMsg)
+        } else {
+          if (window.toast) window.toast.error(data.error || msg.importError)
+        }
+      } catch (error) {
+        console.error('Import error:', error)
+        if (window.toast) window.toast.error(msg.importError)
+      } finally {
+        importBtn.disabled = false
+        importBtn.textContent = originalText
+        importFileInput.value = ''
+      }
+    })
+  }
+
   const deleteAllBtn = document.getElementById('delete-all-data-btn')
   if (deleteAllBtn) {
     deleteAllBtn.addEventListener('click', async function () {
@@ -157,7 +195,7 @@ runOnce('settings-page', () => onDomReady(() => {
       button.disabled = true
       button.textContent = msg.deleting
       try {
-        const response = await fetch('/api/dev/purge-collections', { method: 'DELETE' })
+        const response = await fetch('/api/collections/purge-all', { method: 'DELETE' })
         if (response.ok) {
           if (window.toast) window.toast.success(msg.allDataDeleted)
           setTimeout(function () {

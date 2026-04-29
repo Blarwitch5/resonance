@@ -1,0 +1,198 @@
+---
+export const prerender = false
+import Layout from '../../../components/layouts/Layout.astro'
+import { shelfItemRepository } from '../../../repositories/shelf-item-repository'
+import { itemsI18n } from '../../../i18n/items'
+import { normalizeLocale } from '../../../i18n/config'
+
+const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const t = itemsI18n[locale]
+
+const { id } = Astro.params
+if (!id) return Astro.redirect('/shelf')
+
+const currentUser = Astro.locals.user
+if (!currentUser) return Astro.redirect('/login', 302)
+
+const shelfItem = await shelfItemRepository.findByIdWithRelease(id)
+if (!shelfItem) return Astro.redirect('/shelf')
+if (shelfItem.userId !== currentUser.id) return Astro.redirect(`/items/${id}`)
+
+const release = shelfItem.release
+const releaseTitle = `${release.artist} — ${release.title}`
+
+const acquiredAtValue = shelfItem.acquiredAt
+  ? new Date(shelfItem.acquiredAt).toISOString().slice(0, 10)
+  : ''
+
+const clientStrings = JSON.stringify({
+  saving: t.saving,
+  save: t.save,
+  errorGeneric: t.errorGeneric,
+  errorNetwork: t.errorNetwork,
+})
+---
+
+<Layout title={`${t.edit} — ${releaseTitle}`} showBottomBar={true}>
+  <div class="edit-item-page max-w-xl mx-auto px-4 py-6">
+    <header class="mb-6">
+      <a href={`/items/${id}`} class="text-sm text-muted hover:underline mb-3 inline-block">{t.back}</a>
+      <div class="flex items-center gap-3">
+        {release.coverUrl && (
+          <img
+            src={release.coverUrl}
+            alt={releaseTitle}
+            width="48"
+            height="48"
+            class="w-12 h-12 rounded-lg object-cover shadow flex-shrink-0"
+          />
+        )}
+        <div class="min-w-0">
+          <h1 class="text-lg font-semibold leading-tight truncate">{release.title}</h1>
+          <p class="text-sm text-muted truncate">{release.artist}</p>
+        </div>
+      </div>
+    </header>
+
+    <form id="edit-item-form" class="space-y-5" novalidate>
+      <input type="hidden" id="item-id" value={id} />
+
+      <div>
+        <label for="edit-condition" class="block text-sm font-medium mb-1">
+          {t.condition} <span aria-hidden="true">*</span>
+        </label>
+        <select
+          id="edit-condition"
+          name="condition"
+          required
+          class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+        >
+          {['Mint', 'NM', 'EX', 'VG+', 'VG', 'G'].map((condition) => (
+            <option value={condition} selected={shelfItem.condition === condition}>
+              {condition === 'NM' ? 'Near Mint (NM)'
+                : condition === 'EX' ? 'Excellent (EX)'
+                : condition === 'VG+' ? 'Very Good+ (VG+)'
+                : condition === 'VG' ? 'Very Good (VG)'
+                : condition === 'G' ? 'Good (G)'
+                : condition}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label for="edit-rating" class="block text-sm font-medium mb-1">{t.rating}</label>
+        <select
+          id="edit-rating"
+          name="rating"
+          class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+        >
+          <option value="" selected={!shelfItem.rating}>{t.ratingNone}</option>
+          {[5, 4, 3, 2, 1].map((starCount) => (
+            <option value={starCount} selected={shelfItem.rating === starCount}>
+              {'★'.repeat(starCount)}{'☆'.repeat(5 - starCount)} {starCount}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label for="edit-acquired-at" class="block text-sm font-medium mb-1">
+          {t.acquiredAtLabel} <span class="text-muted font-normal">{t.optional}</span>
+        </label>
+        <input
+          type="date"
+          id="edit-acquired-at"
+          name="acquiredAt"
+          value={acquiredAtValue}
+          class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+        />
+      </div>
+
+      <div>
+        <label for="edit-note" class="block text-sm font-medium mb-1">
+          {t.personalNote} <span class="text-muted font-normal">{t.optional}</span>
+        </label>
+        <textarea
+          id="edit-note"
+          name="note"
+          rows="4"
+          maxlength="2000"
+          placeholder={t.notePlaceholder}
+          class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary resize-none"
+        >{shelfItem.note ?? ''}</textarea>
+        <p class="text-xs text-muted mt-1 text-right">
+          <span id="note-char-count">{(shelfItem.note ?? '').length}</span>/2000
+        </p>
+      </div>
+
+      <div class="flex gap-3 pt-2">
+        <button type="submit" id="save-btn" class="btn-primary flex-1">
+          {t.save}
+        </button>
+        <a href={`/items/${id}`} class="btn-secondary flex-1 text-center">
+          {t.cancel}
+        </a>
+      </div>
+
+      <p id="form-error" class="text-sm text-error hidden" role="alert"></p>
+    </form>
+  </div>
+</Layout>
+
+<script type="application/json" id="edit-page-strings" set:html={clientStrings}></script>
+
+<script>
+  const strings = JSON.parse(document.getElementById('edit-page-strings')?.textContent ?? '{}')
+
+  const form = document.getElementById('edit-item-form') as HTMLFormElement
+  const itemId = (document.getElementById('item-id') as HTMLInputElement).value
+  const conditionSelect = document.getElementById('edit-condition') as HTMLSelectElement
+  const ratingSelect = document.getElementById('edit-rating') as HTMLSelectElement
+  const acquiredAtInput = document.getElementById('edit-acquired-at') as HTMLInputElement
+  const noteTextarea = document.getElementById('edit-note') as HTMLTextAreaElement
+  const noteCharCount = document.getElementById('note-char-count') as HTMLElement
+  const saveBtn = document.getElementById('save-btn') as HTMLButtonElement
+  const formError = document.getElementById('form-error') as HTMLElement
+
+  noteTextarea.addEventListener('input', () => {
+    noteCharCount.textContent = String(noteTextarea.value.length)
+  })
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    formError.classList.add('hidden')
+    saveBtn.disabled = true
+    saveBtn.textContent = strings.saving
+
+    const ratingValue = ratingSelect.value ? Number(ratingSelect.value) : null
+    const acquiredAtValue = acquiredAtInput.value || null
+
+    try {
+      const response = await fetch(`/api/shelf-items/${itemId}/update`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          condition: conditionSelect.value,
+          rating: ratingValue,
+          note: noteTextarea.value.trim() || null,
+          acquiredAt: acquiredAtValue,
+        }),
+      })
+      const data = await response.json() as { shelfItem?: { id: string }; error?: string }
+      if (response.ok) {
+        window.location.href = `/items/${itemId}`
+      } else {
+        formError.textContent = data.error ?? strings.errorGeneric
+        formError.classList.remove('hidden')
+        saveBtn.disabled = false
+        saveBtn.textContent = strings.save
+      }
+    } catch {
+      formError.textContent = strings.errorNetwork
+      formError.classList.remove('hidden')
+      saveBtn.disabled = false
+      saveBtn.textContent = strings.save
+    }
+  })
+</script>

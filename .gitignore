@@ -1,3 +1,11 @@
+# Claude / Superpowers tooling
+.superpowers/
+codebase-index.md
+
+# Capacitor native builds (regenerated via pnpm cap:sync)
+ios/
+android/
+
 # build output
 dist/
 # generated types
@@ -29,3 +37,8 @@ public/uploads/avatars/
 
 # jetbrains setting folder
 .idea/
+
+# gstack security reports (local only)
+.gstack/
+scripts/check-releases.ts
+test-results/

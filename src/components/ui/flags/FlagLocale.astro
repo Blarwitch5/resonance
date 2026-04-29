@@ -11,6 +11,7 @@ const { locale, size = 20, class: className = '' } = Astro.props as Props
 const s = size
 const r = s / 2
 const viewBox = `0 0 ${s} ${s}`
+const clipId = `clip-flag-${locale}-${s}`
 ---
 
 {locale === 'fr' && (
@@ -23,11 +24,11 @@ const viewBox = `0 0 ${s} ${s}`
     aria-hidden="true"
   >
     <defs>
-      <clipPath id="circle-fr">
+      <clipPath id={clipId}>
         <circle cx={r} cy={r} r={r} />
       </clipPath>
     </defs>
-    <g clip-path="url(#circle-fr)">
+    <g clip-path={`url(#${clipId})`}>
       <rect x="0" y="0" width={s / 3} height={s} fill="#002395" />
       <rect x={s / 3} y="0" width={s / 3} height={s} fill="#fff" />
       <rect x={(2 * s) / 3} y="0" width={s / 3} height={s} fill="#ED2939" />
@@ -44,11 +45,11 @@ const viewBox = `0 0 ${s} ${s}`
     aria-hidden="true"
   >
     <defs>
-      <clipPath id="circle-en">
+      <clipPath id={clipId}>
         <circle cx={r} cy={r} r={r} />
       </clipPath>
     </defs>
-    <g clip-path="url(#circle-en)">
+    <g clip-path={`url(#${clipId})`}>
       <rect x="0" y="0" width={s} height={s} fill="#012169" />
       <rect x="0" y={r - s * 0.1} width={s} height={s * 0.2} fill="#fff" />
       <rect x={r - s * 0.1} y="0" width={s * 0.2} height={s} fill="#fff" />

@@ -1,0 +1,298 @@
+---
+export const prerender = false
+import Search from '@lucide/astro/icons/search'
+import Layout from '../components/layouts/Layout.astro'
+import Avatar from '../components/ui/Avatar.astro'
+import { exploreRepository } from '../repositories/explore-repository'
+import { blockRepository } from '../repositories/block-repository'
+import { exploreI18n } from '../i18n/explore'
+import { normalizeLocale } from '../i18n/config'
+
+const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const t = exploreI18n[locale]
+
+const currentUser = Astro.locals.user
+const currentUserId = currentUser?.id ?? null
+
+let excludeIds: string[] = []
+if (currentUserId) {
+  const [blocked, blockedBy] = await Promise.all([
+    blockRepository.getBlockedIds(currentUserId),
+    blockRepository.getBlockedByIds(currentUserId),
+  ])
+  excludeIds = [...blocked, ...blockedBy, currentUserId]
+}
+
+const [trending, newMembers] = await Promise.all([
+  exploreRepository.getTrending(10),
+  exploreRepository.getNewActiveMembers(excludeIds, 8),
+])
+
+// Public page — set cache headers
+Astro.response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
+---
+
+<Layout title={t.title} showBottomBar={true}>
+  <div class="explore-page max-w-2xl mx-auto px-4 py-4">
+
+    <!-- Search bar -->
+    <div class="search-section mb-6">
+      <form role="search" id="explore-search-form">
+        <label for="explore-search" class="sr-only">{t.searchPlaceholder}</label>
+        <div class="relative">
+          <input
+            type="search"
+            id="explore-search"
+            name="q"
+            placeholder={t.searchPlaceholder}
+            class="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            autocomplete="off"
+          />
+          <Search size={16} class="absolute left-3 top-3.5 text-muted" aria-hidden="true" />
+        </div>
+      </form>
+      <div id="search-results" class="hidden mt-1 rounded-xl border border-border bg-surface shadow-lg overflow-hidden" role="region" aria-live="polite" aria-label={t.searchPlaceholder} data-text-no-results={t.noResults} data-text-error={t.searchError} data-text-load-more={t.loadMore}></div>
+    </div>
+
+    <!-- Template for search result items (populated by JS) -->
+    <template id="search-result-tpl">
+      <a data-role="result-link" href="#" class="flex items-center gap-3 px-4 py-3 hover:bg-surface-raised transition-colors">
+        <img data-role="result-thumb" src="" alt="" width="40" height="40" class="w-10 h-10 rounded object-cover flex-shrink-0" loading="lazy" />
+        <div data-role="result-thumb-placeholder" class="w-10 h-10 rounded bg-surface-raised flex-shrink-0 hidden"></div>
+        <span data-role="result-title" class="text-sm text-white font-medium truncate"></span>
+      </a>
+    </template>
+
+    <!-- Trending -->
+    {trending.length > 0 && (
+      <section id="trending-section" class="mb-8" aria-labelledby="trending-heading">
+        <h2 id="trending-heading" class="text-sm font-medium text-muted mb-3">{t.trending}</h2>
+        <div class="grid grid-cols-1 min-[480px]:grid-cols-2 gap-3">
+          {trending.map((release) => release && (
+            <a
+              href={`/explore/${release.discogsId}`}
+              class="flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-surface-raised transition-colors"
+            >
+              {release.coverUrl
+                ? <img src={release.coverUrl} alt={`${release.artist} — ${release.title}`} width="48" height="48" class="w-12 h-12 rounded object-cover flex-shrink-0" loading="lazy" />
+                : <div class="w-12 h-12 rounded bg-surface-raised flex items-center justify-center flex-shrink-0 text-xs text-muted">—</div>
+              }
+              <div class="min-w-0">
+                <p class="text-sm font-medium truncate">{release.title}</p>
+                <p class="text-xs text-muted truncate">{release.artist}</p>
+                <p class="text-xs text-accent mt-0.5">{t.trendingAdds(release.addCount)}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- New active members -->
+    {newMembers.length > 0 && (
+      <section id="members-section" aria-labelledby="members-heading">
+        <h2 id="members-heading" class="text-sm font-medium text-muted mb-3">{t.newMembers}</h2>
+        <ul class="space-y-2">
+          {newMembers.map((member) => (
+            <li>
+              <a href={`/u/${member.username}`} class="flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-surface-raised transition-colors">
+                <Avatar userName={member.name} imageUrl={member.imageUrl} size="md" class="flex-shrink-0" />
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium">{member.name}</p>
+                  <p class="text-xs text-muted">@{member.username} · {t.records(member._count.shelfItems)}</p>
+                </div>
+                {currentUserId && (
+                  <button
+                    class="follow-btn-small text-xs text-accent border border-accent/30 px-3 py-1 rounded-full hover:bg-accent/10 transition-colors"
+                    data-username={member.username}
+                    data-text-follow={t.follow}
+                    data-text-following={t.following}
+                    aria-label={`${t.follow} ${member.name}`}
+                  >
+                    {t.follow}
+                  </button>
+                )}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+  </div>
+</Layout>
+
+<script>
+  // Debounced Discogs search
+  const searchInput = document.getElementById('explore-search') as HTMLInputElement | null
+  const resultsContainer = document.getElementById('search-results')
+  const trendingSection = document.getElementById('trending-section')
+  const membersSection = document.getElementById('members-section')
+  const resultTemplate = document.getElementById('search-result-tpl') as HTMLTemplateElement | null
+  let debounceTimer: ReturnType<typeof setTimeout>
+
+  function showDiscoverySections() {
+    trendingSection?.classList.remove('hidden')
+    membersSection?.classList.remove('hidden')
+  }
+
+  function hideDiscoverySections() {
+    trendingSection?.classList.add('hidden')
+    membersSection?.classList.add('hidden')
+  }
+
+  function clearResults() {
+    if (!resultsContainer) return
+    resultsContainer.textContent = ''
+    resultsContainer.classList.add('hidden')
+  }
+
+  type SearchResult = { id: number; slug?: string; title: string; thumb?: string; master_id?: number }
+
+  const PAGE_SIZE = 6
+  let currentResults: SearchResult[] = []
+  let visibleCount = 0
+
+  function deduplicateByMasterId(results: SearchResult[]): SearchResult[] {
+    const seenMasterIds = new Set<number>()
+    return results.filter((result) => {
+      if (!result.master_id) return true
+      if (seenMasterIds.has(result.master_id)) return false
+      seenMasterIds.add(result.master_id)
+      return true
+    })
+  }
+
+  function renderResultItem(result: SearchResult) {
+    if (!resultTemplate) return
+    const clone = resultTemplate.content.cloneNode(true) as DocumentFragment
+    const link = clone.querySelector('[data-role="result-link"]') as HTMLAnchorElement
+    const thumb = clone.querySelector('[data-role="result-thumb"]') as HTMLImageElement
+    const placeholder = clone.querySelector('[data-role="result-thumb-placeholder"]') as HTMLElement
+    const title = clone.querySelector('[data-role="result-title"]') as HTMLElement
+    link.href = `/explore/${result.id}`
+    if (result.thumb) {
+      thumb.src = result.thumb
+      placeholder.classList.add('hidden')
+    } else {
+      thumb.classList.add('hidden')
+      placeholder.classList.remove('hidden')
+    }
+    title.textContent = result.title
+    resultsContainer?.appendChild(clone)
+  }
+
+  function renderMore() {
+    const nextBatch = currentResults.slice(visibleCount, visibleCount + PAGE_SIZE)
+    for (const result of nextBatch) {
+      renderResultItem(result)
+    }
+    visibleCount += nextBatch.length
+
+    resultsContainer?.querySelector('[data-role="load-more"]')?.remove()
+
+    if (visibleCount < currentResults.length) {
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.dataset.role = 'load-more'
+      btn.className = 'w-full text-sm text-accent px-4 py-3 hover:bg-surface-raised transition-colors border-t border-border text-left'
+      btn.textContent = resultsContainer?.dataset.textLoadMore ?? 'Voir plus de résultats'
+      btn.addEventListener('click', renderMore)
+      resultsContainer?.appendChild(btn)
+    }
+  }
+
+  function renderResults(results: SearchResult[]) {
+    if (!resultsContainer) return
+    resultsContainer.textContent = ''
+    resultsContainer.classList.remove('hidden')
+    currentResults = deduplicateByMasterId(results)
+    visibleCount = 0
+    renderMore()
+  }
+
+  function renderNoResults() {
+    if (!resultsContainer) return
+    currentResults = []
+    visibleCount = 0
+    resultsContainer.textContent = ''
+    resultsContainer.classList.remove('hidden')
+    const message = document.createElement('p')
+    message.className = 'text-sm text-muted px-4 py-3'
+    message.textContent = resultsContainer.dataset.textNoResults ?? 'Aucun résultat.'
+    resultsContainer.appendChild(message)
+  }
+
+  function renderError() {
+    if (!resultsContainer) return
+    currentResults = []
+    visibleCount = 0
+    resultsContainer.textContent = ''
+    resultsContainer.classList.remove('hidden')
+    const message = document.createElement('p')
+    message.className = 'text-sm text-muted px-4 py-3'
+    message.textContent = resultsContainer.dataset.textError ?? 'Erreur de recherche.'
+    resultsContainer.appendChild(message)
+  }
+
+  async function runSearch(query: string) {
+    try {
+      const response = await fetch(`/api/discogs/search?q=${encodeURIComponent(query)}&per_page=24`)
+      const data = await response.json() as { results?: SearchResult[] }
+      if (!data.results?.length) {
+        renderNoResults()
+        return
+      }
+      renderResults(data.results)
+    } catch {
+      renderError()
+    }
+  }
+
+  // Prevent form navigation on Enter — search is handled by the input listener
+  document.getElementById('explore-search-form')?.addEventListener('submit', (event) => {
+    event.preventDefault()
+  })
+
+  searchInput?.addEventListener('input', () => {
+    clearTimeout(debounceTimer)
+    const query = searchInput.value.trim()
+    if (!query || query.length < 2) {
+      clearResults()
+      showDiscoverySections()
+      return
+    }
+    hideDiscoverySections()
+    debounceTimer = setTimeout(() => { void runSearch(query) }, 350)
+  })
+
+  // Run search from URL ?q= param on initial page load (e.g. after keyboard Enter)
+  const initialQuery = new URLSearchParams(window.location.search).get('q')?.trim() ?? ''
+  if (initialQuery.length >= 2 && searchInput) {
+    searchInput.value = initialQuery
+    hideDiscoverySections()
+    void runSearch(initialQuery)
+  }
+
+  // Inline follow buttons
+  document.querySelectorAll<HTMLButtonElement>('.follow-btn-small').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault()
+      const username = btn.dataset.username
+      btn.disabled = true
+      try {
+        const res = await fetch(`/api/users/${username}/follow`, { method: 'POST' })
+        const data = await res.json()
+        if (data.following) {
+          btn.textContent = btn.dataset.textFollowing ?? 'Abonné'
+          btn.classList.add('opacity-60')
+          btn.disabled = true
+        } else {
+          btn.textContent = btn.dataset.textFollow ?? 'Suivre'
+          btn.disabled = false
+        }
+      } catch {
+        btn.disabled = false
+      }
+    })
+  })
+</script>

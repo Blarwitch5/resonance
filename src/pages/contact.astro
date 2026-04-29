@@ -1,0 +1,74 @@
+---
+import Layout from '../components/layouts/Layout.astro'
+import BackNav from '../components/ui/BackNav.astro'
+import Github from '@lucide/astro/icons/github'
+import Mail from '@lucide/astro/icons/mail'
+import { staticPagesI18n } from '../i18n/static-pages'
+import { normalizeLocale } from '../i18n/config'
+
+const locale = normalizeLocale(
+  Astro.cookies.get('locale')?.value ??
+  Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2)
+)
+const t = staticPagesI18n[locale].contact
+const tNav = staticPagesI18n[locale].nav
+
+// TODO: remplacer par les vraies URLs
+const GITHUB_ISSUES_URL = 'https://github.com/resonance-app/resonance/issues/new'
+const CONTACT_EMAIL = 'hello@resonance.app'
+---
+
+<Layout title={t.title} showBottomBar={true} showFooter={false}>
+  <BackNav backLabel={tNav.backToApp} backAria={tNav.backToAppAria} logoAria={tNav.logoAria} />
+  <div class="max-w-2xl mx-auto px-4 py-12">
+
+    <header class="mb-10">
+      <h1 class="text-3xl font-bold mb-2">{t.title}</h1>
+      <p class="text-muted">{t.intro}</p>
+    </header>
+
+    <div class="space-y-4">
+
+      <div class="border border-border rounded-xl p-6">
+        <div class="flex items-start gap-4">
+          <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-surface-raised flex items-center justify-center">
+            <Github size={20} aria-hidden="true" />
+          </div>
+          <div class="flex-1 min-w-0">
+            <h2 class="font-medium mb-1">{t.githubHeading}</h2>
+            <p class="text-sm text-muted mb-4 leading-relaxed">{t.githubBody}</p>
+            <a
+              href={GITHUB_ISSUES_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn-secondary text-sm inline-flex items-center gap-2"
+            >
+              <Github size={14} aria-hidden="true" />
+              {t.githubLabel}
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="border border-border rounded-xl p-6">
+        <div class="flex items-start gap-4">
+          <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-surface-raised flex items-center justify-center">
+            <Mail size={20} aria-hidden="true" />
+          </div>
+          <div class="flex-1 min-w-0">
+            <h2 class="font-medium mb-1">{t.emailHeading}</h2>
+            <p class="text-sm text-muted mb-4 leading-relaxed">{t.emailBody}</p>
+            <a
+              href={`mailto:${CONTACT_EMAIL}`}
+              class="btn-secondary text-sm inline-flex items-center gap-2"
+            >
+              <Mail size={14} aria-hidden="true" />
+              {t.emailLabel}
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</Layout>

@@ -1,348 +1,396 @@
 ---
-import ArrowLeft from '@lucide/astro/icons/arrow-left'
-import Calendar from '@lucide/astro/icons/calendar'
-import Disc from '@lucide/astro/icons/disc'
-import MapPin from '@lucide/astro/icons/map-pin'
-import Music from '@lucide/astro/icons/music'
-import Package from '@lucide/astro/icons/package-open'
-import Tag from '@lucide/astro/icons/tag'
-import CollectionSelector from '../../components/items/CollectionSelector.astro'
-import DeleteItemModal from '../../components/items/DeleteItemModal.astro'
-import InCollectionBadge from '../../components/items/InCollectionBadge.astro'
-import ItemActionsMenu from '../../components/items/ItemActionsMenu.astro'
-import PersonalDataSection from '../../components/items/PersonalDataSection.astro'
-import TrackList from '../../components/items/TrackList.astro'
-import DashboardLayout from '../../components/layouts/DashboardLayout.astro'
-import EmptyState from '../../components/ui/EmptyState.astro'
-import OptimizedImage from '../../components/ui/OptimizedImage.astro'
-import { getItemMessages } from '../../i18n/item'
-import { normalizeLocale } from '../../i18n/config'
-import { buildExplorerSlug, looksLikeItemId } from '../../lib/slug'
-import { collectionRepository } from '../../repositories/collection-repository'
-import { itemRepository } from '../../repositories/item-repository'
-import { discogsService } from '../../services/discogs-service'
-
 export const prerender = false
+import Layout from '../../components/layouts/Layout.astro'
+import { shelfItemRepository } from '../../repositories/shelf-item-repository'
+import { releaseRepository } from '../../repositories/release-repository'
+import { followRepository } from '../../repositories/follow-repository'
+import { collectionRepository } from '../../repositories/collection-repository'
+import { itemsI18n } from '../../i18n/items'
+import { normalizeLocale } from '../../i18n/config'
+import Check from '@lucide/astro/icons/check'
+import LoaderCircle from '@lucide/astro/icons/loader-circle'
+import Pause from '@lucide/astro/icons/pause'
+import Play from '@lucide/astro/icons/play'
+import Star from '@lucide/astro/icons/star'
 
-const session = Astro.locals.session
-if (!session) return Astro.redirect('/login')
+const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
+const t = itemsI18n[locale]
 
-const slugOrId = Astro.params.id
-if (!slugOrId) return Astro.redirect('/library')
+const { id } = Astro.params
+if (!id) return Astro.redirect('/shelf')
 
-const userId = Astro.locals.user!.id
-// Resolve by slug, then by id (legacy links)
-let item = await itemRepository.findByUserIdAndSlug(userId, slugOrId)
-if (!item && looksLikeItemId(slugOrId)) {
-  item = await itemRepository.findById(slugOrId, userId) ?? null
-  // Redirect to canonical URL (slug) if we found by id
-  if (item && item.slug !== slugOrId) {
-    return Astro.redirect(`/items/${item.slug}`)
-  }
+const currentUser = Astro.locals.user
+const currentUserId = currentUser?.id ?? null
+
+const shelfItem = await shelfItemRepository.findByIdWithRelease(id)
+if (!shelfItem) return Astro.redirect('/shelf')
+
+const isOwner = currentUserId === shelfItem.userId
+
+// Backfill release metadata if incomplete — covers items added before the
+// tracklist bug fix and seed data with missing Discogs fields.
+let release = shelfItem.release
+const tracklistArray = Array.isArray(release.tracklist) ? (release.tracklist as unknown[]) : null
+const needsBackfill = !tracklistArray || tracklistArray.length === 0 || release.label === null
+if (needsBackfill && release.discogsId) {
+  const backfilled = await releaseRepository.findOrCreateFromDiscogs(release.discogsId)
+  if (backfilled) release = backfilled
 }
 
-if (!item || item.userId !== userId) {
-  return Astro.redirect('/library')
+// If owner's account is private and viewer is not a follower, block access
+if (!isOwner && shelfItem.user.isPrivate) {
+  const canView = currentUserId
+    ? await followRepository.isFollowing(currentUserId, shelfItem.userId)
+    : false
+  if (!canView) return Astro.redirect('/explore')
 }
 
-// Fetch complete details from Discogs when available
-let discogsRelease = null
-let tracklist: Array<{ position: string; title: string; duration?: string }> = []
-let discogsDetails = null
+// Who among my follows also has this release?
+const friendsWithRelease = currentUserId && !isOwner
+  ? await shelfItemRepository.getFriendsWithRelease(currentUserId, release.id)
+  : []
 
-if (item.discogsId) {
-  try {
-    discogsRelease = await discogsService.getRelease(item.discogsId)
-    tracklist = discogsRelease.tracklist || []
-    discogsDetails = {
-      masterId: discogsRelease.master_id,
-      masterUrl: discogsRelease.master_url,
-      country: discogsRelease.country,
-      released: discogsRelease.released,
-      releasedFormatted: discogsRelease.released_formatted,
-      notes: discogsRelease.notes,
-      genres: discogsRelease.genres || [],
-      styles: discogsRelease.styles || [],
-      labels: discogsRelease.labels || [],
-      formats: discogsRelease.formats || [],
-      identifiers: discogsRelease.identifiers || [],
-      videos: discogsRelease.videos || [],
-      community: discogsRelease.community,
-    }
-  } catch (error) {
-    console.error('Error fetching Discogs release:', error)
-  }
-}
+const releaseTitle = release.artist + ' — ' + release.title
 
-// Collection is already included in item
-const collection = item.collection || null
+// Community avg rating (show only if 3+ ratings)
+const showCommunityRating = (release.ratingCount ?? 0) >= 3
 
-// Si l'item n'est plus dans une collection, on redirige vers la vue "aperçu"
-// (page explorer) pour éviter d'afficher le contenu full à tort.
-if (!collection) {
-  const discogsIdNumber =
-    typeof item.discogsId === 'number' ? item.discogsId : Number.parseInt(String(item.discogsId ?? ''), 10)
-  if (Number.isFinite(discogsIdNumber) && discogsIdNumber > 0) {
-    const explorerSlug = buildExplorerSlug(item.artist, item.title, item.year ?? null, discogsIdNumber)
-    return Astro.redirect(`/explorer/${explorerSlug}`)
-  }
-  return Astro.redirect('/library')
-}
+type TrackItem = { position: string; title: string; duration?: string }
+const tracklist = Array.isArray(release.tracklist) && (release.tracklist as unknown[]).length > 0
+  ? (release.tracklist as unknown as TrackItem[])
+  : null
 
-const userCollections = await collectionRepository.findByUserId(Astro.locals.user!.id)
+// Owner's collections (for "add to collection" modal)
+const userCollections = isOwner && currentUserId
+  ? await collectionRepository.findByUser(currentUserId)
+  : []
 
-const locale = normalizeLocale(Astro.locals.userPreferences?.locale ?? Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
-const itemT = getItemMessages(locale)
+const clientStrings = JSON.stringify({ errorAdding: t.errorAdding })
 ---
 
-<DashboardLayout title={`${item.title} - ${item.artist} - Resonance`}>
-  <div class="space-y-6 page-transition pb-24 md:pb-20">
-    <a
-      href={collection ? `/collections/${collection.slug}` : '/library'}
-      class="inline-flex items-center gap-2 text-muted transition-colors hover:text-primary"
-    >
-      <ArrowLeft size={18} />
-      <span>{collection ? itemT.backToCollection.replace('{name}', collection.name) : itemT.backToLibrary}</span>
-    </a>
+<Layout title={releaseTitle} showBottomBar={true}>
+  <div class="item-detail max-w-2xl mx-auto px-4 py-6">
 
-    <!-- Header avec cover et infos principales -->
-    <div class="glass-card rounded-2xl p-4 md:p-6">
-      <div class="flex flex-col gap-6 md:flex-row">
-        <!-- Cover -->
-        <div class="shrink-0">
-          <div class="aspect-square w-full max-w-xs overflow-hidden rounded-xl bg-surface">
-            <OptimizedImage
-              src={item.coverUrl}
-              alt={`${item.title} - ${item.artist}`}
-              width={400}
-              height={400}
-              loading="eager"
-              aspectRatio="square"
-              class="h-full w-full object-cover"
+    <!-- Cover + meta -->
+    <div class="flex items-start gap-4 mb-6">
+      <div class="flex-shrink-0">
+        {release.coverUrl
+          ? <img
+              src={release.coverUrl}
+              alt={releaseTitle}
+              width="120"
+              height="120"
+              class="rounded-lg w-28 h-28 object-cover shadow"
             />
-          </div>
+          : <div class="w-28 h-28 rounded-lg bg-surface-raised flex items-center justify-center text-muted text-xs">{t.nocover}</div>
+        }
+      </div>
+      <div class="flex-1 min-w-0">
+        <h1 class="text-lg font-semibold leading-tight">{release.title}</h1>
+        <p class="text-sm text-muted">{release.artist}</p>
+        {release.label && <p class="text-xs text-muted">{release.label}</p>}
+        <div class="flex items-center gap-2 mt-1 text-xs text-muted">
+          {release.year && <span>{release.year}</span>}
+          {release.country && <span>· {release.country}</span>}
+          <span>· {release.format}</span>
         </div>
 
-        <!-- Infos principales -->
-        <div class="flex-1 space-y-4">
-          <div>
-            <h1 class="text-2xl md:text-3xl font-bold text-neutral mb-2">{item.title}</h1>
-            <div class="flex flex-wrap items-center gap-2 mb-2">
-              <InCollectionBadge />
-            </div>
-            <p class="text-lg md:text-xl text-muted">{item.artist}</p>
+        <!-- Owner rating -->
+        {shelfItem.rating && (
+          <div class="flex items-center gap-0.5 mt-2" aria-label={`${t.rating}: ${shelfItem.rating}/5`}>
+            {Array.from({ length: 5 }).map((_, starIndex) => (
+              <Star
+                size={14}
+                class={starIndex < shelfItem.rating! ? 'text-accent fill-accent' : 'text-muted'}
+                aria-hidden="true"
+              />
+            ))}
           </div>
+        )}
 
-          <!-- Main metadata -->
-          <div class="flex flex-wrap gap-4 text-sm">
-            {item.year && (
-              <div class="flex items-center gap-2 text-muted">
-                <Calendar size={16} />
-                <span>{item.year}</span>
-              </div>
-            )}
-            {item.format && (
-              <div class="flex items-center gap-2 text-muted">
-                <Disc size={16} />
-                <span>{item.format}</span>
-              </div>
-            )}
-            {item.country && (
-              <div class="flex items-center gap-2 text-muted">
-                <MapPin size={16} />
-                <span>{item.country}</span>
-              </div>
-            )}
-            {item.genre && (
-              <div class="flex items-center gap-2 text-muted">
-                <Tag size={16} />
-                <span>{item.genre}</span>
-              </div>
-            )}
-            {collection && (
-              <div class="flex items-center gap-2 text-muted">
-                <Package size={16} />
-                <a
-                  href={`/collections/${collection.slug}`}
-                  class="text-primary hover:text-primary/80 transition-colors"
-                >
-                  {collection.name}
-                </a>
-              </div>
-            )}
-          </div>
-
-          <!-- Collection selector -->
-          <div class="pt-4 border-t border-border">
-            <CollectionSelector
-              itemId={item.id}
-              currentCollection={collection}
-              collections={userCollections}
-              labels={itemT.collectionSelector}
-            />
-          </div>
-
-          <!-- Actions -->
-          <div class="pt-4 border-t border-border">
-            <ItemActionsMenu
-              itemId={item.id}
-              itemTitle={item.title}
-              currentCollection={collection}
-              collections={userCollections}
-              isFavorite={item.metadata?.isFavorite || false}
-              actionLabels={itemT.actions}
-              toastMessages={itemT.toasts}
-            />
-          </div>
-        </div>
+        <!-- Community rating -->
+        {showCommunityRating && (
+          <p class="text-xs text-muted mt-1">
+            {t.communityRating(release.avgRating?.toFixed(1) ?? '0', release.ratingCount ?? 0)}
+          </p>
+        )}
       </div>
     </div>
 
-    <!-- Tracklist avec previews Spotify -->
-    {tracklist.length > 0 && (
-      <TrackList
-        tracks={tracklist}
-        albumTitle={item.title}
-        albumArtist={item.artist}
-        coverUrl={item.coverUrl}
-        discogsId={item.discogsId}
-        tracklistTitle={itemT.tracklistTitle}
-        trackCountOne={itemT.trackCountOne}
-        trackCountOther={itemT.trackCountOther}
-        audioLabels={itemT.audio}
-        noPreviewForTrack={itemT.noPreviewForTrack}
-        closeLabel={itemT.deleteModal.closeAria}
-        previewsUnavailableLabel={itemT.audio.previewsUnavailable}
-        loadPreviewErrorLabel={itemT.audio.loadPreviewError}
-      />
-    )}
-
-    <!-- Additional details from Discogs -->
-    {discogsDetails && (
-      <div class="grid gap-6 md:grid-cols-2">
-        <!-- Detailed information -->
-        <div class="glass-card rounded-2xl p-4 md:p-6">
-          <h2 class="mb-4 text-lg md:text-xl font-bold text-neutral">{itemT.details}</h2>
-          <div class="space-y-3 text-sm">
-            {discogsDetails.released && (
-              <div>
-                <span class="font-medium text-muted">{itemT.labels.releaseDate}</span>
-                <span class="ml-2 text-neutral">
-                  {discogsDetails.releasedFormatted || discogsDetails.released}
-                </span>
-              </div>
-            )}
-            {discogsDetails.country && (
-              <div>
-                <span class="font-medium text-muted">{itemT.labels.country}</span>
-                <span class="ml-2 text-neutral">{discogsDetails.country}</span>
-              </div>
-            )}
-            {discogsDetails.labels.length > 0 && (
-              <div>
-                <span class="font-medium text-muted">{itemT.labels.labels}</span>
-                <span class="ml-2 text-neutral">
-                  {discogsDetails.labels.map((label) => label.name).join(', ')}
-                </span>
-              </div>
-            )}
-            {discogsDetails.genres.length > 0 && (
-              <div>
-                <span class="font-medium text-muted">{itemT.labels.genres}</span>
-                <span class="ml-2 text-neutral">
-                  {discogsDetails.genres.join(', ')}
-                </span>
-              </div>
-            )}
-            {discogsDetails.styles.length > 0 && (
-              <div>
-                <span class="font-medium text-muted">{itemT.labels.styles}</span>
-                <span class="ml-2 text-neutral">
-                  {discogsDetails.styles.join(', ')}
-                </span>
-              </div>
-            )}
-            {discogsDetails.identifiers.length > 0 && (
-              <div>
-                <span class="font-medium text-muted">{itemT.labels.identifiers}</span>
-                <div class="mt-1 space-y-1">
-                  {discogsDetails.identifiers.map((id) => (
-                    <div class="text-neutral">
-                      <span class="font-medium">{id.type}:</span> {id.value}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <!-- Format and community -->
-        <div class="glass-card rounded-2xl p-4 md:p-6">
-          <h2 class="mb-4 text-lg md:text-xl font-bold text-neutral">{itemT.formatAndCommunity}</h2>
-          <div class="space-y-3 text-sm">
-            {discogsDetails.formats.length > 0 && (
-              <div>
-                <span class="font-medium text-muted">{itemT.labels.formats}</span>
-                <div class="mt-1 space-y-1">
-                  {discogsDetails.formats.map((format) => (
-                    <div class="text-neutral">
-                      {format.name} {format.text && `(${format.text})`}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {discogsDetails.community && (
-              <div class="space-y-2">
-                <div>
-                  <span class="font-medium text-muted">{itemT.labels.averageRating}</span>
-                  <span class="ml-2 text-neutral">
-                    {discogsDetails.community.rating.average > 0
-                      ? `${discogsDetails.community.rating.average.toFixed(1)} / 5`
-                      : itemT.labels.notRated}
-                    {discogsDetails.community.rating.count > 0 &&
-                      ` ${itemT.labels.ratingsCount.replace('{count}', String(discogsDetails.community.rating.count))}`}
-                  </span>
-                </div>
-                <div>
-                  <span class="font-medium text-muted">{itemT.labels.collectors}</span>
-                  <span class="ml-2 text-neutral">
-                    {discogsDetails.community.have} {itemT.labels.collectorsHave}
-                  </span>
-                </div>
-                <div>
-                  <span class="font-medium text-muted">{itemT.labels.wantedBy}</span>
-                  <span class="ml-2 text-neutral">
-                    {discogsDetails.community.want} {itemT.labels.people}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
+    <!-- Social: friends who have this -->
+    {friendsWithRelease.length > 0 && (
+      <div class="friends-section mb-4 p-3 bg-surface-raised rounded-lg">
+        <p class="text-xs text-muted mb-2">{t.friendsHaveIt(friendsWithRelease.length)}</p>
+        <div class="flex -space-x-2">
+          {friendsWithRelease.slice(0, 5).map((f) => (
+            <a href={`/u/${f.user.username}`} aria-label={f.user.name ?? f.user.username ?? ''}>
+              {f.user.imageUrl
+                ? <img src={f.user.imageUrl} alt={f.user.name ?? ''} width="28" height="28" class="w-7 h-7 rounded-full border-2 border-background object-cover" />
+                : <div class="w-7 h-7 rounded-full border-2 border-background bg-accent flex items-center justify-center text-xs font-bold">{(f.user.name ?? 'U')[0]}</div>
+              }
+            </a>
+          ))}
         </div>
       </div>
     )}
 
-    <!-- Notes Discogs -->
-    {discogsDetails?.notes && (
-      <div class="glass-card rounded-2xl p-4 md:p-6">
-        <h2 class="mb-4 text-lg md:text-xl font-bold text-neutral">{itemT.notes}</h2>
-        <p class="whitespace-pre-wrap text-muted">{discogsDetails.notes}</p>
-      </div>
+    <!-- Personal info (owner only) -->
+    {isOwner && (
+      <section class="personal-info mb-6 p-4 bg-surface border border-border rounded-xl">
+        <h2 class="text-sm font-medium mb-3">{t.ownerSection}</h2>
+        <dl class="space-y-2 text-sm">
+          <div class="flex justify-between">
+            <dt class="text-muted">{t.condition}</dt>
+            <dd>{shelfItem.condition}</dd>
+          </div>
+          {shelfItem.acquiredAt && (
+            <div class="flex justify-between">
+              <dt class="text-muted">{t.acquiredAt}</dt>
+              <dd>{new Date(shelfItem.acquiredAt).toLocaleDateString('fr-FR')}</dd>
+            </div>
+          )}
+          {shelfItem.note && (
+            <div>
+              <dt class="text-muted mb-1">{t.personalNote}</dt>
+              <dd class="text-sm">{shelfItem.note}</dd>
+            </div>
+          )}
+        </dl>
+      </section>
     )}
 
-    <PersonalDataSection itemId={item.id} metadata={item.metadata} personalDataT={itemT.personalData} />
-
-    {!discogsRelease && item.discogsId && (
-      <EmptyState
-        title={itemT.emptyDetails.title}
-        description={itemT.emptyDetails.description}
-        icon={Music}
-      />
+    <!-- Tracklist -->
+    {tracklist && tracklist.length > 0 && (
+      <section class="tracklist mb-6" aria-labelledby="tracklist-heading">
+        <h2 id="tracklist-heading" class="text-sm font-medium text-muted mb-2">{t.tracklist}</h2>
+        {currentUserId && <audio id="track-preview-audio" preload="none" class="hidden" />}
+        <ol class="space-y-0">
+          {tracklist.map((track) => (
+            <li class="track-row flex items-center gap-2 py-2 border-b border-border/40 last:border-0">
+              {currentUserId
+                ? (
+                  <button
+                    class="track-play-btn flex-shrink-0 flex h-7 w-7 items-center justify-center rounded-full text-muted hover:text-primary hover:bg-primary/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                    data-artist={release.artist}
+                    data-track={track.title}
+                    aria-label={t.listenTo(track.title)}
+                  >
+                    <Play size={13} class="play-icon" aria-hidden="true" />
+                    <Pause size={13} class="pause-icon hidden" aria-hidden="true" />
+                    <LoaderCircle size={13} class="loading-icon hidden animate-spin" aria-hidden="true" />
+                  </button>
+                )
+                : <span class="flex-shrink-0 w-7" />
+              }
+              <span class="text-muted w-7 flex-shrink-0 text-xs">{track.position}</span>
+              <span class="flex-1 text-sm truncate">{track.title}</span>
+              {track.duration && <span class="text-muted text-xs tabular-nums">{track.duration}</span>}
+            </li>
+          ))}
+        </ol>
+      </section>
     )}
 
-    <!-- Modal de suppression -->
-    <DeleteItemModal itemId={item.id} itemTitle={item.title} deleteModal={itemT.deleteModal} toasts={itemT.toasts} />
+    <!-- Actions -->
+    <div class="actions flex gap-2 flex-wrap">
+      {!isOwner && currentUserId && (
+        <button class="btn-secondary want-btn" data-release-id={release.id}>
+          <span class="want-state-default">{t.addWant}</span>
+          <span class="want-state-added hidden flex items-center gap-1">
+            <Check size={14} aria-hidden="true" />{t.inWants}
+          </span>
+        </button>
+      )}
+      {isOwner && (
+        <>
+          {userCollections.length > 0 && (
+            <button id="add-to-collection-btn" class="btn-secondary" aria-haspopup="dialog">
+              {t.addCollectionBtn}
+            </button>
+          )}
+          <a href={`/items/${id}/edit`} class="btn-secondary">{t.edit}</a>
+          <button class="btn-ghost text-red-500 delete-btn" data-id={id} data-text-confirm={t.deleteConfirm}>{t.delete}</button>
+        </>
+      )}
+    </div>
   </div>
-</DashboardLayout>
+
+  <!-- Modal : ajouter à une collection -->
+  {isOwner && userCollections.length > 0 && (
+    <dialog
+      id="add-to-collection-dialog"
+      class="rounded-2xl p-6 max-w-sm w-full shadow-xl backdrop:bg-black/40"
+    >
+      <h2 class="font-semibold mb-1">{t.addToCollection}</h2>
+      <p class="text-sm text-muted mb-4">{t.chooseCollection}</p>
+      <ul class="space-y-2 mb-4 max-h-72 overflow-y-auto">
+        {userCollections.map((collection) => (
+          <li>
+            <button
+              class="collection-pick-btn w-full text-left flex items-center justify-between p-3 rounded-xl border border-border hover:bg-surface-raised transition-colors"
+              data-collection-id={collection.id}
+              data-shelf-item-id={id}
+            >
+              <span class="col-pick-default flex items-center justify-between w-full">
+                <span class="font-medium text-sm">{collection.name}</span>
+                <span class="text-xs text-muted">{collection._count.items} disque{collection._count.items !== 1 ? 's' : ''}</span>
+              </span>
+              <span class="col-pick-added hidden flex items-center gap-1 text-sm text-success">
+                <Check size={14} aria-hidden="true" />{t.addedToCollection}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <button id="add-to-collection-close" class="btn-ghost w-full">{t.closeDialog}</button>
+    </dialog>
+  )}
+</Layout>
+
+<script type="application/json" id="item-page-strings" set:html={clientStrings}></script>
+
+<script>
+  const strings = JSON.parse(document.getElementById('item-page-strings')?.textContent ?? '{}')
+
+  // Want button
+  const wantBtn = document.querySelector('.want-btn') as HTMLButtonElement | null
+  wantBtn?.addEventListener('click', async () => {
+    const releaseId = wantBtn.dataset.releaseId
+    wantBtn.disabled = true
+    try {
+      const res = await fetch('/api/wants/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ releaseId }),
+      })
+      if (res.ok) {
+        wantBtn.querySelector('.want-state-default')?.classList.add('hidden')
+        wantBtn.querySelector('.want-state-added')?.classList.remove('hidden')
+        wantBtn.disabled = true
+      }
+    } catch {
+      wantBtn.disabled = false
+    }
+  })
+
+  // Delete button
+  const deleteBtn = document.querySelector('.delete-btn') as HTMLButtonElement | null
+  deleteBtn?.addEventListener('click', async () => {
+    if (!confirm(deleteBtn.dataset.textConfirm ?? 'Supprimer ce disque de ta shelf ?')) return
+    const itemId = deleteBtn.dataset.id
+    const response = await fetch('/api/shelf-items/' + itemId + '/delete', { method: 'DELETE' })
+    if (response.ok) window.location.href = '/shelf'
+  })
+
+  // Add to collection modal
+  const addToCollectionBtn = document.getElementById('add-to-collection-btn') as HTMLButtonElement | null
+  const addToCollectionDialog = document.getElementById('add-to-collection-dialog') as HTMLDialogElement | null
+  const addToCollectionClose = document.getElementById('add-to-collection-close') as HTMLButtonElement | null
+
+  addToCollectionBtn?.addEventListener('click', () => addToCollectionDialog?.showModal())
+  addToCollectionClose?.addEventListener('click', () => addToCollectionDialog?.close())
+  addToCollectionDialog?.addEventListener('click', (event) => {
+    if (event.target === addToCollectionDialog) addToCollectionDialog.close()
+  })
+
+  document.querySelectorAll<HTMLButtonElement>('.collection-pick-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const collectionId = btn.dataset.collectionId
+      const shelfItemId = btn.dataset.shelfItemId
+      btn.disabled = true
+      try {
+        const response = await fetch(`/api/collections/${collectionId}/items/add`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ shelfItemId }),
+        })
+        if (response.ok) {
+          btn.querySelector('.col-pick-default')?.classList.add('hidden')
+          btn.querySelector('.col-pick-added')?.classList.remove('hidden')
+          btn.classList.add('opacity-60')
+        } else {
+          const data = await response.json() as { error?: string }
+          alert(data.error ?? strings.errorAdding)
+          btn.disabled = false
+        }
+      } catch {
+        btn.disabled = false
+      }
+    })
+  })
+
+  // ── Track preview player ──────────────────────────────────────────────────
+  const previewAudio = document.getElementById('track-preview-audio') as HTMLAudioElement | null
+  if (previewAudio) {
+    let activeBtn: HTMLButtonElement | null = null
+
+    function setTrackState(btn: HTMLButtonElement, state: 'idle' | 'loading' | 'playing' | 'unavailable') {
+      btn.querySelector('.play-icon')?.classList.toggle('hidden', state !== 'idle' && state !== 'unavailable')
+      btn.querySelector('.pause-icon')?.classList.toggle('hidden', state !== 'playing')
+      btn.querySelector('.loading-icon')?.classList.toggle('hidden', state !== 'loading')
+      btn.classList.toggle('text-muted', state === 'unavailable')
+      btn.classList.toggle('opacity-40', state === 'unavailable')
+    }
+
+    function resetActive() {
+      if (activeBtn) {
+        setTrackState(activeBtn, 'idle')
+        activeBtn = null
+      }
+    }
+
+    previewAudio.addEventListener('ended', resetActive)
+
+    document.querySelectorAll<HTMLButtonElement>('.track-play-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        // Toggle pause/resume on the same track
+        if (activeBtn === btn) {
+          if (previewAudio.paused) {
+            previewAudio.play()
+            setTrackState(btn, 'playing')
+          } else {
+            previewAudio.pause()
+            setTrackState(btn, 'idle')
+            activeBtn = null
+          }
+          return
+        }
+
+        // Stop any currently playing track
+        previewAudio.pause()
+        resetActive()
+
+        activeBtn = btn
+        setTrackState(btn, 'loading')
+        btn.disabled = true
+
+        const artist = btn.dataset.artist ?? ''
+        const track = btn.dataset.track ?? ''
+
+        try {
+          const response = await fetch(
+            `/api/deezer/search-track?artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(track)}`,
+          )
+          const data = await response.json() as { track?: { preview_url: string } }
+
+          if (!response.ok || !data.track?.preview_url) {
+            setTrackState(btn, 'unavailable')
+            btn.disabled = true
+            activeBtn = null
+            return
+          }
+
+          previewAudio.src = data.track.preview_url
+          previewAudio.currentTime = 0
+          previewAudio.play()
+          setTrackState(btn, 'playing')
+          btn.disabled = false
+        } catch {
+          setTrackState(btn, 'idle')
+          btn.disabled = false
+          activeBtn = null
+        }
+      })
+    })
+  }
+</script>

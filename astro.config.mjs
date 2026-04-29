@@ -8,6 +8,19 @@ export default defineConfig({
   output: 'server',
   adapter: vercel(),
   integrations: [],
+  image: {
+    domains: [
+      'i.discogs.com',
+      'img.discogs.com',
+      'api.discogs.com',
+    ],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.discogs.com',
+      },
+    ],
+  },
   // Désactiver temporairement le prefetch pour éviter les erreurs de cache
   prefetch: false,
   vite: {

@@ -10,9 +10,11 @@ export const prerender = false
  * 
  * Redirige l'utilisateur vers le provider OAuth (Discord, Google, Spotify)
  */
-export const GET: APIRoute = async ({ params, url, request }) => {
+export const GET: APIRoute = async ({ params, url, request, cookies }) => {
   const provider = params.provider
-  const callbackURL = url.searchParams.get('callbackURL') || '/'
+  // Valider callbackURL : uniquement des URLs relatives pour éviter les redirections ouvertes
+  const rawCallback = url.searchParams.get('callbackURL') || '/'
+  const callbackURL = rawCallback.startsWith('/') && !rawCallback.startsWith('//') ? rawCallback : '/'
 
   if (!provider || !['discord', 'google', 'spotify'].includes(provider)) {
     return new Response(
@@ -53,17 +55,29 @@ export const GET: APIRoute = async ({ params, url, request }) => {
     return Response.redirect(`${baseURL}/login?error=oauth_not_configured`, 302)
   }
 
-  // Générer un state pour la sécurité CSRF
+  // Générer un state CSRF et le stocker dans un cookie HttpOnly à usage unique
   const state = crypto.randomBytes(32).toString('hex')
   const baseURL = import.meta.env.BETTER_AUTH_URL || import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4321'
   const redirectURI = `${baseURL}/api/auth/oauth/${provider}/callback`
 
-  // Stocker le state dans la session (via cookie ou base de données)
-  // Pour simplifier, on le passe dans l'URL et on le vérifie au callback
   const authURL = getAuthURL(provider, clientId, redirectURI, state, callbackURL)
 
-  // Rediriger vers le provider OAuth
-  return Response.redirect(authURL, 302)
+  const stateCookieOptions = [
+    `oauth_state=${state}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    'Max-Age=600', // 10 minutes
+    ...(import.meta.env.PROD ? ['Secure'] : []),
+  ].join('; ')
+
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: authURL,
+      'Set-Cookie': stateCookieOptions,
+    },
+  })
 }
 
 function getClientId(provider: string): string | undefined {

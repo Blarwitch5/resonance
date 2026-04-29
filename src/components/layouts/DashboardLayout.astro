@@ -35,7 +35,6 @@ const layoutT = getLayoutMessages(locale)
 type SectionConfig = {
   title: string
   description: string
-  icon: string
   color: string
 }
 
@@ -69,31 +68,26 @@ const sections: Record<string, SectionConfig> = {
   vinyl: {
     title: dashboardSections.vinyl.title,
     description: dashboardSections.vinyl.description,
-    icon: '💿',
     color: 'format-vinyl',
   },
   cassette: {
     title: dashboardSections.cassette.title,
     description: dashboardSections.cassette.description,
-    icon: '📼',
     color: 'format-cassette',
   },
   cd: {
     title: dashboardSections.cd.title,
     description: dashboardSections.cd.description,
-    icon: '💽',
     color: 'format-cd',
   },
   explorer: {
     title: dashboardSections.explorer.title,
     description: dashboardSections.explorer.description,
-    icon: '🔍',
     color: 'format-explorer',
   },
   profile: {
     title: dashboardSections.profile.title,
     description: dashboardSections.profile.description,
-    icon: '👤',
     color: 'format-profile',
   },
 }

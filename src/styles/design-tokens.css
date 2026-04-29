@@ -139,11 +139,6 @@
       box-shadow var(--duration-hover);
   }
 
-  button:not(:disabled):hover,
-  a[role='button']:not(:disabled):hover {
-    transform: translateY(-1px);
-  }
-
   button:not(:disabled):active,
   a[role='button']:not(:disabled):active {
     transform: translateY(0);
@@ -170,10 +165,18 @@
       border-color var(--duration-hover);
   }
 
-  .glass-card:hover,
-  [class*='glass-card']:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+  /* Lift au hover : uniquement souris / trackpad (évite états collés au touch) */
+  @media (hover: hover) and (pointer: fine) {
+    button:not(:disabled):hover,
+    a[role='button']:not(:disabled):hover {
+      transform: translateY(-1px);
+    }
+
+    .glass-card:hover,
+    [class*='glass-card']:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
   }
 
   /* Liens dans le contenu - underline uniquement au hover */

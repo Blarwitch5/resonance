@@ -4,6 +4,9 @@ import Heart from '@lucide/astro/icons/heart'
 import Bookmark from '@lucide/astro/icons/bookmark'
 import Plus from '@lucide/astro/icons/plus'
 import EllipsisVertical from '@lucide/astro/icons/ellipsis-vertical'
+import Turntable from '@lucide/astro/icons/turntable'
+import CassetteTape from '@lucide/astro/icons/cassette-tape'
+import Disc from '@lucide/astro/icons/disc-2'
 import OptimizedImage from '../ui/OptimizedImage.astro'
 import { buildExplorerSlug } from '../../lib/slug'
 
@@ -77,7 +80,6 @@ const coverUrl = result.cover_image || result.thumb
 const [artist, ...titleParts] = result.title.split(' - ')
 const albumTitle = titleParts.join(' - ') || result.title
 const displayFormats = extractDisplayFormats(result.format)
-const formatsText = displayFormats.length > 0 ? displayFormats.join(', ') : ''
 const year = typeof result.year === 'number' ? result.year : (result.year ? parseInt(result.year) : null)
 const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, typeof result.id === 'number' ? result.id : parseInt(result.id))
 ---
@@ -112,7 +114,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
     >
       <button
         type="button"
-        class="btn-primary cursor-pointer flex h-10 w-10 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        class="btn-primary cursor-pointer flex h-11 w-11 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         aria-label={addToCollectionAria}
         data-discogs-id={result.id}
         data-action="collection"
@@ -121,7 +123,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
       </button>
       <button
         type="button"
-        class="btn-icon favorite-action-button border-0! bg-amber-500/90! flex h-10 w-10 items-center justify-center rounded-full p-0 shadow-lg hover:bg-amber-500! focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        class="btn-icon favorite-action-button border-0! bg-amber-500/90! flex h-11 w-11 items-center justify-center rounded-full p-0 shadow-lg hover:bg-amber-500! focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         aria-label="Ajouter aux favoris"
         aria-pressed="false"
         data-discogs-id={result.id}
@@ -133,7 +135,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
       <button
         type="button"
         class:list={[
-          'btn-icon-colored flex h-10 w-10 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          'btn-icon-colored flex h-11 w-11 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           inWishlist && 'wishlist-action-button--saved',
         ]}
         aria-label={inWishlist ? inWishlistAria : addToWishlistAria}
@@ -164,7 +166,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
     <div class="absolute right-2 top-2 z-10 flex items-center gap-2 md:hidden">
       <button
         type="button"
-        class="btn-primary cursor-pointer flex h-10 w-10 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        class="btn-primary cursor-pointer flex h-11 w-11 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         aria-label={addToCollectionAria}
         data-discogs-id={result.id}
         data-action="collection"
@@ -185,7 +187,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
         <div class="mobile-card-menu-panel absolute right-0 top-12 z-80 w-auto flex-col items-end gap-2 border-0 bg-transparent p-0 shadow-none backdrop-blur-none">
           <button
             type="button"
-            class="btn-icon favorite-action-button border-0! bg-amber-500/90! flex h-10 w-10 items-center justify-center rounded-full p-0 shadow-lg hover:bg-amber-500! focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            class="btn-icon favorite-action-button border-0! bg-amber-500/90! flex h-11 w-11 items-center justify-center rounded-full p-0 shadow-lg hover:bg-amber-500! focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             aria-label="Ajouter aux favoris"
             aria-pressed="false"
             data-discogs-id={result.id}
@@ -197,7 +199,7 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
           <button
             type="button"
             class:list={[
-              'btn-icon-colored flex h-10 w-10 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+              'btn-icon-colored flex h-11 w-11 items-center justify-center rounded-full p-0 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               inWishlist && 'wishlist-action-button--saved',
             ]}
             aria-label={inWishlist ? inWishlistAria : addToWishlistAria}
@@ -233,8 +235,20 @@ const explorerSlug = result.slug || buildExplorerSlug(artist, albumTitle, year, 
   <div class="p-3">
     <p class="truncate text-sm font-medium text-neutral">{albumTitle}</p>
     <p class="truncate text-xs text-muted">{artist || unknownArtistLabel}</p>
-    {formatsText && (
-      <p class="mt-1 text-xs font-medium text-primary">{formatsText}</p>
+    {displayFormats.length > 0 && (
+      <div class="mt-1 flex flex-wrap gap-1.5">
+        {displayFormats.map((format) => (
+          <span class:list={[
+            'inline-flex items-center gap-1 text-xs font-medium',
+            format === 'Vinyl' ? 'text-format-vinyl' : format === 'CD' ? 'text-format-cd' : 'text-format-cassette',
+          ]}>
+            {format === 'Vinyl' && <Turntable size={11} aria-hidden="true" class="fill-none stroke-2 shrink-0" />}
+            {format === 'CD' && <Disc size={11} aria-hidden="true" class="fill-none stroke-2 shrink-0" />}
+            {format === 'Cassette' && <CassetteTape size={11} aria-hidden="true" class="fill-none stroke-2 shrink-0" />}
+            {format}
+          </span>
+        ))}
+      </div>
     )}
     {result.year && <p class="text-xs text-muted">{result.year}</p>}
   </div>

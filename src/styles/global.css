@@ -12,10 +12,50 @@
   display: flex;
 }
 
+/* Variables globales d'offset mobile (FAB + barre basse) */
+:root {
+  --mobile-bottom-nav-height: 5.5rem;
+  --mobile-scanner-fab-offset: 6rem;
+  --mobile-bulk-fab-offset: 9.75rem;
+
+  /* ── Typographie ──────────────────────────────────────────────────────── */
+  --font-sans: 'Instrument Sans', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* ── Ombres supplémentaires ───────────────────────────────────────────── */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-accent: 0 4px 14px rgba(107, 63, 245, 0.22);
+}
+
+body.has-global-audio {
+  --mobile-scanner-fab-offset: 10rem;
+  --mobile-bulk-fab-offset: 13.75rem;
+}
+
+
 /* Empêcher le scroll horizontal sur mobile */
 html,
 body {
   overflow-x: hidden;
+}
+
+/* Utilitaire pour les liens-cartes : supprime le soulignement sur tout le contenu */
+.card-link,
+.card-link *,
+.card-link:hover,
+.card-link:hover * {
+  text-decoration: none !important;
+}
+
+/* Forcer la couleur de texte héritée dans les cartes-lien pour éviter
+   que les enfants n'héritent de la couleur accent des liens */
+.card-link {
+  color: inherit;
+}
+
+.card-link:hover {
+  color: inherit;
 }
 
 #app {
@@ -38,6 +78,13 @@ body {
 .no-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
 }
+
+/* Focus visible fallback global — s'applique aux éléments qui n'ont pas de style focus-visible explicite (WCAG 2.4.7) */
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 /* Animations Resonance */
 @keyframes resonance-pulse {
   0%,
@@ -215,9 +262,16 @@ html.transitioning * {
   animation: fadeInUp 0.5s ease-out 0.3s both;
 }
 
-/* Remonter le bouton scan quand la barre d’extrait audio est visible (éviter la superposition) */
-body.has-global-audio #barcode-scanner-container {
-  bottom: 10rem;
+/* Utilitaire : texte sur surface glass/image (garantit lisibilité minimale) */
+.text-on-glass {
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.6),
+    0 0 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Scrim garanti sous tout texte positionné sur une cover/image */
+.cover-text-scrim {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%);
 }
 
 /* Respect prefers-reduced-motion (WCAG 2.3.3) */

@@ -10,6 +10,7 @@ import X from '@lucide/astro/icons/x'
 import ArrowLeft from '@lucide/astro/icons/arrow-left'
 import Eye from '@lucide/astro/icons/eye'
 import EyeOff from '@lucide/astro/icons/eye-off'
+import TriangleAlert from '@lucide/astro/icons/triangle-alert'
 import { getSettingsMessages } from '../i18n/settings'
 import { getLayoutMessages } from '../i18n/layout'
 import { normalizeLocale } from '../i18n/config'
@@ -19,6 +20,19 @@ const user = Astro.locals.user
 
 if (!session || !user) {
   return Astro.redirect('/login')
+}
+
+import { db } from '../lib/db'
+const dbUser = await db.user.findUnique({
+  where: { id: user.id },
+  select: { isPrivate: true, notificationPrefs: true },
+})
+const isPrivate = dbUser?.isPrivate ?? false
+const needsUsername = !user.username
+const completeParam = Astro.url.searchParams.get('complete')
+const notifPrefs = (dbUser?.notificationPrefs ?? {}) as {
+  push?: { follower?: boolean; shelfAdd?: boolean; like?: boolean; comment?: boolean }
+  email?: { follower?: boolean; comment?: boolean }
 }
 
 const locale = normalizeLocale(Astro.cookies.get('locale')?.value ?? Astro.request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2))
@@ -37,6 +51,28 @@ const userImage = resolveUserImageUrl(user as UserWithImageUrl)
 
 <DashboardLayout title={t.meta.title} description={t.meta.description}>
   <div class="mx-auto max-w-4xl space-y-8">
+
+    <!-- Bannière username manquant -->
+    {(needsUsername || completeParam === 'username') && (
+      <div
+        class="flex items-start gap-3 rounded-xl border border-amber-400/50 bg-amber-50 dark:bg-amber-950/30 px-4 py-3"
+        role="alert"
+        aria-live="polite"
+      >
+        <TriangleAlert size={20} class="mt-0.5 shrink-0 text-amber-500" aria-hidden="true" />
+        <div>
+          <p class="text-sm font-medium text-amber-800 dark:text-amber-200">
+            {locale === 'fr' ? 'Ton username n\'est pas encore défini.' : 'Your username is not set yet.'}
+          </p>
+          <p class="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+            {locale === 'fr'
+              ? 'Choisis-en un ci-dessous pour accéder à ton profil public.'
+              : 'Choose one below to access your public profile.'}
+          </p>
+        </div>
+      </div>
+    )}
+
     <!-- Header -->
     <div>
       <a
@@ -375,6 +411,24 @@ const userImage = resolveUserImageUrl(user as UserWithImageUrl)
           </div>
         </div>
 
+        <!-- Import data -->
+        <div class="flex flex-col gap-3 border-b border-border/60 pt-4 pb-4 md:flex-row md:items-center md:justify-between md:border-b-0 md:pt-4 md:pb-0">
+          <div>
+            <h3 class="font-medium text-neutral mb-1">{t.data.importTitle}</h3>
+            <p class="text-sm text-muted">{t.data.importDescription}</p>
+          </div>
+          <div>
+            <input type="file" id="import-file-input" accept=".json,application/json" class="hidden" aria-label={t.data.importTitle} />
+            <button
+              type="button"
+              id="import-data-btn"
+              class="btn-secondary-surface w-full px-4 py-2 rounded-lg md:w-auto"
+            >
+              {t.data.importButton}
+            </button>
+          </div>
+        </div>
+
         <!-- Delete all data -->
         <div class="flex flex-col gap-3 border-b border-border/60 pt-4 pb-4 md:flex-row md:items-center md:justify-between md:border-b-0 md:pt-4 md:pb-0">
           <div>
@@ -413,10 +467,66 @@ const userImage = resolveUserImageUrl(user as UserWithImageUrl)
       </div>
     </section>
 
-    <!-- Notifications (coming soon) -->
-    <section class="glass-card rounded-2xl border border-border/60 bg-surface p-6">
+    <!-- Privacy -->
+    <section class="glass-card rounded-2xl p-6">
+      <h2 class="text-xl font-semibold text-neutral mb-4">{t.privacy.title}</h2>
+      <label class="flex items-center justify-between p-4 rounded-xl border border-border cursor-pointer">
+        <div>
+          <p class="text-sm font-medium">{t.privacy.privateAccount}</p>
+          <p class="text-xs text-muted mt-0.5">{t.privacy.privateAccountHint}</p>
+        </div>
+        <input
+          type="checkbox"
+          id="privacy-toggle"
+          class="sr-only"
+          checked={isPrivate}
+          aria-label={t.privacy.privateAccountAria}
+        />
+        <div class={`w-10 h-6 rounded-full border-2 relative transition-colors ${isPrivate ? 'bg-accent border-accent' : 'border-border'}`} aria-hidden="true">
+          <div class={`w-4 h-4 rounded-full absolute top-0.5 transition-transform ${isPrivate ? 'bg-white translate-x-4' : 'bg-muted translate-x-0.5'}`}></div>
+        </div>
+      </label>
+      <div class="mt-4">
+        <p class="text-sm font-medium mb-2">{t.privacy.blockedAccounts}</p>
+        <a href="/settings/blocked" class="text-sm text-accent hover:underline">{t.privacy.manageBlocked}</a>
+      </div>
+    </section>
+
+    <!-- Notifications -->
+    <section class="glass-card rounded-2xl p-6">
       <h2 class="text-xl font-semibold text-neutral mb-4">{t.notifications.title}</h2>
-      <p class="text-sm text-muted">{t.notifications.comingSoon}</p>
+      <div class="space-y-6">
+        <div>
+          <h3 class="text-sm font-medium text-muted uppercase tracking-wide mb-3">Push</h3>
+          <div class="space-y-3">
+            {[
+              { key: 'follower', label: t.privacy.notifFollower, checked: notifPrefs.push?.follower !== false },
+              { key: 'shelfAdd', label: t.privacy.notifShelfAdd, checked: notifPrefs.push?.shelfAdd !== false },
+              { key: 'like', label: t.privacy.notifLike, checked: notifPrefs.push?.like !== false },
+              { key: 'comment', label: t.privacy.notifComment, checked: notifPrefs.push?.comment !== false },
+            ].map(({ key, label, checked }) => (
+              <label class="flex items-center justify-between">
+                <span class="text-sm">{label}</span>
+                <input type="checkbox" class="push-pref" data-key={key} checked={checked} aria-label={label} />
+              </label>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-muted uppercase tracking-wide mb-3">Email</h3>
+          <div class="space-y-3">
+            {[
+              { key: 'follower', label: t.privacy.notifFollower, checked: notifPrefs.email?.follower !== false },
+              { key: 'comment', label: t.privacy.notifComment, checked: notifPrefs.email?.comment !== false },
+            ].map(({ key, label, checked }) => (
+              <label class="flex items-center justify-between">
+                <span class="text-sm">{label}</span>
+                <input type="checkbox" class="email-pref" data-key={key} checked={checked} aria-label={label} />
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- About section -->
@@ -439,5 +549,41 @@ const userImage = resolveUserImageUrl(user as UserWithImageUrl)
 
 <script>
   import './Settings.client'
+</script>
+
+<script>
+  // Privacy toggle
+  const privacyToggle = document.getElementById('privacy-toggle') as HTMLInputElement | null
+  privacyToggle?.addEventListener('change', async () => {
+    await fetch('/api/profile/privacy', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isPrivate: privacyToggle.checked }),
+    })
+  })
+
+  // Notification prefs — debounce saves
+  let prefTimer: ReturnType<typeof setTimeout>
+  function saveNotifPrefs() {
+    clearTimeout(prefTimer)
+    prefTimer = setTimeout(async () => {
+      const pushPrefs: Record<string, boolean> = {}
+      document.querySelectorAll<HTMLInputElement>('.push-pref').forEach((cb) => {
+        if (cb.dataset.key) pushPrefs[cb.dataset.key] = cb.checked
+      })
+      const emailPrefs: Record<string, boolean> = {}
+      document.querySelectorAll<HTMLInputElement>('.email-pref').forEach((cb) => {
+        if (cb.dataset.key) emailPrefs[cb.dataset.key] = cb.checked
+      })
+      await fetch('/api/profile/notification-prefs', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ push: pushPrefs, email: emailPrefs }),
+      })
+    }, 800)
+  }
+  document.querySelectorAll('.push-pref, .email-pref').forEach((el) =>
+    el.addEventListener('change', saveNotifPrefs),
+  )
 </script>
 
